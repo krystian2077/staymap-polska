@@ -1,0 +1,50 @@
+# StayMap Polska — instrukcja dla AI
+
+## Projekt
+Fullstack platforma rezerwacji noclegów. Premium, map-first, AI-powered.
+Stack: Django 5.1 + DRF + GeoDjango + Next.js 14 + Celery + Channels
+
+## Architektura backendu — ZAWSZE
+View → Serializer → Service → Model
+Logika biznesowa TYLKO w services.py — nigdy w views.py ani models.py.
+
+## Wzorzec serwisu — stosuj zawsze
+class XxxService:
+    @staticmethod  # lub @classmethod
+    @transaction.atomic  # przy mutacjach DB
+    def create_xxx(data, user):
+        # select_for_update() przy Booking
+        # raises custom exceptions z apps/common/exceptions.py
+        pass
+
+## Modele — konwencje
+- ZAWSZE dziedzicz po BaseModel (apps/common/models.py)
+- Soft delete przez deleted_at — nigdy hard delete
+- UUID jako PK (UUIDField, default=uuid.uuid4)
+- currency = CharField(max_length=3, default="PLN") wszędzie gdzie są pieniądze
+- Enumy jako TextChoices wewnątrz modelu (class Status(TextChoices))
+- Meta z indexes i verbose_name
+
+## API — format odpowiedzi
+Sukces: {"data": {...}, "meta": {}}
+Lista: {"data": [...], "meta": {"count": N, "next": "...", "previous": "..."}}
+Błąd: {"error": {"code": "BOOKING_UNAVAILABLE", "message": "...", "field": null}}
+Handler: apps.common.exceptions.custom_exception_handler
+
+## Bezpieczeństwo
+- Stripe webhook: ZAWSZE stripe.Webhook.construct_event() jako pierwsza linia
+- Celery tasks: ZAWSZE idempotentne (sprawdź stan przed akcją)
+- Booking: ZAWSZE @transaction.atomic + select_for_update() na Listing
+- Upload: ZAWSZE magic bytes MIME check (nie Content-Type)
+
+## Co NIE wolno
+- Logika biznesowa w views.py → przenieś do services.py
+- Hard delete → użyj soft_delete()
+- Email synchronicznie w view → użyj Celery task
+- Raw SQL z user input → użyj Django ORM
+- Brak @transaction.atomic przy mutacjach Booking
+
+## Testy
+- pytest + factory_boy + Faker("pl_PL")
+- Fixtures w conftest.py: user, host, listing, booking
+- Każdy serwis: test happy path + test raises exception
