@@ -1,0 +1,207 @@
+from __future__ import annotations
+
+from datetime import date
+from typing import Any, TypedDict
+
+# Zgodnie z dokumentacją (WA-2 + Etap 2 API)
+VALID_TRAVEL_MODES = frozenset(
+    {
+        "romantic",
+        "family",
+        "pet",
+        "workation",
+        "slow",
+        "outdoor",
+        "lake",
+        "mountains",
+        "wellness",
+    }
+)
+
+VALID_ORDERING = frozenset(
+    {
+        "recommended",
+        "price_asc",
+        "price_desc",
+        "newest",
+    }
+)
+
+
+class SearchQuerySchema(TypedDict, total=False):
+    location: str | None
+    latitude: float | None
+    longitude: float | None
+    radius_km: float | None
+    date_from: str | None
+    date_to: str | None
+    guests: int | None
+    travel_mode: str | None
+    min_price: float | None
+    max_price: float | None
+    booking_mode: str | None
+    ordering: str | None
+
+
+def _parse_float(v: Any) -> float | None:
+    if v is None or v == "":
+        return None
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_int(v: Any) -> int | None:
+    if v is None or v == "":
+        return None
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def _parse_date_str(v: Any) -> date | None:
+    if v is None or v == "":
+        return None
+    if isinstance(v, date):
+        return v
+    if not isinstance(v, str):
+        return None
+    try:
+        return date.fromisoformat(v.strip()[:10])
+    except ValueError:
+        return None
+
+
+def parse_search_params(query_dict) -> tuple[dict[str, Any], list[str]]:
+    """
+    Parsuje query params HTTP do dict używanego przez SearchOrchestrator.
+    Zwraca (params, errors).
+    """
+    errors: list[str] = []
+    data: dict[str, Any] = {key: query_dict.get(key) for key in query_dict.keys()}
+
+    params: dict[str, Any] = {}
+
+    if loc := (data.get("location") or "").strip():
+        params["location"] = loc
+
+    lat = _parse_float(data.get("latitude"))
+    lng = _parse_float(data.get("longitude"))
+    has_lat = data.get("latitude") not in (None, "")
+    has_lng = data.get("longitude") not in (None, "")
+    if has_lat or has_lng:
+        if lat is None or lng is None:
+            errors.append("Podaj jednocześnie poprawne latitude i longitude (liczby)")
+        else:
+            ok = True
+            if not (-90 <= lat <= 90):
+                errors.append("latitude musi być między -90 a 90")
+                ok = False
+            if not (-180 <= lng <= 180):
+                errors.append("longitude musi być między -180 a 180")
+                ok = False
+            if ok:
+                params["latitude"] = lat
+                params["longitude"] = lng
+
+    rk = _parse_float(data.get("radius_km"))
+    if data.get("radius_km") not in (None, ""):
+        if rk is None:
+            errors.append("radius_km musi być liczbą")
+        elif not (1 <= rk <= 500):
+            errors.append("radius_km musi być między 1 a 500")
+        else:
+            params["radius_km"] = rk
+
+    guests = _parse_int(data.get("guests"))
+    if data.get("guests") not in (None, ""):
+        if guests is None or guests < 1:
+            errors.append("guests musi być liczbą całkowitą >= 1")
+        else:
+            params["guests"] = guests
+
+    df = _parse_date_str(data.get("date_from"))
+    dt = _parse_date_str(data.get("date_to"))
+    if data.get("date_from") not in (None, "") and df is None:
+        errors.append("date_from musi być datą ISO (YYYY-MM-DD)")
+    elif df is not None:
+        params["date_from"] = df
+    if data.get("date_to") not in (None, "") and dt is None:
+        errors.append("date_to musi być datą ISO (YYYY-MM-DD)")
+    elif dt is not None:
+        params["date_to"] = dt
+    if df is not None and dt is not None and dt <= df:
+        errors.append("date_to musi być późniejsze niż date_from")
+
+    mode = (data.get("travel_mode") or "").strip().lower() or None
+    if mode:
+        if mode not in VALID_TRAVEL_MODES:
+            errors.append(f"Nieprawidłowy travel_mode: {mode}")
+        else:
+            params["travel_mode"] = mode
+
+    mp = _parse_float(data.get("min_price"))
+    if data.get("min_price") not in (None, ""):
+        if mp is None or mp < 0:
+            errors.append("min_price musi być liczbą >= 0")
+        else:
+            params["min_price"] = mp
+
+    xp = _parse_float(data.get("max_price"))
+    if data.get("max_price") not in (None, ""):
+        if xp is None or xp < 0:
+            errors.append("max_price musi być liczbą >= 0")
+        else:
+            params["max_price"] = xp
+
+    if (
+        params.get("min_price") is not None
+        and params.get("max_price") is not None
+        and params["max_price"] < params["min_price"]
+    ):
+        errors.append("max_price nie może być mniejsze niż min_price")
+
+    bm = (data.get("booking_mode") or "").strip() or None
+    if bm:
+        if bm not in ("instant", "request"):
+            errors.append("booking_mode musi być instant lub request")
+        else:
+            params["booking_mode"] = bm
+
+    ordering = (data.get("ordering") or "recommended").strip().lower()
+    if ordering not in VALID_ORDERING:
+        errors.append(f"Nieprawidłowy ordering: {ordering}")
+    else:
+        params["ordering"] = ordering
+
+    ps = _parse_int(data.get("page_size"))
+    if data.get("page_size") not in (None, ""):
+        if ps is None or not (1 <= ps <= 50):
+            errors.append("page_size musi być między 1 a 50")
+        else:
+            params["page_size"] = ps
+
+    allowed = {
+        "location",
+        "latitude",
+        "longitude",
+        "radius_km",
+        "date_from",
+        "date_to",
+        "guests",
+        "travel_mode",
+        "min_price",
+        "max_price",
+        "booking_mode",
+        "ordering",
+        "cursor",
+        "page_size",
+        "limit",
+    }
+    unknown = set(data.keys()) - allowed
+    if unknown:
+        errors.append(f"Nieznane parametry: {sorted(unknown)}")
+
+    return params, errors
