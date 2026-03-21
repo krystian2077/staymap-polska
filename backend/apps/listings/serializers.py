@@ -1,11 +1,16 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import Max
 from rest_framework import serializers
 
 from apps.listings.image_service import ImageService
+from decimal import Decimal
+
+from apps.host.models import HostProfile
 from apps.listings.models import Listing, ListingImage
 from apps.listings.services import ListingService
+from apps.location_intelligence.area_summary import get_or_build_area_summary
 
 
 class ListingLocationWriteSerializer(serializers.Serializer):
@@ -18,13 +23,22 @@ class ListingLocationWriteSerializer(serializers.Serializer):
 
 class ListingImageSerializer(serializers.ModelSerializer):
     url = serializers.SerializerMethodField()
+    display_url = serializers.SerializerMethodField()
 
     class Meta:
         model = ListingImage
-        fields = ("id", "url", "is_cover", "sort_order", "created_at")
+        fields = (
+            "id",
+            "url",
+            "display_url",
+            "is_cover",
+            "sort_order",
+            "alt_text",
+            "created_at",
+        )
         read_only_fields = fields
 
-    def get_url(self, obj):
+    def _abs_url(self, obj):
         if not obj.image:
             return None
         request = self.context.get("request")
@@ -32,6 +46,12 @@ class ListingImageSerializer(serializers.ModelSerializer):
         if request:
             return request.build_absolute_uri(url)
         return url
+
+    def get_url(self, obj):
+        return self._abs_url(obj)
+
+    def get_display_url(self, obj):
+        return self._abs_url(obj)
 
 
 class ListingListSerializer(serializers.ModelSerializer):
@@ -44,11 +64,15 @@ class ListingListSerializer(serializers.ModelSerializer):
             "id",
             "title",
             "slug",
+            "short_description",
             "base_price",
+            "cleaning_fee",
             "currency",
             "status",
             "max_guests",
             "booking_mode",
+            "average_rating",
+            "review_count",
             "location",
             "cover_image",
             "created_at",
@@ -59,12 +83,13 @@ class ListingListSerializer(serializers.ModelSerializer):
         if not hasattr(obj, "location") or obj.location is None:
             return None
         p = obj.location.point
+        loc = obj.location
         return {
             "lat": p.y,
             "lng": p.x,
-            "city": obj.location.city,
-            "region": obj.location.region,
-            "country": obj.location.country,
+            "city": loc.city,
+            "region": loc.region,
+            "country": loc.country,
         }
 
     def get_cover_image(self, obj):
@@ -90,12 +115,123 @@ class ListingListSerializer(serializers.ModelSerializer):
         return url
 
 
+class HostProfileSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source="pk", read_only=True)
+    display_name = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
+    member_since = serializers.DateTimeField(source="user.created_at", read_only=True)
+
+    class Meta:
+        model = HostProfile
+        fields = (
+            "id",
+            "display_name",
+            "bio",
+            "avatar_url",
+            "is_verified",
+            "response_rate",
+            "average_rating",
+            "review_count",
+            "member_since",
+        )
+        read_only_fields = fields
+
+    def get_display_name(self, obj):
+        u = obj.user
+        name = f"{u.first_name} {u.last_name}".strip()
+        return name or u.email.split("@")[0]
+
+    def get_average_rating(self, obj):
+        vals = list(
+            Listing.objects.filter(
+                host=obj, deleted_at__isnull=True, status=Listing.Status.APPROVED
+            ).exclude(average_rating__isnull=True).values_list("average_rating", flat=True)
+        )
+        if not vals:
+            return None
+        return float(sum(vals, Decimal("0")) / len(vals))
+
+    def get_review_count(self, obj):
+        return sum(
+            Listing.objects.filter(host=obj, deleted_at__isnull=True).values_list(
+                "review_count", flat=True
+            )
+        )
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.response_rate is not None:
+            data["response_rate"] = float(instance.response_rate)
+        return data
+
+
 class ListingDetailSerializer(ListingListSerializer):
     description = serializers.CharField()
     images = ListingImageSerializer(many=True, read_only=True)
+    host = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField()
+    amenities = serializers.JSONField(read_only=True)
+    bedrooms = serializers.IntegerField(read_only=True)
+    beds = serializers.IntegerField(read_only=True)
+    bathrooms = serializers.IntegerField(read_only=True)
+    is_pet_friendly = serializers.BooleanField(read_only=True)
+    cancellation_policy = serializers.CharField(read_only=True)
+    check_in_time = serializers.CharField(read_only=True)
+    check_out_time = serializers.CharField(read_only=True)
+    listing_type = serializers.JSONField(read_only=True)
+    destination_score_cache = serializers.JSONField(read_only=True, allow_null=True)
+    area_summary = serializers.SerializerMethodField()
+    service_fee_percent = serializers.SerializerMethodField()
 
     class Meta(ListingListSerializer.Meta):
-        fields = ListingListSerializer.Meta.fields + ("description", "images")
+        fields = ListingListSerializer.Meta.fields + (
+            "description",
+            "images",
+            "host",
+            "location",
+            "amenities",
+            "bedrooms",
+            "beds",
+            "bathrooms",
+            "is_pet_friendly",
+            "cancellation_policy",
+            "check_in_time",
+            "check_out_time",
+            "listing_type",
+            "destination_score_cache",
+            "area_summary",
+            "service_fee_percent",
+        )
+
+    def get_service_fee_percent(self, obj):
+        return float(getattr(settings, "PLATFORM_SERVICE_FEE_PERCENT", 15))
+
+    def get_area_summary(self, obj):
+        return get_or_build_area_summary(obj)
+
+    def get_host(self, obj):
+        return HostProfileSerializer(obj.host, context=self.context).data
+
+    def get_location(self, obj):
+        if not hasattr(obj, "location") or obj.location is None:
+            return None
+        p = obj.location.point
+        loc = obj.location
+        base = {
+            "country": loc.country or "PL",
+            "region": loc.region or "",
+            "city": loc.city or "",
+            "address_line": loc.address_line or "",
+            "postal_code": loc.postal_code or "",
+            "latitude": p.y,
+            "longitude": p.x,
+            "near_lake": loc.near_lake,
+            "near_mountains": loc.near_mountains,
+            "near_forest": loc.near_forest,
+            "near_sea": loc.near_sea,
+        }
+        return base
 
 
 class ListingWriteSerializer(serializers.ModelSerializer):
@@ -107,6 +243,7 @@ class ListingWriteSerializer(serializers.ModelSerializer):
             "title",
             "description",
             "base_price",
+            "cleaning_fee",
             "currency",
             "booking_mode",
             "status",

@@ -20,6 +20,30 @@ class PricingError(StayMapException):
     default_detail = "Nie udało się obliczyć ceny."
 
 
+class BookingNotCancellableError(StayMapException):
+    status_code = 400
+    default_code = "BOOKING_NOT_CANCELLABLE"
+    default_detail = "Tej rezerwacji nie można już anulować."
+
+
+class AIServiceError(StayMapException):
+    status_code = 503
+    default_code = "AI_SERVICE_UNAVAILABLE"
+    default_detail = "Usługa AI jest chwilowo niedostępna."
+
+
+class CompareLimitError(StayMapException):
+    status_code = 400
+    default_code = "COMPARE_LIMIT"
+    default_detail = "Osiągnięto limit ofert w porównaniu."
+
+
+class CompareSessionRequiredError(StayMapException):
+    status_code = 400
+    default_code = "COMPARE_SESSION_REQUIRED"
+    default_detail = "Brak sesji porównania — wywołaj POST /compare/bootstrap/."
+
+
 def _validation_message_and_field(data):
     """Z dict błędów DRF zwraca (message, first_field_name)."""
     if not isinstance(data, dict):

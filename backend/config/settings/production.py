@@ -1,6 +1,16 @@
 from .base import *  # noqa: F403, F401
 
 DEBUG = False
+
+from config.sentry_config import init_sentry  # noqa: E402
+
+init_sentry(
+    dsn=SENTRY_DSN,  # noqa: F405
+    environment=env("SENTRY_ENVIRONMENT", default="production"),  # noqa: F405
+    traces_sample_rate=env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.0),  # noqa: F405
+    profiles_sample_rate=SENTRY_PROFILES_SAMPLE_RATE,  # noqa: F405
+    send_default_pii=env.bool("SENTRY_SEND_DEFAULT_PII", default=False),  # noqa: F405
+)
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
 

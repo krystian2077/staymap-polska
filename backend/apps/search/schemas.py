@@ -205,3 +205,69 @@ def parse_search_params(query_dict) -> tuple[dict[str, Any], list[str]]:
         errors.append(f"Nieznane parametry: {sorted(unknown)}")
 
     return params, errors
+
+
+# Pola zapisywane w SavedSearch.query_payload (bez cursor / page_size)
+SAVED_SEARCH_PARAM_KEYS = frozenset(
+    {
+        "location",
+        "latitude",
+        "longitude",
+        "radius_km",
+        "date_from",
+        "date_to",
+        "guests",
+        "travel_mode",
+        "min_price",
+        "max_price",
+        "booking_mode",
+        "ordering",
+    }
+)
+
+
+def validate_saved_search_payload(raw: dict) -> tuple[dict, list[str]]:
+    """
+    Walidacja JSON zapisu wyszukiwania (WA-2).
+    Zwraca (params jak w SearchOrchestrator / parse_search_params, errors).
+    """
+    if not isinstance(raw, dict):
+        return {}, ["query_payload musi być obiektem JSON"]
+
+    unknown = set(raw.keys()) - SAVED_SEARCH_PARAM_KEYS
+    if unknown:
+        return {}, [f"Nieznane pola: {sorted(unknown)}"]
+
+    from django.http import QueryDict
+
+    qd = QueryDict(mutable=True)
+    for key in SAVED_SEARCH_PARAM_KEYS:
+        if key not in raw:
+            continue
+        val = raw[key]
+        if val is None:
+            continue
+        if isinstance(val, bool):
+            qd.append(key, "true" if val else "false")
+        elif isinstance(val, (int, float)):
+            qd.append(key, str(val))
+        elif isinstance(val, str):
+            qd.append(key, val)
+        else:
+            return {}, [f"Pole {key}: niedozwolony typ"]
+
+    params, errors = parse_search_params(qd)
+    for drop in ("page_size", "cursor", "limit"):
+        params.pop(drop, None)
+    return params, errors
+
+
+def saved_search_payload_to_json(params: dict) -> dict:
+    """Serializacja do JSONField (date → ISO)."""
+    out: dict = {}
+    for k, v in params.items():
+        if hasattr(v, "isoformat"):
+            out[k] = v.isoformat()
+        elif v is not None:
+            out[k] = v
+    return out

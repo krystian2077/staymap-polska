@@ -1,0 +1,20 @@
+{% extends "emails/base.html" %}
+{% block title %}Potwierdzenie rezerwacji{% endblock %}
+{% block content %}
+<div class="hero">
+  <div class="pill">Rezerwacja potwierdzona</div>
+  <h1>Dziękujemy za rezerwację</h1>
+</div>
+<div class="body">
+  <p>Cześć <strong>{{ guest.first_name }}</strong>,</p>
+  <p>Twoja rezerwacja w obiekcie <strong>{{ listing.title }}</strong> została zapisana.</p>
+  <ul style="padding-left: 18px; margin: 16px 0;">
+    <li><strong>Przyjazd:</strong> {{ booking.check_in|date:"j E Y" }}</li>
+    <li><strong>Wyjazd:</strong> {{ booking.check_out|date:"j E Y" }}</li>
+    <li><strong>Goście:</strong> {{ booking.guests_count }}</li>
+    <li><strong>Łącznie:</strong> {{ booking.final_amount }} {{ booking.currency }}</li>
+  </ul>
+  <p class="muted">Gospodarz: {{ host.first_name }} {{ host.last_name }} ({{ host.email }})</p>
+  <a class="btn" href="{{ frontend_url }}/bookings">Zobacz moje rezerwacje</a>
+</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+Oceń pobyt — StayMap Polska
+
+Cześć {{ guest.first_name }},
+
+Twój pobyt w „{{ listing.title }}” dobiegł końca. Zostaw opinię w aplikacji:
+{{ frontend_url }}/bookings
+
+— StayMap Polska

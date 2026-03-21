@@ -10,6 +10,15 @@ class HostProfile(BaseModel):
         on_delete=models.PROTECT,
         related_name="host_profile",
     )
+    bio = models.TextField(blank=True)
+    avatar_url = models.URLField(max_length=500, blank=True)
+    is_verified = models.BooleanField(default=False)
+    response_rate = models.DecimalField(
+        max_digits=4,
+        decimal_places=3,
+        default=0,
+        help_text="0–1: odsetek odpowiedzi na zapytania.",
+    )
 
     class Meta:
         verbose_name = "Profil gospodarza"

@@ -66,5 +66,5 @@ jobs:
       - name: Ruff
         run: ruff check apps config
 
-      - name: Pytest
-        run: pytest -q --no-cov
+      - name: Pytest with coverage
+        run: pytest -q

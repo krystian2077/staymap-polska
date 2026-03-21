@@ -22,6 +22,10 @@ class ImageService:
         if uploaded_file.size > MAX_FILE_SIZE_BYTES:
             raise ValidationError("Plik za duży. Maksymalnie 10 MB.")
 
+        ct = getattr(uploaded_file, "content_type", "") or ""
+        if ct and ct not in ALLOWED_MIME_TYPES:
+            raise ValidationError(f"Niedozwolony typ MIME: {ct}. Dozwolone: JPEG, PNG, WebP.")
+
         file_bytes = uploaded_file.read()
         if not file_bytes:
             raise ValidationError("Pusty plik.")

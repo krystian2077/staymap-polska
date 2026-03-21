@@ -13,3 +13,11 @@ Pillow==11.0.0
 python-magic==0.4.27
 boto3==1.35.53
 django-storages==1.14.4
+celery==5.4.0
+django-celery-beat==2.7.0
+openai==1.68.2
+python-dateutil==2.9.0
+channels==4.2.0
+channels-redis==4.2.1
+daphne==4.1.2
+sentry-sdk[django]==2.17.0

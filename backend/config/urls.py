@@ -15,6 +15,13 @@ urlpatterns = [
     path("api/v1/", include("apps.users.urls")),
     path("api/v1/", include("apps.listings.urls")),
     path("api/v1/", include("apps.search.urls")),
+    path("api/v1/", include("apps.bookings.urls")),
+    path("api/v1/", include("apps.ai_assistant.urls")),
+    path("api/v1/", include("apps.discovery.urls")),
+    path("api/v1/", include("apps.host.urls")),
+    path("api/v1/", include("apps.moderation.urls")),
+    path("api/v1/", include("apps.reviews.urls")),
+    path("api/v1/", include("apps.messaging.urls")),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path(
         "api/schema/swagger-ui/",

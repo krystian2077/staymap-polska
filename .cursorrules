@@ -32,7 +32,7 @@ Błąd: {"error": {"code": "BOOKING_UNAVAILABLE", "message": "...", "field": nul
 Handler: apps.common.exceptions.custom_exception_handler
 
 ## Bezpieczeństwo
-- Stripe webhook: ZAWSZE stripe.Webhook.construct_event() jako pierwsza linia
+- Stripe (gdy wdrożysz): webhook — ZAWSZE stripe.Webhook.construct_event() jako pierwsza linia
 - Celery tasks: ZAWSZE idempotentne (sprawdź stan przed akcją)
 - Booking: ZAWSZE @transaction.atomic + select_for_update() na Listing
 - Upload: ZAWSZE magic bytes MIME check (nie Content-Type)

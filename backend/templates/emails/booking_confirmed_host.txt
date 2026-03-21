@@ -1,0 +1,18 @@
+Nowa rezerwacja — StayMap Polska
+
+Cześć {{ host.first_name }},
+
+Gość {{ guest.first_name }} {{ guest.last_name }} zarezerwował(a) „{{ listing.title }}”.
+
+Przyjazd: {{ booking.check_in }}
+Wyjazd: {{ booking.check_out }}
+Goście: {{ booking.guests_count }}
+Kwota: {{ booking.final_amount }} {{ booking.currency }}
+
+{% if booking.special_requests %}Uwagi gościa:
+{{ booking.special_requests }}
+{% endif %}
+
+Panel rezerwacji: {{ frontend_url }}/host/bookings
+
+— StayMap Polska

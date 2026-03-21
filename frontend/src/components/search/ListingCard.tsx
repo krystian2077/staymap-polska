@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { publicMediaUrl } from "@/lib/mediaUrl";
 import type { SearchListing } from "@/lib/searchTypes";
 
 type Props = { listing: SearchListing };
 
 export function ListingCard({ listing }: Props) {
+  const coverSrc = publicMediaUrl(listing.cover_image);
   const loc =
     listing.location?.city ||
     listing.location?.region ||
@@ -11,12 +13,12 @@ export function ListingCard({ listing }: Props) {
 
   return (
     <article className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition hover:border-neutral-400 dark:border-neutral-700 dark:bg-neutral-950 dark:hover:border-neutral-500">
-      <Link href={`/listings/${listing.slug}`} className="block">
+      <Link href={`/listing/${listing.slug}`} className="block">
         <div className="aspect-[16/10] w-full bg-neutral-100 dark:bg-neutral-800">
-          {listing.cover_image ? (
+          {coverSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={listing.cover_image}
+              src={coverSrc}
               alt=""
               className="h-full w-full object-cover"
             />

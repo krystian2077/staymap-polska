@@ -1,0 +1,16 @@
+Potwierdzenie rezerwacji — StayMap Polska
+
+Cześć {{ guest.first_name }},
+
+Twoja rezerwacja w obiekcie „{{ listing.title }}” została zapisana.
+
+Przyjazd: {{ booking.check_in }}
+Wyjazd: {{ booking.check_out }}
+Goście: {{ booking.guests_count }}
+Łącznie: {{ booking.final_amount }} {{ booking.currency }}
+
+Gospodarz: {{ host.first_name }} {{ host.last_name }} ({{ host.email }})
+
+Moje rezerwacje: {{ frontend_url }}/bookings
+
+— StayMap Polska

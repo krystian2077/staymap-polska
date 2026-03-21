@@ -14,6 +14,10 @@ def listing_image_upload_path(instance, filename):
     return f"listings/{instance.listing_id}/{filename}"
 
 
+def default_listing_type():
+    return {"name": "Domek", "icon": "🏠", "slug": "domek"}
+
+
 class Listing(BaseModel):
     class Status(models.TextChoices):
         DRAFT = "draft", "Szkic"
@@ -26,12 +30,24 @@ class Listing(BaseModel):
         INSTANT = "instant", "Natychmiastowa"
         REQUEST = "request", "Na prośbę"
 
+    class CancellationPolicy(models.TextChoices):
+        FLEXIBLE = "flexible", "Elastyczna"
+        MODERATE = "moderate", "Umiarkowana"
+        STRICT = "strict", "Ścisła"
+        NON_REFUNDABLE = "non_refundable", "Bezzwrotna"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     host = models.ForeignKey(HostProfile, on_delete=models.PROTECT, related_name="listings")
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=220, unique=True, db_index=True)
     description = models.TextField(blank=True)
     base_price = models.DecimalField(max_digits=10, decimal_places=2)
+    cleaning_fee = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Opłata sprzątająca (jednorazowo).",
+    )
     currency = models.CharField(max_length=3, default="PLN")
     booking_mode = models.CharField(
         max_length=20,
@@ -44,7 +60,33 @@ class Listing(BaseModel):
         default=Status.DRAFT,
         db_index=True,
     )
+    moderation_comment = models.TextField(
+        blank=True,
+        help_text="Uzasadnienie moderacji (np. powód odrzucenia).",
+    )
     max_guests = models.PositiveSmallIntegerField(default=2)
+    short_description = models.CharField(max_length=320, blank=True)
+    bedrooms = models.PositiveSmallIntegerField(default=1)
+    beds = models.PositiveSmallIntegerField(default=1)
+    bathrooms = models.PositiveSmallIntegerField(default=1)
+    is_pet_friendly = models.BooleanField(default=False)
+    cancellation_policy = models.CharField(
+        max_length=20,
+        choices=CancellationPolicy.choices,
+        default=CancellationPolicy.FLEXIBLE,
+    )
+    check_in_time = models.CharField(max_length=5, default="15:00")
+    check_out_time = models.CharField(max_length=5, default="11:00")
+    listing_type = models.JSONField(default=default_listing_type)
+    amenities = models.JSONField(default=list)
+    destination_score_cache = models.JSONField(null=True, blank=True)
+    average_rating = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    review_count = models.PositiveIntegerField(default=0)
 
     class Meta:
         verbose_name = "Oferta"
@@ -79,6 +121,12 @@ class ListingLocation(BaseModel):
     city = models.CharField(max_length=120, blank=True)
     region = models.CharField(max_length=120, blank=True)
     country = models.CharField(max_length=2, default="PL")
+    address_line = models.CharField(max_length=240, blank=True)
+    postal_code = models.CharField(max_length=16, blank=True)
+    near_lake = models.BooleanField(default=False)
+    near_mountains = models.BooleanField(default=False)
+    near_forest = models.BooleanField(default=False)
+    near_sea = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Lokalizacja oferty"
@@ -100,6 +148,7 @@ class ListingImage(BaseModel):
     image = models.ImageField(upload_to=listing_image_upload_path)
     is_cover = models.BooleanField(default=False)
     sort_order = models.PositiveSmallIntegerField(default=0)
+    alt_text = models.CharField(max_length=200, blank=True)
 
     class Meta:
         verbose_name = "Zdjęcie oferty"
@@ -109,3 +158,4 @@ class ListingImage(BaseModel):
     def __str__(self):
         cover = " [okładka]" if self.is_cover else ""
         return f"Zdjęcie #{self.sort_order}{cover} — {self.listing.title}"
+

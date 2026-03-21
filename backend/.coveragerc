@@ -1,0 +1,15 @@
+# Etap 7 — pomiary pokrycia tylko kodu produkcyjnego (bez migracji, testów, seed_db).
+[run]
+source = apps
+omit =
+    */migrations/*
+    */tests/*
+    */management/commands/*
+
+[report]
+precision = 1
+skip_empty = true
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise NotImplementedError

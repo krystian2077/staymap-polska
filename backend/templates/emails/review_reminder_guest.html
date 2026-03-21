@@ -1,0 +1,14 @@
+{% extends "emails/base.html" %}
+{% block title %}Oceń pobyt{% endblock %}
+{% block content %}
+<div class="hero">
+  <div class="pill">Twoja opinia</div>
+  <h1>Jak minął pobyt?</h1>
+</div>
+<div class="body">
+  <p>Cześć <strong>{{ guest.first_name }}</strong>,</p>
+  <p>Twój pobyt w <strong>{{ listing.title }}</strong> dobiegł końca. Zostaw krótką opinię — pomoże innym podróżnym.</p>
+  <a class="btn" href="{{ frontend_url }}/bookings">Przejdź do rezerwacji</a>
+  <p class="muted" style="margin-top:24px;">Dziękujemy za skorzystanie ze StayMap.</p>
+</div>
+{% endblock %}

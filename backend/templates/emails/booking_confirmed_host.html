@@ -1,0 +1,22 @@
+{% extends "emails/base.html" %}
+{% block title %}Nowa rezerwacja{% endblock %}
+{% block content %}
+<div class="hero">
+  <div class="pill">Nowa rezerwacja</div>
+  <h1>Masz nowego gościa</h1>
+</div>
+<div class="body">
+  <p>Cześć <strong>{{ host.first_name }}</strong>,</p>
+  <p>Gość <strong>{{ guest.first_name }} {{ guest.last_name }}</strong> zarezerwował(a) <strong>{{ listing.title }}</strong>.</p>
+  <ul style="padding-left: 18px; margin: 16px 0;">
+    <li><strong>Przyjazd:</strong> {{ booking.check_in|date:"j E Y" }}</li>
+    <li><strong>Wyjazd:</strong> {{ booking.check_out|date:"j E Y" }}</li>
+    <li><strong>Goście:</strong> {{ booking.guests_count }}</li>
+    <li><strong>Kwota:</strong> {{ booking.final_amount }} {{ booking.currency }}</li>
+  </ul>
+  {% if booking.special_requests %}
+  <p><strong>Uwagi gościa:</strong><br>{{ booking.special_requests }}</p>
+  {% endif %}
+  <a class="btn" href="{{ frontend_url }}/host/bookings">Panel — rezerwacje</a>
+</div>
+{% endblock %}

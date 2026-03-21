@@ -3,8 +3,20 @@
 @tailwind utilities;
 
 :root {
+  --brand: #16a34a;
+  --brand-dark: #0a2e1a;
+  --brand-light: #4ade80;
+  --brand-surface: #f0fdf4;
+  --brand-muted: #dcfce7;
+  --brand-border: #bbf7d0;
+  --text: #111827;
+  --text2: #6b7280;
+  --text3: #9ca3af;
+  --border: #e5e7eb;
+  --bg: #ffffff;
+  --bg2: #f9fafb;
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #111827;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -14,20 +26,252 @@
   }
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-fade-up,
+  .animate-fade-in,
+  .animate-scale-in,
+  .animate-slide-right {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-dm), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: #bbf7d0;
+  color: #0a2e1a;
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-md bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-brand transition-all duration-200;
+  }
+  .btn-primary:hover {
+    @apply -translate-y-px bg-brand-700 shadow-brand-lg;
+  }
+  .btn-primary:focus-visible {
+    @apply outline-none ring-2 ring-brand ring-offset-2;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-md border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-text transition-all duration-200;
+  }
+  .btn-secondary:hover {
+    @apply border-brand bg-brand-surface text-brand-dark;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium text-text-secondary transition-all duration-200;
+  }
+  .btn-ghost:hover {
+    @apply bg-gray-50 text-text;
+  }
+  .input {
+    @apply w-full rounded-md border-[1.5px] border-gray-200 bg-white px-3 py-2.5 text-sm text-text transition-all duration-200 placeholder:text-text-muted focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15;
+  }
+  .card {
+    @apply rounded-lg border border-gray-100 bg-white shadow-card;
+  }
+  .card-hover {
+    @apply transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)];
+  }
+  .card-hover:hover {
+    @apply -translate-y-1 border-brand-border shadow-hover;
+  }
+  .nav-link {
+    @apply text-sm font-semibold text-text-secondary transition-colors duration-200 hover:text-brand-dark;
+  }
+  .badge-green {
+    @apply inline-flex items-center rounded-full bg-brand-muted px-2.5 py-0.5 text-xs font-bold text-green-800;
+  }
+  .badge-dark {
+    @apply inline-flex items-center rounded-full bg-brand-dark px-2.5 py-0.5 text-xs font-bold text-white;
+  }
+  .mode-chip {
+    @apply cursor-pointer select-none rounded-xl border-[1.5px] border-gray-200 bg-white font-bold text-gray-500 transition-all duration-200;
+  }
+  .mode-chip:hover {
+    @apply -translate-y-0.5 border-brand bg-brand-surface text-brand-dark shadow-sm;
+  }
+  .mode-chip.on {
+    @apply border-brand bg-brand-muted text-brand-dark;
+  }
 }
 
 @layer utilities {
   .text-balance {
     text-wrap: balance;
   }
+  .sec-h {
+    @apply text-lg font-extrabold text-brand-dark;
+  }
 }
 
-/* Leaflet divIcon — domyślna ramka tła */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .staymap-leaflet-divicon {
   background: transparent !important;
   border: none !important;
+}
+
+.leaflet-pin-wrap {
+  position: relative;
+  display: inline-block;
+  background: #0a2e1a;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  transition: background 0.22s ease, box-shadow 0.22s ease;
+}
+.leaflet-pin-wrap::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #0a2e1a;
+  transition: border-top-color 0.22s ease;
+}
+.leaflet-pin-wrap.on {
+  background: #16a34a;
+  box-shadow: 0 6px 20px rgba(22, 163, 74, 0.45);
+}
+.leaflet-pin-wrap.on::after {
+  border-top-color: #16a34a;
+}
+
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large {
+  background: rgba(22, 163, 74, 0.18) !important;
+}
+.marker-cluster-small div,
+.marker-cluster-medium div,
+.marker-cluster-large div {
+  background: #16a34a !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+}
+
+.leaflet-cluster-anim .leaflet-marker-icon,
+.leaflet-cluster-anim .leaflet-marker-shadow {
+  transition: transform 0.22s ease-out;
+}
+
+@keyframes ai-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 28px 2px rgba(124, 58, 237, 0.35);
+  }
+}
+
+@keyframes dot-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up-bar {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-heart {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes fade-in-tag {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ai-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-ai-glow {
+  animation: ai-glow 3s ease-in-out infinite;
+}
+
+.animate-dot-bounce {
+  animation: dot-bounce 1s ease-in-out infinite;
+}
+
+.animate-slide-up-bar {
+  animation: slide-up-bar 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-float-heart {
+  animation: float-heart 2.2s ease-in-out infinite;
+}
+
+.animate-fade-in-tag {
+  animation: fade-in-tag 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-ai-slide-up {
+  animation: ai-slide-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

@@ -1,4 +1,4 @@
-.PHONY: dev down migrate migrations superuser shell test lint
+.PHONY: dev down migrate migrations superuser shell test test-fast lint
 
 dev:
 	docker compose up --build
@@ -18,7 +18,11 @@ superuser:
 shell:
 	docker compose exec backend python manage.py shell_plus --ipython
 
+# Etap 7: pokrycie wg .coveragerc (bez migracji/testów/komend seed)
 test:
+	docker compose exec backend pytest -q
+
+test-fast:
 	docker compose exec backend pytest -q --no-cov
 
 seed:

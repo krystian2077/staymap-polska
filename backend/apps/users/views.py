@@ -1,9 +1,13 @@
 from django.contrib.auth import get_user_model
 from rest_framework import generics, permissions, status
+from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from apps.common.audit import log_action
 from apps.common.throttles import AuthLoginThrottle, AuthRegisterThrottle
+from apps.listings.image_service import ImageService
+from apps.users.models import UserProfile
 from apps.users.serializers import (
     EmailTokenObtainPairSerializer,
     RegisterSerializer,
@@ -23,6 +27,13 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        log_action(
+            action="user.registered",
+            object_type="user",
+            object_id=str(user.id),
+            actor=user,
+            metadata={"email": user.email},
+        )
         data = UserMeSerializer(user).data
         return Response({"data": data, "meta": {}}, status=status.HTTP_201_CREATED)
 
@@ -35,9 +46,13 @@ class EmailTokenObtainPairView(TokenObtainPairView):
 class MeView(generics.RetrieveUpdateAPIView):
     serializer_class = UserMeSerializer
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
+
+    def get_queryset(self):
+        return User.objects.select_related("host_profile", "user_profile")
 
     def get_object(self):
-        return self.request.user
+        return self.get_queryset().get(pk=self.request.user.pk)
 
     def retrieve(self, request, *args, **kwargs):
         serializer = self.get_serializer(self.get_object())
@@ -46,7 +61,17 @@ class MeView(generics.RetrieveUpdateAPIView):
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop("partial", False)
         instance = self.get_object()
+
+        avatar = request.FILES.get("avatar")
+        if avatar:
+            content = ImageService.validate_and_process(avatar)
+            prof, _ = UserProfile.objects.get_or_create(user=instance)
+            prof.avatar.save(content.name, content, save=True)
+
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response({"data": serializer.data, "meta": {}})
+
+        instance = self.get_queryset().get(pk=instance.pk)
+        out = self.get_serializer(instance)
+        return Response({"data": out.data, "meta": {}})
