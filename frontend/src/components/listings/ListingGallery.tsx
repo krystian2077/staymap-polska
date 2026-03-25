@@ -48,6 +48,7 @@ export function ListingGallery({
               className="object-cover"
               sizes="(max-width: 768px) 100vw, 66vw"
               priority
+              unoptimized
             />
           ) : (
             <div className="flex h-full min-h-[240px] items-center justify-center bg-gradient-to-br from-brand to-brand-dark text-8xl md:min-h-0">
@@ -64,6 +65,7 @@ export function ListingGallery({
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 0vw, 17vw"
+                unoptimized
               />
             ) : (
               <div className="flex h-full items-center justify-center bg-brand-muted text-4xl">
@@ -113,6 +115,7 @@ export function ListingGallery({
                     className="object-cover"
                     sizes="(max-width: 768px) 100vw, 33vw"
                     loading="lazy"
+                    unoptimized
                   />
                 </div>
               ) : null

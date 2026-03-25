@@ -172,7 +172,7 @@ export default function BookingSummaryPage() {
         <div className="flex gap-3.5">
           <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[10px] bg-brand-muted">
             {cover ? (
-              <Image src={cover} alt="" fill className="object-cover" sizes="80px" />
+              <Image src={cover} alt="" fill className="object-cover" sizes="80px" unoptimized />
             ) : (
               <span className="flex h-full items-center justify-center text-2xl">
                 {listing.listing_type.icon}

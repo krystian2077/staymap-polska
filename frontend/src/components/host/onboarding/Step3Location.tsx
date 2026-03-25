@@ -4,15 +4,9 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef } from "react";
 
+import { LOCATION_TAG_GROUPS } from "@/lib/locationTags";
 import { cn } from "@/lib/utils";
 import type { ListingLocation } from "@/types/listing";
-
-const CHIPS: { key: keyof Pick<ListingLocation, "near_mountains" | "near_forest" | "near_lake" | "near_sea">; label: string }[] = [
-  { key: "near_mountains", label: "⛰️ Góry" },
-  { key: "near_forest", label: "🌲 Las" },
-  { key: "near_lake", label: "🏊 Jezioro" },
-  { key: "near_sea", label: "🌊 Morze" },
-];
 
 type Props = {
   location: Partial<ListingLocation>;
@@ -67,7 +61,7 @@ export function Step3Location({ location, onChange }: Props) {
   return (
     <div>
       <h2 className="text-[22px] font-extrabold text-brand-dark">📍 Lokalizacja</h2>
-      <p className="mt-1 text-sm text-text-muted">Adres i punkt na mapie.</p>
+      <p className="mt-1 text-sm text-text-muted">Adres, punkt na mapie i tagi okolicy (pomagają w wyszukiwarce).</p>
 
       <label className="mt-6 block text-sm font-semibold text-brand-dark">
         Ulica i numer
@@ -108,29 +102,30 @@ export function Step3Location({ location, onChange }: Props) {
 
       <div ref={wrapRef} className="mt-3 h-[180px] overflow-hidden rounded-xl border border-[#e5e7eb]" />
 
-      <div className="mt-3 flex flex-wrap gap-2">
-        {CHIPS.map((c) => {
-          const on = Boolean(location[c.key]);
-          return (
-            <button
-              key={c.key}
-              type="button"
-              onClick={() => onChange({ [c.key]: !on } as Partial<ListingLocation>)}
-              className={cn(
-                "rounded-full border-[1.5px] px-3 py-1.5 text-xs font-semibold transition-colors",
-                on ? "border-brand bg-brand-muted text-brand-dark" : "border-[#e5e7eb] text-text-secondary"
-              )}
-            >
-              {c.label}
-            </button>
-          );
-        })}
-        <span className="rounded-full border border-[#e5e7eb] px-3 py-1.5 text-xs text-text-muted">
-          🤫 Cisza
-        </span>
-        <span className="rounded-full border border-[#e5e7eb] px-3 py-1.5 text-xs text-text-muted">
-          🏘️ Blisko centrum
-        </span>
+      <div className="mt-5 space-y-4">
+        {LOCATION_TAG_GROUPS.map(({ title, chips }) => (
+          <div key={title}>
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-wide text-text-muted">{title}</p>
+            <div className="flex flex-wrap gap-2">
+              {chips.map((c) => {
+                const on = Boolean(location[c.key]);
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    onClick={() => onChange({ [c.key]: !on } as Partial<ListingLocation>)}
+                    className={cn(
+                      "rounded-full border-[1.5px] px-3 py-1.5 text-xs font-semibold transition-colors",
+                      on ? "border-brand bg-brand-muted text-brand-dark" : "border-[#e5e7eb] text-text-secondary"
+                    )}
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

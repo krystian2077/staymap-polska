@@ -12,6 +12,7 @@ from django.contrib.gis.measure import D
 from django.core.cache import cache
 from django.db.models import Prefetch, Q
 
+from apps.listings.location_tags import LOCATION_TAG_FIELD_NAMES
 from apps.listings.models import Listing, ListingImage
 from apps.search.travel_modes import TravelModeRanker
 
@@ -19,6 +20,23 @@ logger = logging.getLogger(__name__)
 
 SEARCH_CACHE_TTL = 300  # 5 min (Etap 2.5)
 MAX_CACHED_IDS = 2500
+# Piny mapy — domyślnie tyle samo co max wyników w cache (masowy seed ~2500 ofert).
+MAX_MAP_PINS = MAX_CACHED_IDS
+
+
+def invalidate_search_cache() -> None:
+    """Usuwa wpisy search:v1:* w Redis (po imporcie wielu ofert)."""
+    try:
+        import redis
+        from django.conf import settings
+
+        loc = settings.CACHES["default"]["LOCATION"]
+        url = loc[0] if isinstance(loc, (list, tuple)) else loc
+        r = redis.from_url(url)
+        for key in r.scan_iter(match="*search:v1*", count=256):
+            r.delete(key)
+    except Exception:
+        logger.warning("invalidate_search_cache: nie udało się wyczyścić Redis", exc_info=True)
 
 
 class SearchOrchestrator:
@@ -113,6 +131,10 @@ class SearchOrchestrator:
 
         if travel_mode := params.get("travel_mode"):
             qs = TravelModeRanker.apply(qs, travel_mode)
+
+        for tag in LOCATION_TAG_FIELD_NAMES:
+            if params.get(tag) is True:
+                qs = qs.filter(**{f"location__{tag}": True})
 
         return cls._apply_ranking(qs, params, has_point=has_point)
 

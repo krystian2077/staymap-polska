@@ -36,7 +36,10 @@ async function FeaturedGrid() {
 
 function similarToSearchListing(s: SimilarListing): SearchListing {
   const raw =
-    s.images?.find((i) => i.is_cover)?.display_url ?? s.images?.[0]?.display_url ?? null;
+    (typeof s.cover_image === "string" && s.cover_image) ||
+    s.images?.find((i) => i.is_cover)?.display_url ||
+    s.images?.[0]?.display_url ||
+    null;
   const cover = publicMediaUrl(raw) ?? raw;
   const loc = s.location;
   return {
@@ -74,7 +77,7 @@ async function DiscoveryFeed() {
   let data: DiscoveryHomepageData | null = null;
   try {
     const res = await fetch(apiUrl("/api/v1/discovery/homepage/"), {
-      next: { revalidate: 1800 },
+      cache: "no-store",
     });
     if (res.ok) {
       const j = (await res.json()) as { data?: DiscoveryHomepageData };

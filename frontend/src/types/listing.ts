@@ -1,6 +1,9 @@
+import type { LocationTagKey } from "@/lib/locationTags";
+
 import type { HostProfile } from "./host";
 
 export type { HostProfile };
+export type { LocationTagKey };
 
 export interface ListingImage {
   id: string;
@@ -11,7 +14,9 @@ export interface ListingImage {
   alt_text: string;
 }
 
-export interface ListingLocation {
+type LocationSurroundings = Partial<Record<LocationTagKey, boolean>>;
+
+export interface ListingLocation extends LocationSurroundings {
   country: string;
   region: string;
   city: string;
@@ -19,10 +24,6 @@ export interface ListingLocation {
   postal_code: string;
   latitude: number;
   longitude: number;
-  near_lake: boolean;
-  near_mountains: boolean;
-  near_forest: boolean;
-  near_sea: boolean;
 }
 
 export interface Amenity {
@@ -102,7 +103,7 @@ export interface PricingRule {
 }
 
 /** Payload zapisu wyszukiwania i filtrów (API saved-searches). */
-export interface SearchQuerySchema {
+export interface SearchQuerySchema extends LocationSurroundings {
   location?: string;
   latitude?: number;
   longitude?: number;
@@ -119,9 +120,6 @@ export interface SearchQuerySchema {
   listing_types?: string[];
   amenities?: string[];
   is_pet_friendly?: boolean;
-  near_lake?: boolean;
-  near_mountains?: boolean;
-  near_forest?: boolean;
   ordering?: string;
   booking_mode?: string;
 }
@@ -137,6 +135,8 @@ export interface SimilarListing {
   distance_km: number;
   listing_type: { name: string; icon: string };
   location: { city: string; region: string };
+  /** Zgodne z wyszukiwarką — preferuj to zamiast składać URL z tablicy images. */
+  cover_image?: string | null;
   images: { display_url: string; is_cover: boolean }[];
   destination_score_cache: Record<string, number> | null;
   top_badge: string | null;

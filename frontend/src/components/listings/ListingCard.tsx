@@ -111,10 +111,10 @@ export function ListingCard({
         onMouseLeave={() => onHover?.(false)}
       >
         <div className="relative h-[90px] w-[90px] shrink-0 overflow-hidden rounded-[10px] bg-brand-surface">
-          {listing.cover_image ? (
+          {coverSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={listing.cover_image}
+              src={coverSrc}
               alt=""
               className="h-full w-full object-cover"
             />

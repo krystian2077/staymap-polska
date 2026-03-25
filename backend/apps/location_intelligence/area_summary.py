@@ -56,8 +56,22 @@ def compose_area_summary_body(listing: Listing, nearby_payload: dict | None) -> 
         nature_bits.append("lasy i spokój")
     if loc.near_sea:
         nature_bits.append("bliskość Bałtyku")
+    if getattr(loc, "near_river", False):
+        nature_bits.append("bliskość rzeki")
+    if getattr(loc, "near_protected_area", False):
+        nature_bits.append("park lub rezerwat")
+    if getattr(loc, "beach_access", False):
+        nature_bits.append("plaża lub kąpielisko")
+    if getattr(loc, "ski_slopes_nearby", False):
+        nature_bits.append("stoki narciarskie w okolicy")
+    if getattr(loc, "quiet_rural", False):
+        nature_bits.append("cicha okolica")
+    if getattr(loc, "cycling_routes_nearby", False):
+        nature_bits.append("trasy rowerowe")
     if nature_bits:
-        parts.append("Atuty natury w opisie obiektu: " + ", ".join(nature_bits) + ".")
+        parts.append("Atuty natury i aktywności w opisie obiektu: " + ", ".join(nature_bits) + ".")
+    if getattr(loc, "historic_center_nearby", False):
+        parts.append("W pobliżu jest zabytkowe centrum — dobre na spacery po zabytkach.")
 
     if nearby_payload and isinstance(nearby_payload.get("groups"), dict):
         g = nearby_payload["groups"]

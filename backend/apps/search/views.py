@@ -14,7 +14,7 @@ from apps.listings.models import Listing, ListingImage
 from apps.search.cursors import decode_offset, encode_offset
 from apps.search.schemas import parse_search_params
 from apps.search.serializers import ListingSearchSerializer
-from apps.search.services import SearchOrchestrator
+from apps.search.services import MAX_MAP_PINS, SearchOrchestrator
 
 
 def _search_params_for_cache(params: dict) -> dict:
@@ -130,12 +130,12 @@ class SearchViewSet(ViewSet):
         cache_params = _search_params_for_cache(params)
 
         lim_raw = request.query_params.get("limit")
-        limit = 500
+        limit = MAX_MAP_PINS
         if lim_raw not in (None, ""):
             try:
-                limit = min(500, max(1, int(lim_raw)))
+                limit = min(MAX_MAP_PINS, max(1, int(lim_raw)))
             except (TypeError, ValueError):
-                raise ValidationError("limit musi być liczbą całkowitą 1–500")
+                raise ValidationError(f"limit musi być liczbą całkowitą 1–{MAX_MAP_PINS}")
 
         qs = SearchOrchestrator.build_map_queryset(cache_params)[:limit]
         pins = []

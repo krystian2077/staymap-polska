@@ -21,6 +21,7 @@ const nextConfig = {
         pathname: "/media/**",
       },
       { protocol: "https", hostname: "i.pravatar.cc", pathname: "/**" },
+      { protocol: "https", hostname: "picsum.photos", pathname: "/**" },
     ],
   },
 };

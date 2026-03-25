@@ -127,6 +127,13 @@ class ListingLocation(BaseModel):
     near_mountains = models.BooleanField(default=False)
     near_forest = models.BooleanField(default=False)
     near_sea = models.BooleanField(default=False)
+    near_river = models.BooleanField(default=False)
+    near_protected_area = models.BooleanField(default=False)
+    beach_access = models.BooleanField(default=False)
+    ski_slopes_nearby = models.BooleanField(default=False)
+    quiet_rural = models.BooleanField(default=False)
+    historic_center_nearby = models.BooleanField(default=False)
+    cycling_routes_nearby = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = "Lokalizacja oferty"

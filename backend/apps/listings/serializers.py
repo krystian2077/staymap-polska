@@ -8,9 +8,33 @@ from apps.listings.image_service import ImageService
 from decimal import Decimal
 
 from apps.host.models import HostProfile
+from apps.listings.location_tags import location_tag_dict
 from apps.listings.models import Listing, ListingImage
 from apps.listings.services import ListingService
 from apps.location_intelligence.area_summary import get_or_build_area_summary
+
+
+def listing_cover_image_absolute_url(obj: Listing, request) -> str | None:
+    """Ta sama logika okładki co w liście wyszukiwania — używana też przez discovery."""
+    imgs = getattr(obj, "_prefetched_objects_cache", {}).get("images")
+    if imgs is not None:
+        ordered = sorted(
+            imgs,
+            key=lambda i: (not i.is_cover, i.sort_order, str(i.id)),
+        )
+        target = next((i for i in ordered if i.image), None)
+    else:
+        target = (
+            obj.images.filter(deleted_at__isnull=True)
+            .order_by("-is_cover", "sort_order", "id")
+            .first()
+        )
+    if not target or not target.image:
+        return None
+    url = target.image.url
+    if request:
+        return request.build_absolute_uri(url)
+    return url
 
 
 class ListingLocationWriteSerializer(serializers.Serializer):
@@ -19,6 +43,19 @@ class ListingLocationWriteSerializer(serializers.Serializer):
     city = serializers.CharField(required=False, allow_blank=True, default="")
     region = serializers.CharField(required=False, allow_blank=True, default="")
     country = serializers.CharField(required=False, default="PL", max_length=2)
+    address_line = serializers.CharField(required=False, allow_blank=True, default="")
+    postal_code = serializers.CharField(required=False, allow_blank=True, default="")
+    near_lake = serializers.BooleanField(required=False)
+    near_mountains = serializers.BooleanField(required=False)
+    near_forest = serializers.BooleanField(required=False)
+    near_sea = serializers.BooleanField(required=False)
+    near_river = serializers.BooleanField(required=False)
+    near_protected_area = serializers.BooleanField(required=False)
+    beach_access = serializers.BooleanField(required=False)
+    ski_slopes_nearby = serializers.BooleanField(required=False)
+    quiet_rural = serializers.BooleanField(required=False)
+    historic_center_nearby = serializers.BooleanField(required=False)
+    cycling_routes_nearby = serializers.BooleanField(required=False)
 
 
 class ListingImageSerializer(serializers.ModelSerializer):
@@ -93,26 +130,7 @@ class ListingListSerializer(serializers.ModelSerializer):
         }
 
     def get_cover_image(self, obj):
-        imgs = getattr(obj, "_prefetched_objects_cache", {}).get("images")
-        if imgs is not None:
-            ordered = sorted(
-                imgs,
-                key=lambda i: (not i.is_cover, i.sort_order, str(i.id)),
-            )
-            target = next((i for i in ordered if i.image), None)
-        else:
-            target = (
-                obj.images.filter(deleted_at__isnull=True)
-                .order_by("-is_cover", "sort_order", "id")
-                .first()
-            )
-        if not target or not target.image:
-            return None
-        request = self.context.get("request")
-        url = target.image.url
-        if request:
-            return request.build_absolute_uri(url)
-        return url
+        return listing_cover_image_absolute_url(obj, self.context.get("request"))
 
 
 class HostProfileSerializer(serializers.ModelSerializer):
@@ -226,11 +244,8 @@ class ListingDetailSerializer(ListingListSerializer):
             "postal_code": loc.postal_code or "",
             "latitude": p.y,
             "longitude": p.x,
-            "near_lake": loc.near_lake,
-            "near_mountains": loc.near_mountains,
-            "near_forest": loc.near_forest,
-            "near_sea": loc.near_sea,
         }
+        base.update(location_tag_dict(loc))
         return base
 
 

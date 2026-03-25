@@ -3,6 +3,7 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from apps.listings.models import Listing
+from apps.listings.serializers import listing_cover_image_absolute_url
 
 
 class SimilarListingCardSerializer(serializers.ModelSerializer):
@@ -10,6 +11,7 @@ class SimilarListingCardSerializer(serializers.ModelSerializer):
 
     location = serializers.SerializerMethodField()
     images = serializers.SerializerMethodField()
+    cover_image = serializers.SerializerMethodField()
     listing_type = serializers.JSONField(read_only=True)
     destination_score_cache = serializers.JSONField(read_only=True)
     top_badge = serializers.SerializerMethodField()
@@ -32,6 +34,7 @@ class SimilarListingCardSerializer(serializers.ModelSerializer):
             "listing_type",
             "location",
             "images",
+            "cover_image",
             "destination_score_cache",
             "top_badge",
         )
@@ -42,13 +45,23 @@ class SimilarListingCardSerializer(serializers.ModelSerializer):
             return {"city": "", "region": ""}
         return {"city": loc.city or "", "region": loc.region or ""}
 
+    def get_cover_image(self, obj):
+        return listing_cover_image_absolute_url(obj, self.context.get("request"))
+
     def get_images(self, obj):
         imgs = getattr(obj, "_prefetched_objects_cache", {}).get("images")
         if imgs is None:
-            imgs = obj.images.order_by("-is_cover", "sort_order", "id")[:5]
+            img_list = list(
+                obj.images.order_by("-is_cover", "sort_order", "id")[:5]
+            )
+        else:
+            img_list = sorted(
+                imgs,
+                key=lambda i: (not i.is_cover, i.sort_order, str(i.id)),
+            )[:5]
         request = self.context.get("request")
         out = []
-        for im in imgs:
+        for im in img_list:
             url = None
             if im.image:
                 u = im.image.url

@@ -14,6 +14,7 @@ const Step3Location = dynamic(
 import { Step4Photos } from "@/components/host/onboarding/Step4Photos";
 import { Step5Pricing } from "@/components/host/onboarding/Step5Pricing";
 import { Step6Publish } from "@/components/host/onboarding/Step6Publish";
+import { LOCATION_TAG_KEYS } from "@/lib/locationTags";
 import { api } from "@/lib/api";
 import { useHostStore } from "@/lib/store/hostStore";
 import type { ListingDraft } from "@/types/host";
@@ -109,11 +110,14 @@ export default function NewListingPage() {
           postal_code: String(loc.postal_code ?? base.location.postal_code ?? ""),
           latitude: Number(loc.latitude ?? loc.lat ?? base.location.latitude ?? 0) || undefined,
           longitude: Number(loc.longitude ?? loc.lng ?? base.location.longitude ?? 0) || undefined,
-          near_lake: Boolean(loc.near_lake ?? base.location.near_lake),
-          near_mountains: Boolean(loc.near_mountains ?? base.location.near_mountains),
-          near_forest: Boolean(loc.near_forest ?? base.location.near_forest),
-          near_sea: Boolean(loc.near_sea ?? base.location.near_sea),
           country: String(loc.country ?? base.location.country ?? "PL"),
+          ...Object.fromEntries(
+            LOCATION_TAG_KEYS.map((k) => {
+              const lv = (loc as Record<string, unknown>)[k];
+              const bv = (base.location as Record<string, unknown>)[k];
+              return [k, Boolean(lv ?? bv)];
+            })
+          ),
         },
         images: imgs.map((im, i) => ({
           id: String(im.id),
@@ -199,6 +203,9 @@ export default function NewListingPage() {
           city: draft.location.city || "",
           region: draft.location.region || "",
           country: draft.location.country || "PL",
+          address_line: draft.location.address_line || "",
+          postal_code: draft.location.postal_code || "",
+          ...Object.fromEntries(LOCATION_TAG_KEYS.map((k) => [k, Boolean(draft.location[k])])),
         },
       });
       markSaved();

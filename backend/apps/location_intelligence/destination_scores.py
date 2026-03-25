@@ -48,6 +48,12 @@ def compute_destination_scores(
             nature += 3.3
         if getattr(loc, "near_sea", False):
             nature += 2.5
+        if getattr(loc, "near_river", False):
+            nature += 2.4
+        if getattr(loc, "near_protected_area", False):
+            nature += 2.6
+        if getattr(loc, "beach_access", False):
+            nature += 2.2
     nature = _clamp(nature)
 
     romantic = 0.0
@@ -99,8 +105,16 @@ def compute_destination_scores(
         getattr(loc, "near_mountains", False)
         or getattr(loc, "near_forest", False)
         or getattr(loc, "near_lake", False)
+        or getattr(loc, "near_river", False)
+        or getattr(loc, "near_protected_area", False)
+        or getattr(loc, "ski_slopes_nearby", False)
+        or getattr(loc, "cycling_routes_nearby", False)
     ):
         outdoor += 2.0
+    if loc and getattr(loc, "ski_slopes_nearby", False):
+        outdoor += 1.0
+    if loc and getattr(loc, "cycling_routes_nearby", False):
+        outdoor += 0.6
     if _has(ids, "bike", "terrace"):
         outdoor += 0.8
     if poi_stats:
@@ -112,6 +126,8 @@ def compute_destination_scores(
     if poi_stats:
         nl = float(poi_stats.get("nightlife") or 0)
         quiet = _clamp(10.0 - min(6.0, nl * 0.55))
+    if loc and getattr(loc, "quiet_rural", False):
+        quiet += 1.2
     if _has(ids, "tv"):
         quiet -= 0.3
     quiet = _clamp(quiet)
@@ -122,6 +138,8 @@ def compute_destination_scores(
         accessibility += min(3.5, tn * 0.08)
     if loc and getattr(loc, "city", None):
         accessibility += 1.0
+    if loc and getattr(loc, "historic_center_nearby", False):
+        accessibility += 0.8
     accessibility = _clamp(accessibility)
 
     return {

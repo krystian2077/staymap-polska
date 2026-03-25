@@ -1,10 +1,12 @@
 """
-Bogate dane demo dla StayMap (Etap 1–3): oferty, lokalizacje, „zdjęcia” (generowane PIL),
-udogodnienia, oceny destynacji, opinie, blokady kalendarza.
+Bogate dane demo dla StayMap (Etap 1–3): oferty, lokalizacje, zdjęcia (Unsplash → /media,
+z fallbackiem do gradientu PIL), udogodnienia, oceny destynacji, opinie, blokady kalendarza.
 """
 from __future__ import annotations
 
 import hashlib
+import urllib.error
+import urllib.request
 from datetime import date, timedelta
 from decimal import Decimal
 from io import BytesIO
@@ -18,8 +20,10 @@ from django.utils import timezone
 from django.contrib.gis.geos import Point
 from PIL import Image, ImageDraw, ImageFont
 
+from apps.common.demo_unsplash_photos import DEMO_LISTING_PHOTOS
 from apps.bookings.models import BlockedDate, Booking, BookingStatusHistory
 from apps.host.models import HostProfile
+from apps.listings.location_tags import LOCATION_TAG_FIELD_NAMES
 from apps.listings.models import Listing, ListingImage, ListingLocation
 from apps.reviews.models import Review
 
@@ -57,6 +61,23 @@ def _jpeg_placeholder(title: str, variant: int) -> ContentFile:
     buf = BytesIO()
     img.save(buf, format="JPEG", quality=88)
     return ContentFile(buf.getvalue(), name=f"demo-{variant}-{abs(hash(title)) % 10000}.jpg")
+
+
+def _fetch_remote_jpeg(url: str, filename: str, timeout: int = 25) -> ContentFile | None:
+    """Pobiera JPEG z podanego URL (np. images.unsplash.com); None przy błędzie."""
+    req = urllib.request.Request(
+        url,
+        headers={"User-Agent": "StayMapPolska/1.0 (demo-seed; +https://staymap.pl)"},
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            data = resp.read()
+    except (urllib.error.URLError, OSError, ValueError):
+        return None
+    if not data or len(data) < 800:
+        return None
+    return ContentFile(data, name=filename)
 
 
 def _score(**kwargs):
@@ -487,13 +508,18 @@ DEMO_LISTINGS = [
 
 
 class Command(BaseCommand):
-    help = "Wypełnia bazę bogatymi danymi demo (oferty, obrazy PIL, opinie, blokady)."
+    help = "Wypełnia bazę bogatymi danymi demo (oferty, zdjęcia Unsplash lub PIL, opinie, blokady)."
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--fresh",
             action="store_true",
             help="Usuwa rezerwacje, opinie, oferty i użytkowników (z wyjątkiem superuserów).",
+        )
+        parser.add_argument(
+            "--refresh-images",
+            action="store_true",
+            help="Usuwa istniejące zdjęcia ofert demo i ponownie je pobiera (Unsplash / PIL).",
         )
         parser.add_argument(
             "--count",
@@ -505,6 +531,7 @@ class Command(BaseCommand):
     @transaction.atomic
     def handle(self, *args, **options):
         self.stdout.write(self.style.HTTP_INFO("StayMap — seed_db (Etap 3)"))
+        self._refresh_images = bool(options["refresh_images"])
 
         if options["fresh"]:
             from apps.ai_assistant.models import AiRecommendation
@@ -658,31 +685,40 @@ class Command(BaseCommand):
                 "country": "PL",
                 "address_line": spec["address_line"],
                 "postal_code": spec["postal_code"],
-                "near_lake": spec.get("near_lake", False),
-                "near_mountains": spec.get("near_mountains", False),
-                "near_forest": spec.get("near_forest", False),
-                "near_sea": spec.get("near_sea", False),
+                **{k: spec.get(k, False) for k in LOCATION_TAG_FIELD_NAMES},
             },
         )
         loc.city = spec["city"]
         loc.region = spec["region"]
         loc.address_line = spec["address_line"]
         loc.postal_code = spec["postal_code"]
-        loc.near_lake = spec.get("near_lake", False)
-        loc.near_mountains = spec.get("near_mountains", False)
-        loc.near_forest = spec.get("near_forest", False)
-        loc.near_sea = spec.get("near_sea", False)
+        for k in LOCATION_TAG_FIELD_NAMES:
+            setattr(loc, k, spec.get(k, False))
         loc.point = Point(spec["lng"] + 0.002, spec["lat"] + 0.002, srid=4326)
         loc.deleted_at = None
         loc.save()
 
         n_img = listing.images.filter(deleted_at__isnull=True).count()
-        if n_img == 0:
+        if n_img == 0 or self._refresh_images:
+            if n_img > 0:
+                ListingImage.all_objects.filter(listing=listing).delete()
+            photo_urls = DEMO_LISTING_PHOTOS.get(spec["slug"], [])
             for i in range(5):
                 li = ListingImage(listing=listing, is_cover=(i == 0), sort_order=i)
                 li.alt_text = f"{spec['title'][:80]} — ujęcie {i + 1}"
-                img_file = _jpeg_placeholder(spec["title"], i)
-                li.image.save(f"{spec['slug']}-{i}.jpg", img_file, save=False)
+                fname = f"{spec['slug']}-{i}.jpg"
+                img_file = None
+                if i < len(photo_urls):
+                    img_file = _fetch_remote_jpeg(photo_urls[i], fname)
+                    if img_file is None:
+                        self.stdout.write(
+                            self.style.WARNING(
+                                f"  Unsplash niedostępny dla {spec['slug']} #{i + 1}, użyto placeholderu PIL."
+                            )
+                        )
+                if img_file is None:
+                    img_file = _jpeg_placeholder(spec["title"], i)
+                li.image.save(img_file.name, img_file, save=False)
                 li.save()
 
         Review.objects.filter(listing=listing).delete()

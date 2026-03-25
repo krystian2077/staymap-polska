@@ -3,6 +3,8 @@ from __future__ import annotations
 from datetime import date
 from typing import Any, TypedDict
 
+from apps.listings.location_tags import LOCATION_TAG_FIELD_NAMES
+
 # Zgodnie z dokumentacją (WA-2 + Etap 2 API)
 VALID_TRAVEL_MODES = frozenset(
     {
@@ -183,6 +185,18 @@ def parse_search_params(query_dict) -> tuple[dict[str, Any], list[str]]:
         else:
             params["page_size"] = ps
 
+    def _truthy(v: Any) -> bool:
+        if v is True:
+            return True
+        if v in (None, "", False):
+            return False
+        return str(v).strip().lower() in ("1", "true", "yes", "on")
+
+    for tag in LOCATION_TAG_FIELD_NAMES:
+        raw = data.get(tag)
+        if raw not in (None, "") and _truthy(raw):
+            params[tag] = True
+
     allowed = {
         "location",
         "latitude",
@@ -199,6 +213,7 @@ def parse_search_params(query_dict) -> tuple[dict[str, Any], list[str]]:
         "cursor",
         "page_size",
         "limit",
+        *LOCATION_TAG_FIELD_NAMES,
     }
     unknown = set(data.keys()) - allowed
     if unknown:
@@ -222,6 +237,7 @@ SAVED_SEARCH_PARAM_KEYS = frozenset(
         "max_price",
         "booking_mode",
         "ordering",
+        *LOCATION_TAG_FIELD_NAMES,
     }
 )
 
