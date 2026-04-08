@@ -4,12 +4,12 @@ import * as Dialog from "@radix-ui/react-dialog";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { SkeletonCard } from "@/components/ui/SkeletonCard";
 import { api, apiUrl } from "@/lib/api";
-import { parseSearchParamsToState } from "@/lib/searchQuery";
+import { parseMapCenterFromSearchParams, parseSearchParamsToState } from "@/lib/searchQuery";
 import { urlSearchParamsToQueryPayload } from "@/lib/searchUrl";
 import type { MapPin, SearchListResponse, SearchListing } from "@/lib/searchTypes";
 import { useSearchStore } from "@/lib/store/searchStore";
@@ -41,6 +41,9 @@ export default function SearchPageClient() {
   const setMapPins = useSearchStore((s) => s.setMapPins);
   const setLoading = useSearchStore((s) => s.setLoading);
   const setHovered = useSearchStore((s) => s.setHoveredListing);
+
+  // Centrum mapy tylko z URL — po walidacji (w granicach Polski), inaczej domyślnie cała Polska
+  const mapCenter = useMemo(() => parseMapCenterFromSearchParams(sp), [sp]);
 
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -242,6 +245,7 @@ export default function SearchPageClient() {
             pins={mapPins}
             highlightId={hoveredId}
             onPinHover={(id) => setHovered(id)}
+            center={mapCenter}
           />
         </section>
       </div>
