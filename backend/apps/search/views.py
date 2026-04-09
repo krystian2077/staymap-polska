@@ -150,6 +150,11 @@ class SearchViewSet(ViewSet):
                     "lat": p.y,
                     "lng": p.x,
                     "price": str(row.base_price),
+                    "slug": row.slug,
+                    "title": row.title,
+                    "city": loc.city or "",
+                    "average_rating": float(row.average_rating) if row.average_rating is not None else None,
+                    "listing_type": row.listing_type or {},
                 }
             )
         return Response({"data": pins, "meta": {"count": len(pins)}})

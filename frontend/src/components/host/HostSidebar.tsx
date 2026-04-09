@@ -21,8 +21,8 @@ function SidebarBadge({
   return (
     <span
       className={cn(
-        "ml-auto shrink-0 rounded-full px-[7px] py-0.5 text-[10px] font-bold text-white",
-        kind === "warn" ? "bg-amber-500" : "bg-brand"
+        "ml-auto shrink-0 rounded-full px-[7px] py-0.5 text-[10px] font-bold text-white shadow-sm",
+        kind === "warn" ? "bg-amber-500 shadow-amber-500/20" : "bg-brand shadow-brand/20"
       )}
     >
       {value}
@@ -32,7 +32,7 @@ function SidebarBadge({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-2 mt-5 px-4 text-[10px] font-bold uppercase tracking-wider text-text-muted first:mt-0">
+    <p className="mb-1.5 mt-6 px-5 text-[10px] font-extrabold uppercase tracking-[.12em] text-brand-dark/40 first:mt-0">
       {children}
     </p>
   );
@@ -54,13 +54,22 @@ function Item({ id, href, icon, label, badge, badgeKind, activeItem }: ItemProps
     <Link
       href={href}
       className={cn(
-        "mb-0.5 flex cursor-pointer items-center gap-2.5 rounded-[9px] px-3 py-[9px] text-[13px] font-medium text-text-secondary transition-all duration-150",
+        "group relative mb-0.5 flex cursor-pointer items-center gap-3 rounded-xl px-4 py-2.5 text-[13px] font-medium transition-all duration-200",
         active
-          ? "bg-white font-bold text-brand-dark shadow-[0_1px_3px_rgba(0,0,0,.06)]"
-          : "hover:bg-white hover:text-gray-900"
+          ? "bg-white font-bold text-brand-dark shadow-[0_2px_8px_rgba(0,0,0,.06)] ring-1 ring-black/[.04]"
+          : "text-brand-dark/60 hover:bg-white/70 hover:text-brand-dark hover:shadow-[0_1px_4px_rgba(0,0,0,.04)]"
       )}
     >
-      <span className="text-base leading-none" aria-hidden>
+      {active && (
+        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand shadow-[0_0_6px_rgba(22,163,74,.4)]" />
+      )}
+      <span
+        className={cn(
+          "flex h-7 w-7 items-center justify-center rounded-lg text-sm leading-none transition-transform duration-200 group-hover:scale-110",
+          active ? "bg-brand-surface" : "bg-transparent"
+        )}
+        aria-hidden
+      >
         {icon}
       </span>
       <span className="min-w-0 flex-1 truncate">{label}</span>
@@ -90,17 +99,15 @@ export function HostSidebar({ activeItem }: { activeItem: string }) {
   const rating = profile?.average_rating ?? 4.92;
 
   return (
-    <aside
-      className="sticky top-16 flex h-[calc(100vh-4rem)] w-[220px] shrink-0 flex-col overflow-y-auto border-r border-[#e5e7eb] bg-[#f9fafb]"
-      style={{ padding: "20px 0" }}
-    >
-      <div className="mb-5 px-4">
+    <aside className="sticky top-16 flex h-[calc(100vh-4rem)] w-[260px] shrink-0 flex-col overflow-y-auto border-r border-brand-dark/[.06] bg-gradient-to-b from-[#f4f8f5] via-[#f0f5f1] to-[#eaf1ec]">
+      {/* Profile card */}
+      <div className="px-5 pb-4 pt-6">
         <button
           type="button"
           onClick={() => router.push("/host/dashboard")}
-          className="flex w-full items-start gap-3 text-left"
+          className="group flex w-full items-center gap-3 rounded-2xl bg-white/80 p-3 text-left shadow-card ring-1 ring-black/[.03] backdrop-blur transition-all duration-200 hover:bg-white hover:shadow-elevated"
         >
-          <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-[#dcfce7]">
+          <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-brand-muted ring-2 ring-brand/20">
             {profile?.avatar_url ? (
               <Image
                 src={profile.avatar_url}
@@ -115,25 +122,25 @@ export function HostSidebar({ activeItem }: { activeItem: string }) {
                 {initials}
               </span>
             )}
-            {profile?.is_verified ? (
+            {profile?.is_verified && (
               <span
-                className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] shadow"
+                className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] shadow-sm"
                 title="Zweryfikowany"
               >
                 ⭐
               </span>
-            ) : null}
+            )}
           </div>
           <div className="min-w-0 pt-0.5">
             <p className="truncate text-sm font-bold text-brand-dark">{displayName}</p>
-            <p className="text-xs text-text-muted">
+            <p className="text-[11px] text-text-muted">
               Superhost · {rating.toFixed(2)} ★
             </p>
           </div>
         </button>
       </div>
 
-      <nav className="flex flex-col px-2">
+      <nav className="flex flex-1 flex-col px-3 pb-6">
         <SectionLabel>Główne</SectionLabel>
         <Item id="dashboard" href="/host/dashboard" icon="📊" label="Dashboard" activeItem={activeItem} />
         <Item
@@ -149,7 +156,7 @@ export function HostSidebar({ activeItem }: { activeItem: string }) {
           href="/host/reviews"
           icon="⭐"
           label="Recenzje"
-          badge={reviewsPending > 0 ? "!" : null}
+          badge={reviewsPending > 0 ? reviewsPending : null}
           badgeKind="warn"
           activeItem={activeItem}
         />
@@ -174,13 +181,7 @@ export function HostSidebar({ activeItem }: { activeItem: string }) {
         />
 
         <SectionLabel>Rezerwacje</SectionLabel>
-        <Item
-          id="bookings-all"
-          href="/host/bookings"
-          icon="📋"
-          label="Wszystkie"
-          activeItem={activeItem}
-        />
+        <Item id="bookings-all" href="/host/bookings" icon="📋" label="Wszystkie" activeItem={activeItem} />
         <Item
           id="bookings-pending"
           href="/host/bookings/pending"

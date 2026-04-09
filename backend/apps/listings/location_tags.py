@@ -16,7 +16,7 @@ LOCATION_TAGS_ORDERED: tuple[tuple[str, str], ...] = (
     ("beach_access", "Plaża / kąpielisko"),
     ("ski_slopes_nearby", "Stoki / narty"),
     ("quiet_rural", "Cicha okolica / wieś"),
-    ("historic_center_nearby", "Zabytkowe centrum"),
+    ("historic_center_nearby", "Zabytki / centrum historyczne"),
     ("cycling_routes_nearby", "Trasy rowerowe"),
 )
 

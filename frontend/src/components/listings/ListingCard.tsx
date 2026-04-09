@@ -14,7 +14,9 @@ type Props = {
   listing: SearchListing;
   variant?: "grid" | "compact";
   highlighted?: boolean;
+  selected?: boolean;
   onHover?: (hover: boolean) => void;
+  onClick?: () => void;
   /** Etykieta na zdjęciu (np. last minute) */
   availabilityBadge?: string | null;
   showCompare?: boolean;
@@ -33,7 +35,9 @@ export function ListingCard({
   listing,
   variant = "grid",
   highlighted = false,
+  selected = false,
   onHover,
+  onClick,
   availabilityBadge,
   showCompare = true,
   showWishlist = true,
@@ -101,54 +105,86 @@ export function ListingCard({
 
   if (variant === "compact") {
     return (
-      <Link
-        href={`/listing/${listing.slug}`}
+      <div
         className={cn(
-          "mb-2.5 flex gap-3 rounded-[14px] border-[1.5px] bg-white p-3 transition-all duration-200",
-          highlighted ? "border-brand bg-brand-surface" : "border-gray-200 hover:border-brand hover:bg-brand-surface"
+          "group relative mb-2 flex cursor-pointer gap-3 rounded-[14px] border-[1.5px] bg-white p-3",
+          "transition-all duration-200",
+          selected
+            ? "border-brand bg-brand-surface shadow-[0_0_0_3px_rgba(22,163,74,.15)]"
+            : highlighted
+              ? "border-brand/60 bg-brand-surface/70 shadow-sm"
+              : "border-gray-100 hover:border-brand hover:bg-brand-surface hover:shadow-sm",
         )}
         onMouseEnter={() => onHover?.(true)}
         onMouseLeave={() => onHover?.(false)}
+        onClick={onClick}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => e.key === "Enter" && onClick?.()}
       >
-        <div className="relative h-[90px] w-[90px] shrink-0 overflow-hidden rounded-[10px] bg-brand-surface">
+        {/* Selection indicator */}
+        {selected && (
+          <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-brand" />
+        )}
+        <Link
+          href={`/listing/${listing.slug}`}
+          className="relative h-[86px] w-[86px] shrink-0 overflow-hidden rounded-[10px] bg-brand-surface"
+          onClick={(e) => e.stopPropagation()}
+        >
           {coverSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={coverSrc}
               alt=""
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
             <div className="flex h-full items-center justify-center text-2xl">{emoji}</div>
           )}
           {availabilityBadge ? (
-            <span className="absolute bottom-1 left-1 right-1 truncate rounded px-1.5 py-0.5 text-center text-[10px] font-bold text-white shadow-sm"
+            <span
+              className="absolute bottom-1 left-1 right-1 truncate rounded px-1.5 py-0.5 text-center text-[10px] font-bold text-white shadow-sm"
               style={{ background: "rgba(10,46,26,.85)" }}
             >
               {availabilityBadge}
             </span>
           ) : null}
-        </div>
+        </Link>
         <div className="min-w-0 flex-1">
-          <p className="mb-1 line-clamp-2 text-[13px] font-bold leading-snug text-text">
+          <Link
+            href={`/listing/${listing.slug}`}
+            className="mb-0.5 line-clamp-2 block text-[13px] font-bold leading-snug text-text hover:text-brand-dark"
+            onClick={(e) => e.stopPropagation()}
+          >
             {listing.title}
-          </p>
-          <p className="mb-2 flex items-center gap-1 text-[11px] text-text-muted">
+          </Link>
+          <p className="mb-1.5 flex items-center gap-1 text-[11px] text-text-muted">
             <span aria-hidden>📍</span>
             {locLine}
-            {listing.distance_km != null && ` · ${listing.distance_km} km`}
+            {listing.distance_km != null && (
+              <span className="ml-1 text-[10px] text-text-muted">· {listing.distance_km} km</span>
+            )}
           </p>
           <div className="flex items-center justify-between gap-2">
-            <span className="text-[15px] font-extrabold text-text">
+            <span className="text-[14px] font-extrabold text-text">
               {priceOk ? priceNum.toFixed(0) : listing.base_price}{" "}
-              <span className="text-xs font-normal text-text-muted">{listing.currency}</span>
+              <span className="text-[11px] font-normal text-text-muted">zł / noc</span>
             </span>
-            <span className="inline-flex rounded-md bg-brand px-3.5 py-1.5 text-xs font-bold text-white">
-              Wybierz
-            </span>
+            <Link
+              href={`/listing/${listing.slug}`}
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all duration-150",
+                selected
+                  ? "bg-brand text-white shadow-[0_2px_8px_rgba(22,163,74,.3)]"
+                  : "bg-brand-surface text-brand-dark hover:bg-brand hover:text-white",
+              )}
+              onClick={(e) => e.stopPropagation()}
+            >
+              Zobacz →
+            </Link>
           </div>
         </div>
-      </Link>
+      </div>
     );
   }
 

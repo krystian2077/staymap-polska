@@ -55,7 +55,7 @@ export function Step2Property({
                 "rounded-xl border-[1.5px] p-3.5 text-center transition-all",
                 sel
                   ? "border-2 border-brand bg-brand-muted"
-                  : "border-[#e5e7eb] hover:border-brand hover:bg-brand-surface"
+                  : "border-brand-dark/[.06] hover:border-brand hover:bg-brand-surface"
               )}
             >
               <span className="text-[28px] leading-none">{t.emoji}</span>

@@ -1,5 +1,5 @@
-import { HostPlaceholderPage } from "@/components/host/HostPlaceholderPage";
+import { HostBookingsClient } from "@/components/host/HostBookingsClient";
 
 export default function Page() {
-  return <HostPlaceholderPage title="Wszystkie rezerwacje" />;
+  return <HostBookingsClient title="Wszystkie rezerwacje" />;
 }

@@ -103,7 +103,7 @@ export function Step5Pricing({
             "rounded-xl border-[1.5px] p-3 text-left text-sm transition-all",
             bookingMode === "instant"
               ? "border-2 border-brand bg-brand-muted"
-              : "border-[#e5e7eb] hover:border-brand"
+              : "border-brand-dark/[.06] hover:border-brand"
           )}
         >
           <span className="font-bold">⚡ Instant Booking</span>
@@ -116,7 +116,7 @@ export function Step5Pricing({
             "rounded-xl border-[1.5px] p-3 text-left text-sm transition-all",
             bookingMode === "request"
               ? "border-2 border-brand bg-brand-muted"
-              : "border-[#e5e7eb] hover:border-brand"
+              : "border-brand-dark/[.06] hover:border-brand"
           )}
         >
           <span className="font-bold">📋 Na zapytanie</span>

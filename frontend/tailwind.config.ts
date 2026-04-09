@@ -10,8 +10,8 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          dark: "#0a2e1a",
           DEFAULT: "#16a34a",
+          dark: "#0a2e1a",
           light: "#4ade80",
           surface: "#f0fdf4",
           muted: "#dcfce7",
@@ -28,21 +28,38 @@ const config: Config = {
           900: "#14532d",
           950: "#052e16",
         },
+        ink: {
+          DEFAULT: "#0a0f0d",
+          2: "#3d4f45",
+          3: "#7a8f84",
+          4: "#b4c4bc",
+        },
+        surface: {
+          DEFAULT: "#ffffff",
+          2: "#f8faf9",
+          3: "#f2f7f4",
+        },
         text: {
-          DEFAULT: "#111827",
-          secondary: "#6b7280",
-          muted: "#9ca3af",
+          DEFAULT: "#0a0f0d",
+          secondary: "#3d4f45",
+          muted: "#7a8f84",
         },
       },
       fontFamily: {
-        sans: ["var(--font-dm)", "system-ui", "sans-serif"],
+        sans: ["DM Sans", "var(--font-dm)", "system-ui", "sans-serif"],
       },
       borderRadius: {
-        sm: "6px",
-        md: "10px",
-        lg: "14px",
-        xl: "20px",
-        "2xl": "28px",
+        "4": "4px",
+        "6": "6px",
+        "8": "8px",
+        "10": "10px",
+        "12": "12px",
+        "14": "14px",
+        "16": "16px",
+        "20": "20px",
+        "24": "24px",
+        "28": "28px",
+        pill: "999px",
       },
       boxShadow: {
         card: "0 1px 4px rgba(0,0,0,.06)",
@@ -52,44 +69,50 @@ const config: Config = {
         "brand-lg": "0 8px 20px rgba(22,163,74,.4)",
       },
       keyframes: {
-        "fade-up": {
-          from: { opacity: "0", transform: "translateY(24px)" },
+        fadeUp: {
+          from: { opacity: "0", transform: "translateY(28px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
-        "fade-in": {
-          from: { opacity: "0" },
-          to: { opacity: "1" },
-        },
-        "scale-in": {
-          from: { opacity: "0", transform: "scale(0.96)" },
+        scaleIn: {
+          from: { opacity: "0", transform: "scale(.94)" },
           to: { opacity: "1", transform: "scale(1)" },
         },
-        "slide-right": {
-          from: { opacity: "0", transform: "translateX(-12px)" },
-          to: { opacity: "1", transform: "translateX(0)" },
+        badgePop: {
+          "0%": { transform: "scale(0) rotate(-12deg)", opacity: "0" },
+          "60%": { transform: "scale(1.12) rotate(2deg)" },
+          "100%": { transform: "scale(1) rotate(0)", opacity: "1" },
         },
-        shimmer: {
-          "0%": { backgroundPosition: "-400px 0" },
-          "100%": { backgroundPosition: "400px 0" },
+        pulse: {
+          "0%,100%": { opacity: "1" },
+          "50%": { opacity: ".3" },
         },
-        ping: {
-          "75%, 100%": { transform: "scale(2)", opacity: "0" },
+        marquee: {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" },
         },
-        spin: {
-          to: { transform: "rotate(360deg)" },
+        orb1: {
+          "0%,100%": { transform: "translate(0,0)" },
+          "40%": { transform: "translate(40px,-24px)" },
+          "70%": { transform: "translate(-14px,20px)" },
+        },
+        orb2: {
+          "0%,100%": { transform: "translate(0,0)" },
+          "35%": { transform: "translate(-28px,22px)" },
+          "65%": { transform: "translate(18px,-26px)" },
         },
       },
       animation: {
-        "fade-up": "fade-up 0.6s cubic-bezier(.16,1,.3,1) both",
-        "fade-in": "fade-in 0.4s cubic-bezier(.16,1,.3,1) both",
-        "scale-in": "scale-in 0.55s cubic-bezier(.16,1,.3,1) both",
-        "slide-right": "slide-right 0.45s cubic-bezier(.16,1,.3,1) both",
-        shimmer: "shimmer 1.5s ease-in-out infinite",
-        ping: "ping 2.5s cubic-bezier(0, 0, 0.2, 1) infinite",
-        spin: "spin 0.7s linear infinite",
+        "fade-up": "fadeUp .65s cubic-bezier(.16,1,.3,1) both",
+        "scale-in": "scaleIn .55s cubic-bezier(.16,1,.3,1) both",
+        "badge-pop": "badgePop .7s cubic-bezier(.34,1.56,.64,1) .1s both",
+        "pulse-dot": "pulse 2.2s ease-in-out infinite",
+        marquee: "marquee 35s linear infinite",
+        orb1: "orb1 16s ease-in-out infinite",
+        orb2: "orb2 20s ease-in-out infinite",
       },
     },
   },
   plugins: [],
 };
+
 export default config;

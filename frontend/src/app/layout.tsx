@@ -2,18 +2,18 @@ import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { MainShell } from "@/components/layout/MainShell";
-import { Navbar } from "@/components/Navbar";
+import { Navbar } from "@/components/layout/Navbar";
 import "./globals.css";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-dm",
   display: "swap",
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["300", "400", "500", "600", "700", "800", "900"],
 });
 
 export const metadata: Metadata = {
-  title: "StayMap Polska — Noclegi w Polsce",
+  title: "StayMap Polska - Noclegi w Polsce",
   description:
     "Domki, glamping i apartamenty w najpiękniejszych miejscach Polski. Wyszukaj na mapie i zarezerwuj.",
 };

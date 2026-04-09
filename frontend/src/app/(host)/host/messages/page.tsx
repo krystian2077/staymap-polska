@@ -158,10 +158,10 @@ export default function HostMessagesPage() {
 
   return (
     <div
-      className="grid h-[calc(100vh-108px)] max-h-[calc(100dvh-108px)] w-full overflow-hidden border-t border-[#e5e7eb] md:grid-cols-[300px_1fr]"
+      className="grid h-[calc(100vh-108px)] max-h-[calc(100dvh-108px)] w-full overflow-hidden border-t border-brand-dark/[.06] md:grid-cols-[300px_1fr]"
     >
-      <div className="flex max-h-full flex-col border-[#e5e7eb] md:border-r">
-        <div className="border-b border-[#e5e7eb] px-4 py-3.5">
+      <div className="flex max-h-full flex-col border-brand-dark/[.06] md:border-r">
+        <div className="border-b border-brand-dark/[.06] px-4 py-3.5">
           <div className="flex items-center gap-2">
             <h1 className="text-base font-extrabold text-brand-dark">Wiadomości</h1>
             {unreadTotal > 0 ? (
@@ -171,7 +171,7 @@ export default function HostMessagesPage() {
             ) : null}
           </div>
         </div>
-        <div className="border-b border-[#e5e7eb] px-3 py-2.5">
+        <div className="border-b border-brand-dark/[.06] px-3 py-2.5">
           <input
             className="input text-sm"
             placeholder="Szukaj konwersacji..."
@@ -189,8 +189,8 @@ export default function HostMessagesPage() {
                   markReadStore(c.id);
                 }}
                 className={cn(
-                  "flex w-full gap-2.5 border-b border-[#e5e7eb] px-3.5 py-3 text-left transition-colors",
-                  activeConvId === c.id ? "bg-brand-surface" : "hover:bg-[#f9fafb]"
+                  "flex w-full gap-2.5 border-b border-brand-dark/[.06] px-3.5 py-3 text-left transition-colors",
+                  activeConvId === c.id ? "bg-brand-surface" : "hover:bg-brand-surface/60"
                 )}
               >
                 <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-brand-muted text-xs font-bold text-brand-dark">
@@ -224,10 +224,10 @@ export default function HostMessagesPage() {
         </ul>
       </div>
 
-      <div className="flex min-h-0 flex-col bg-[#f9fafb]">
+      <div className="flex min-h-0 flex-col bg-[#f7f9f8]">
         {activeConv ? (
           <>
-            <div className="flex items-center gap-3 border-b border-[#e5e7eb] bg-white px-4 py-3.5">
+            <div className="flex items-center gap-3 border-b border-brand-dark/[.06] bg-white px-4 py-3.5">
               <div className="h-9 w-9 overflow-hidden rounded-full bg-brand-muted">
                 {activeConv.guest.avatar_url ? (
                   <Image
@@ -284,7 +284,7 @@ export default function HostMessagesPage() {
                           "max-w-[78%] rounded-2xl px-3.5 py-2 text-[13px]",
                           m.sender_id === meId
                             ? "rounded-br-sm bg-brand-dark text-white"
-                            : "rounded-bl-sm border border-[#e5e7eb] bg-white text-text"
+                            : "rounded-bl-sm bg-white text-text ring-1 ring-black/[.04]"
                         )}
                       >
                         {m.content}
@@ -303,7 +303,7 @@ export default function HostMessagesPage() {
                 );
               })}
               {activeConvId && (typingUsers[activeConvId]?.length ?? 0) > 0 ? (
-                <div className="flex w-fit gap-1 rounded-2xl border border-[#e5e7eb] bg-white px-3 py-2 text-sm text-text-muted">
+                <div className="flex w-fit gap-1 rounded-2xl bg-white px-3 py-2 text-sm text-text-muted ring-1 ring-black/[.04]">
                   <span className="animate-pulse">●</span>
                   <span className="animate-pulse [animation-delay:200ms]">●</span>
                   <span className="animate-pulse [animation-delay:400ms]">●</span>
@@ -347,7 +347,7 @@ function ChatInput({
   onSend: () => void;
 }) {
   return (
-    <div className="flex items-end gap-2.5 border-t border-[#e5e7eb] bg-white px-4 py-3">
+    <div className="flex items-end gap-2.5 border-t border-brand-dark/[.06] bg-white px-4 py-3">
       <textarea
         className="input max-h-[100px] min-h-[44px] flex-1 resize-none border-[1.5px] text-[13px] focus:border-brand"
         rows={2}

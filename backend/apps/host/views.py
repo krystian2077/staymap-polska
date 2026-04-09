@@ -214,8 +214,16 @@ class HostBookingListView(APIView):
             .prefetch_related("listing__images", "status_history")
             .order_by("-created_at")
         )
+        status_filter = request.query_params.get("status")
+        if status_filter:
+            valid = {c.value for c in Booking.Status}
+            if status_filter in valid:
+                qs = qs.filter(status=status_filter)
+        page_size = request.query_params.get("page_size")
+        if page_size and page_size.isdigit():
+            qs = qs[: int(page_size)]
         data = BookingDetailSerializer(qs, many=True, context={"request": request}).data
-        return Response({"data": data, "meta": {}}, status=200)
+        return Response({"data": data, "meta": {"count": len(data)}}, status=200)
 
 
 class HostBookingStatusView(APIView):

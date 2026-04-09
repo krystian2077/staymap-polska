@@ -13,7 +13,7 @@ const PROTECTED_PREFIXES = [
   "/compare",
 ];
 
-const HOST_ONBOARDING_PREFIX = "/host/onboarding";
+const HOST_PUBLIC_PREFIXES = ["/host/onboarding", "/host/panel"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -28,13 +28,14 @@ export async function middleware(request: NextRequest) {
   }
 
   const needsHostClaim =
-    pathname.startsWith("/host") && !pathname.startsWith(HOST_ONBOARDING_PREFIX);
+    pathname.startsWith("/host") &&
+    !HOST_PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
   const jwtSecret = process.env.JWT_SECRET;
   if (needsHostClaim && jwtSecret) {
     try {
       const { payload } = await jwtVerify(token, new TextEncoder().encode(jwtSecret));
       if (payload.is_host !== true) {
-        return NextResponse.redirect(new URL(HOST_ONBOARDING_PREFIX, request.url));
+        return NextResponse.redirect(new URL("/host/onboarding", request.url));
       }
     } catch {
       const loginUrl = new URL("/login", request.url);

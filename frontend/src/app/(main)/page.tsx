@@ -1,232 +1,283 @@
-import { format, parseISO } from "date-fns";
-import { pl } from "date-fns/locale";
-import Link from "next/link";
-import { HomeHero } from "@/components/home/HomeHero";
-import { HomeTravelModes } from "@/components/home/HomeTravelModes";
-import { ListingCard } from "@/components/listings/ListingCard";
-import { SiteFooter } from "@/components/SiteFooter";
-import { AnimatedSection } from "@/components/ui/AnimatedSection";
+import { AiTeaser } from "@/components/home/AiTeaser";
+import { FeaturedListings } from "@/components/home/FeaturedListings";
+import { HeroSection } from "@/components/home/HeroSection";
+import { LastMinute } from "@/components/home/LastMinute";
+import { MarqueeTicker } from "@/components/home/MarqueeTicker";
+import { MountainCollection } from "@/components/home/MountainCollection";
+import { RegionsGrid } from "@/components/home/RegionsGrid";
+import { StatsStrip } from "@/components/home/StatsStrip";
+import { TravelModes } from "@/components/home/TravelModes";
+import { type CollectionCardData, WaterCollection } from "@/components/home/WaterCollection";
+import { Footer } from "@/components/layout/Footer";
 import { apiUrl } from "@/lib/api";
-import { publicMediaUrl } from "@/lib/mediaUrl";
+import { similarListingToSearch } from "@/lib/listingAdapters";
 import type { SearchListing } from "@/lib/searchTypes";
-import type { DiscoveryHomepageData, SimilarListing } from "@/types/listing";
-import { MODE_EMOJI, TRAVEL_MODE_LABELS } from "@/lib/utils/booking";
+import type { DiscoveryHomepageData } from "@/types/listing";
 
-async function FeaturedGrid() {
-  const res = await fetch(apiUrl("/api/v1/search/?ordering=recommended&page_size=6"), {
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    return <p className="text-sm text-text-muted">Nie udało się załadować ofert.</p>;
+async function loadFeatured(): Promise<SearchListing[]> {
+  try {
+    const res = await fetch(apiUrl("/api/v1/search/?ordering=recommended&page_size=8"), {
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { data?: SearchListing[] };
+    return json.data ?? [];
+  } catch {
+    return [];
   }
-  const j = (await res.json()) as { data: SearchListing[] };
-  if (!j.data?.length) {
-    return <p className="text-sm text-text-muted">Brak publicznych ofert.</p>;
-  }
-  return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-      {j.data.map((l, i) => (
-        <AnimatedSection key={l.id} delay={i * 80}>
-          <ListingCard listing={l} variant="grid" />
-        </AnimatedSection>
-      ))}
-    </div>
-  );
 }
 
-function similarToSearchListing(s: SimilarListing): SearchListing {
-  const raw =
-    (typeof s.cover_image === "string" && s.cover_image) ||
-    s.images?.find((i) => i.is_cover)?.display_url ||
-    s.images?.[0]?.display_url ||
-    null;
-  const cover = publicMediaUrl(raw) ?? raw;
-  const loc = s.location;
+async function loadDiscoveryFallback(): Promise<SearchListing[]> {
+  try {
+    const res = await fetch(apiUrl("/api/v1/discovery/homepage/"), { cache: "no-store" });
+    if (!res.ok) return [];
+    const json = (await res.json()) as { data?: DiscoveryHomepageData };
+    const firstCollection = json.data?.featured_collections?.[0];
+    if (!firstCollection?.listings?.length) return [];
+    return firstCollection.listings.slice(0, 8).map(similarListingToSearch);
+  } catch {
+    return [];
+  }
+}
+
+async function loadDiscovery(): Promise<DiscoveryHomepageData | null> {
+  try {
+    const res = await fetch(apiUrl("/api/v1/discovery/homepage/"), { cache: "no-store" });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { data?: DiscoveryHomepageData };
+    return json.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function parseRating(value: SearchListing["average_rating"]): number {
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : 4.8;
+  }
+  return 4.8;
+}
+
+function searchToCollectionCard(listing: SearchListing, fallback: CollectionCardData): CollectionCardData {
+  const loc = [listing.location?.city, listing.location?.region].filter(Boolean).join(", ");
   return {
-    id: String(s.id ?? ""),
-    title: String(s.title ?? ""),
-    slug: String(s.slug ?? ""),
-    base_price: String(s.base_price ?? ""),
-    currency: String(s.currency ?? "PLN"),
-    status: "approved",
-    max_guests: 0,
-    booking_mode: "instant",
-    location: {
-      lat: 0,
-      lng: 0,
-      city: loc?.city ?? "",
-      region: loc?.region ?? "",
-      country: "PL",
-    },
-    cover_image: cover,
-    created_at: "",
-    distance_km: s.distance_km ?? null,
+    ...fallback,
+    title: listing.title || fallback.title,
+    loc: loc || fallback.loc,
+    price: Math.round(Number(listing.base_price) || fallback.price),
+    rating: parseRating(listing.average_rating),
+    reviews: listing.review_count ?? fallback.reviews,
+    href: `/listing/${listing.slug}`,
   };
 }
 
-function lastMinuteBadge(s: SimilarListing): string | null {
-  if (!s.available_from) return null;
-  try {
-    return `Dostępne od ${format(parseISO(s.available_from), "d.MM.yyyy", { locale: pl })}`;
-  } catch {
-    return `Dostępne od ${s.available_from}`;
-  }
+function countRegions(listings: SearchListing[]) {
+  const text = (l: SearchListing) => `${l.title} ${l.location?.city ?? ""} ${l.location?.region ?? ""}`.toLowerCase();
+  const by = (needle: string[]) => listings.filter((l) => needle.some((n) => text(l).includes(n))).length;
+  return {
+    zakopane: by(["zakop", "tatry", "bukowina", "nowy targ"]),
+    mazury: by(["mazur", "mikolaj", "gizyck", "augustow"]),
+    bieszczady: by(["bieszcz", "ustrzyki"]),
+    baltyk: by(["ustka", "baltyk", "sopot", "gdyn", "kolobrzeg"]),
+    szklarska: by(["szklars", "karpacz"]),
+  };
 }
 
-async function DiscoveryFeed() {
-  let data: DiscoveryHomepageData | null = null;
-  try {
-    const res = await fetch(apiUrl("/api/v1/discovery/homepage/"), {
-      cache: "no-store",
-    });
-    if (res.ok) {
-      const j = (await res.json()) as { data?: DiscoveryHomepageData };
-      data = j.data ?? null;
-    }
-  } catch {
-    data = null;
-  }
+export default async function HomePage() {
+  const featured = await loadFeatured();
+  const discovery = await loadDiscovery();
+  const fallbackListings = featured.length ? [] : await loadDiscoveryFallback();
+  const listings = featured.length ? featured : fallbackListings;
 
-  if (!data) return null;
+  const discoveryListings =
+    discovery?.featured_collections?.flatMap((collection) =>
+      collection.listings.map(similarListingToSearch)
+    ) ?? [];
 
-  const collections = (data.featured_collections ?? []).slice(0, 2);
-  const lastMinute = data.last_minute ?? [];
+  const allPool = [...listings, ...discoveryListings].filter(Boolean);
+  const regionCounts = countRegions(allPool);
 
-  return (
-    <>
-      {lastMinute.length > 0 ? (
-        <section className="pb-6 pt-2">
-          <div className="mx-auto max-w-[1200px] px-8">
-            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h2 className="sec-h">⚡ Last minute — ten weekend</h2>
-                <p className="mt-1 text-sm text-[#9ca3af]">
-                  Dostępne w najbliższe dni · automatycznie aktualizowane
-                </p>
-              </div>
-              <span className="rounded-full bg-[#dcfce7] px-2.5 py-1 text-[10px] font-bold text-[#166534]">
-                Aktualizacja co 30 min
-              </span>
-            </div>
-            <div className="flex gap-3.5 overflow-x-auto pb-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {lastMinute.map((s, i) => (
-                <div
-                  key={s.id ?? `lm-${i}`}
-                  className="min-w-[240px] shrink-0"
-                  style={{ animationDelay: `${i * 70}ms` }}
-                >
-                  <ListingCard
-                    listing={similarToSearchListing(s)}
-                    variant="compact"
-                    availabilityBadge={lastMinuteBadge(s) ?? undefined}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      ) : null}
+  const waterDefaults: CollectionCardData[] = [
+    {
+      title: "Dom na Mazurach z prywatna plaza",
+      loc: "Gizycko",
+      price: 490,
+      rating: 4.95,
+      reviews: 134,
+      badge: "Jezioro",
+      dist: "Plaza 0m",
+      emoji: "🏊",
+      href: "/search?location=Mazury",
+      bg: "linear-gradient(145deg,#dbeafe,#bfdbfe)",
+    },
+    {
+      title: "Willa na klifie z widokiem na Baltyk",
+      loc: "Ustka",
+      price: 620,
+      rating: 4.91,
+      reviews: 88,
+      badge: "Morze",
+      dist: "Plaza 50m",
+      emoji: "🌊",
+      href: "/search?location=Baltyk",
+      bg: "linear-gradient(145deg,#bfdbfe,#93c5fd)",
+    },
+    {
+      title: "Chatka na Mazurach - kajaki gratis",
+      loc: "Mikolajki",
+      price: 280,
+      rating: 4.83,
+      reviews: 61,
+      badge: "Kajaki",
+      emoji: "🛶",
+      href: "/search?location=Mazury",
+      bg: "linear-gradient(145deg,#ccfbf1,#99f6e4)",
+    },
+    {
+      title: "Dom na pomoście nad jeziorem",
+      loc: "Augustow",
+      price: 380,
+      rating: 4.89,
+      reviews: 42,
+      badge: "Pomost",
+      dist: "Widok na jezioro",
+      emoji: "🏡",
+      href: "/search?location=Augustow",
+      bg: "linear-gradient(145deg,#dbeafe,#c7d2fe)",
+    },
+    {
+      title: "Glamping przy rzece Wda",
+      loc: "Tuchola",
+      price: 195,
+      rating: 4.76,
+      reviews: 29,
+      badge: "Rzeka",
+      emoji: "🏕️",
+      href: "/search?location=Tuchola",
+      bg: "linear-gradient(145deg,#d9f99d,#bef264)",
+    },
+    {
+      title: "Apartament z basenem outdoor",
+      loc: "Sopot",
+      price: 720,
+      rating: 4.94,
+      reviews: 167,
+      badge: "Basen",
+      dist: "Plaza 200m",
+      emoji: "🏖️",
+      href: "/search?location=Sopot",
+      bg: "linear-gradient(145deg,#bfdbfe,#a5f3fc)",
+    },
+  ];
 
-      {collections.map((col) => (
-        <section key={col.id} className="border-t border-brand-border/60 py-8">
-          <div className="mx-auto max-w-[1200px] px-8">
-            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h2 className="sec-h">{col.title}</h2>
-                <p className="mt-1 max-w-2xl text-sm text-[#6b7280]">{col.description}</p>
-              </div>
-              {col.mode ? (
-                <span className="inline-flex items-center gap-1 rounded-full border border-[#bbf7d0] bg-[#f0fdf4] px-3 py-1 text-xs font-bold text-[#166534]">
-                  {MODE_EMOJI[col.mode] ?? "✨"} {TRAVEL_MODE_LABELS[col.mode] ?? col.mode}
-                </span>
-              ) : null}
-            </div>
-            <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
-              {(col.listings ?? []).map((s, i) => (
-                <AnimatedSection key={s.id ?? `${col.id}-${i}`} delay={i * 70}>
-                  <ListingCard listing={similarToSearchListing(s)} variant="grid" />
-                </AnimatedSection>
-              ))}
-            </div>
-            <Link
-              href={
-                col.mode
-                  ? `/search?travel_mode=${encodeURIComponent(col.mode)}`
-                  : `/search?collection=${encodeURIComponent(col.id)}`
-              }
-              className="mt-4 inline-block text-sm font-bold text-brand hover:underline"
-            >
-              Zobacz więcej w tej kategorii →
-            </Link>
-          </div>
-        </section>
-      ))}
-    </>
+  const mountainDefaults: CollectionCardData[] = [
+    {
+      title: "Domek z sauna na gorskiej polanie",
+      loc: "Zakopane",
+      price: 320,
+      rating: 4.92,
+      reviews: 87,
+      badge: "Sauna",
+      dist: "Tatry widok",
+      emoji: "🏔️",
+      href: "/search?location=Zakopane",
+      bg: "linear-gradient(145deg,#d1fae5,#a7f3d0)",
+    },
+    {
+      title: "Chata przy szlaku - Karpacz",
+      loc: "Karpacz",
+      price: 245,
+      rating: 4.85,
+      reviews: 53,
+      badge: "Szlak",
+      dist: "Sniezka 3km",
+      emoji: "🏕️",
+      href: "/search?location=Karpacz",
+      bg: "linear-gradient(145deg,#dcfce7,#bbf7d0)",
+    },
+    {
+      title: "Drewniany domek z kominkiem",
+      loc: "Wisla",
+      price: 290,
+      rating: 4.88,
+      reviews: 71,
+      badge: "Kominek",
+      emoji: "🔥",
+      href: "/search?location=Wisla",
+      bg: "linear-gradient(145deg,#fef3c7,#fde68a)",
+    },
+    {
+      title: "Apartament z panorama Tatr",
+      loc: "Bukowina",
+      price: 250,
+      rating: 4.76,
+      reviews: 88,
+      badge: "Panorama",
+      dist: "Tatry 2km",
+      emoji: "🌄",
+      href: "/search?location=Bukowina",
+      bg: "linear-gradient(145deg,#e0f2fe,#bae6fd)",
+    },
+    {
+      title: "Stodola SPA - Bieszczady",
+      loc: "Ustrzyki",
+      price: 390,
+      rating: 4.85,
+      reviews: 44,
+      badge: "SPA",
+      emoji: "🧖",
+      href: "/search?location=Bieszczady",
+      bg: "linear-gradient(145deg,#fce7f3,#fbcfe8)",
+    },
+    {
+      title: "Goralski domek z jacuzzi",
+      loc: "Nowy Targ",
+      price: 410,
+      rating: 4.9,
+      reviews: 38,
+      badge: "Jacuzzi",
+      dist: "Gorce 1km",
+      emoji: "🏡",
+      href: "/search?location=Nowy%20Targ",
+      bg: "linear-gradient(145deg,#d1fae5,#86efac)",
+    },
+  ];
+
+  const waterPool = allPool.filter((l) => {
+    const text = `${l.title} ${l.location?.city ?? ""} ${l.location?.region ?? ""}`.toLowerCase();
+    return ["mazur", "jezior", "balty", "sopot", "ustka", "augustow"].some((k) => text.includes(k));
+  });
+
+  const mountainPool = allPool.filter((l) => {
+    const text = `${l.title} ${l.location?.city ?? ""} ${l.location?.region ?? ""}`.toLowerCase();
+    return ["zakop", "tatry", "karp", "szklars", "wisla", "bieszcz", "gor"].some((k) => text.includes(k));
+  });
+
+  const waterCards = waterDefaults.map((fallback, index) =>
+    waterPool[index] ? searchToCollectionCard(waterPool[index], fallback) : fallback
   );
-}
 
-export default function HomePage() {
+  const mountainCards = mountainDefaults.map((fallback, index) =>
+    mountainPool[index] ? searchToCollectionCard(mountainPool[index], fallback) : fallback
+  );
+
+  const lastMinuteItems = discovery?.last_minute?.slice(0, 3) ?? [];
+
   return (
     <>
-      <HomeHero />
-      <HomeTravelModes />
-      <section className="px-8 py-9">
-        <div className="mx-auto max-w-[1200px]">
-          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-            <h2 className="text-2xl font-extrabold text-brand-dark">Polecane noclegi</h2>
-            <Link href="/search" className="text-sm font-bold text-brand hover:underline">
-              Zobacz wszystkie →
-            </Link>
-          </div>
-          <FeaturedGrid />
-        </div>
-      </section>
-
-      <DiscoveryFeed />
-
-      <section className="border-y border-brand-border bg-brand-surface px-8 py-11">
-        <div className="mx-auto grid max-w-[1200px] grid-cols-2 gap-8 md:grid-cols-4">
-          {[
-            { n: "2400+", d: "ofert w Polsce" },
-            { n: "98%", d: "zadowolonych gości" },
-            { n: "16", d: "trybów podróży" },
-            { n: "24/7", d: "wsparcie klientów" },
-          ].map((x) => (
-            <div key={x.d}>
-              <p className="text-[32px] font-extrabold tracking-tight text-brand-dark">{x.n}</p>
-              <p className="mt-1 text-[13px] text-gray-400">{x.d}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="relative overflow-hidden bg-brand-dark px-8 py-20 text-center">
-        <div
-          className="pointer-events-none absolute -left-20 top-10 h-64 w-64 rounded-full bg-brand-light/10"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -right-10 bottom-0 h-48 w-48 rounded-full bg-brand-light/[0.08]"
-          aria-hidden
-        />
-        <span className="relative inline-block rounded-full bg-brand-light/15 px-3 py-1 text-xs font-bold uppercase tracking-widest text-brand-light">
-          Dla gospodarzy
-        </span>
-        <h2 className="relative mx-auto mt-4 max-w-xl text-[clamp(28px,4vw,42px)] font-extrabold tracking-tight text-white">
-          Zarabiaj na swojej nieruchomości
-        </h2>
-        <p className="relative mx-auto mt-3 max-w-md text-sm text-white/60">
-          Dołącz do gospodarzy StayMap — proste narzędzia, bezpieczne płatności, widoczność na mapie.
-        </p>
-        <Link
-          href="/host/onboarding"
-          className="relative mt-8 inline-flex rounded-xl bg-brand-light px-8 py-3 text-sm font-extrabold text-brand-dark shadow-xl transition-all duration-200 hover:-translate-y-0.5 hover:bg-green-300"
-        >
-          Zostań gospodarzem
-        </Link>
-      </section>
-
-      <SiteFooter />
+      <HeroSection />
+      <MarqueeTicker />
+      <TravelModes />
+      <AiTeaser />
+      <FeaturedListings listings={listings} />
+      <StatsStrip />
+      <RegionsGrid counts={regionCounts} />
+      <LastMinute items={lastMinuteItems} />
+      <WaterCollection cards={waterCards} />
+      <MountainCollection cards={mountainCards} />
+      <Footer />
     </>
   );
 }

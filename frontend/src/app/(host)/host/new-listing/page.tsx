@@ -275,7 +275,7 @@ export default function NewListingPage() {
     <div className="mx-auto max-w-[680px] px-5 py-8">
       <ProgressBar step={step} total={6} name={STEP_NAMES[step - 1]} pct={mergedDraft.completion_percent} />
 
-      <div className="animate-scale-in rounded-[18px] border-[1.5px] border-[#e5e7eb] bg-white p-7 shadow-[0_4px_20px_rgba(0,0,0,.06)]">
+      <div className="animate-scale-in rounded-2xl bg-white p-7 shadow-elevated ring-1 ring-black/[.04]">
         {step === 1 ? (
           <Step1Profile
             displayName={displayName}
@@ -347,19 +347,19 @@ export default function NewListingPage() {
       <div className="mt-6 flex justify-between gap-3">
         <button
           type="button"
-          className={cn("btn-secondary", step <= 1 && "invisible pointer-events-none")}
+          className={cn("btn-secondary shadow-card ring-1 ring-black/[.04]", step <= 1 && "invisible pointer-events-none")}
           onClick={() => setStep((s) => Math.max(1, s - 1))}
         >
           ← Wstecz
         </button>
         {step < 6 ? (
-          <button type="button" className="btn-primary" onClick={() => setStep((s) => Math.min(6, s + 1))}>
+          <button type="button" className="btn-primary shadow-brand-lg transition-all hover:-translate-y-0.5" onClick={() => setStep((s) => Math.min(6, s + 1))}>
             Dalej →
           </button>
         ) : (
           <button
             type="button"
-            className="btn-primary disabled:opacity-50"
+            className="btn-primary shadow-brand-lg transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:shadow-none"
             disabled={!checklistDone}
             onClick={() => void submitReview()}
           >
@@ -384,7 +384,7 @@ function ProgressBar({
 }) {
   return (
     <div className="mb-8">
-      <div className="flex gap-0">
+      <div className="flex gap-1">
         {Array.from({ length: total }).map((_, i) => {
           const n = i + 1;
           const done = n < step;
@@ -393,20 +393,19 @@ function ProgressBar({
             <div
               key={n}
               className={cn(
-                "h-[5px] flex-1 rounded-[3px] transition-colors duration-400",
-                done || active ? "bg-brand" : "bg-[#e5e7eb]",
-                active && "shadow-[0_0_0_3px_rgba(22,163,74,.2)]"
+                "h-[6px] flex-1 rounded-full transition-all duration-500",
+                done ? "bg-brand" : active ? "bg-brand shadow-brand" : "bg-brand-dark/[.08]"
               )}
             />
           );
         })}
       </div>
-      <div className="mt-2 flex justify-between text-[11px]">
-        <span className="text-text-muted">
+      <div className="mt-2.5 flex justify-between text-[11px]">
+        <span className="font-medium text-text-muted">
           Krok {step} z {total}
         </span>
-        <span className="font-semibold text-brand-dark">{name}</span>
-        <span className="font-bold text-brand">{pct}% ukończone</span>
+        <span className="font-bold text-brand-dark">{name}</span>
+        <span className="rounded-full bg-brand-surface px-2 py-0.5 font-bold text-brand ring-1 ring-brand/10">{pct}%</span>
       </div>
     </div>
   );

@@ -73,7 +73,7 @@ export function Step6Publish({ draft, profileBioLen, hasAvatar, canSubmit }: Pro
                 "flex items-center gap-3 rounded-xl border px-3.5 py-3 text-sm",
                 state === "ok" && "border-brand-border bg-brand-surface",
                 state === "warn" && "border-amber-200 bg-amber-50",
-                state === "todo" && "border-[#e5e7eb] bg-[#f9fafb]"
+                state === "todo" && "border-brand-dark/[.06] bg-[#f7f9f8]"
               )}
             >
               <span

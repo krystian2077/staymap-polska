@@ -36,19 +36,22 @@ function profileFromUser(u: {
   email?: string;
   first_name: string;
   last_name: string;
+  bio?: string;
+  avatar_url?: string | null;
+  created_at?: string;
 }): HostProfile {
   const name = `${u.first_name} ${u.last_name}`.trim();
   return {
     id: u.id,
     user_id: u.id,
     display_name: name || u.email?.split("@")[0] || "Gospodarz",
-    bio: "",
-    avatar_url: null,
+    bio: u.bio ?? "",
+    avatar_url: u.avatar_url ?? null,
     is_verified: false,
     response_rate: 0,
     average_rating: null,
     review_count: 0,
-    member_since: new Date().toISOString(),
+    member_since: u.created_at ?? new Date().toISOString(),
     total_earnings: 0,
     payout_pending: 0,
   };
@@ -70,7 +73,7 @@ export function HostLayoutClient({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        const prof = await api.get<{ data: { is_host?: boolean; id: string; first_name: string; last_name: string; email?: string } }>(
+        const prof = await api.get<{ data: { is_host?: boolean; id: string; first_name: string; last_name: string; email?: string; bio?: string; avatar_url?: string | null; created_at?: string } }>(
           "/api/v1/profile/"
         );
         if (cancelled) return;
@@ -79,11 +82,7 @@ export function HostLayoutClient({ children }: { children: React.ReactNode }) {
           return;
         }
         if (typeof window !== "undefined") {
-          const syncKey = "staymap_host_jwt_sync";
-          if (!sessionStorage.getItem(syncKey)) {
-            const ok = await refreshSession();
-            if (ok) sessionStorage.setItem(syncKey, "1");
-          }
+          await refreshSession();
         }
         setProfile(profileFromUser(prof.data));
 
@@ -107,8 +106,7 @@ export function HostLayoutClient({ children }: { children: React.ReactNode }) {
 
         try {
           const bookRes = await api.get<{ data: Record<string, unknown>[] }>(
-            "/api/v1/host/bookings/",
-            { status: "pending", page_size: "5" }
+            "/api/v1/host/bookings/"
           );
           if (!cancelled && Array.isArray(bookRes.data)) {
             setBookings(bookRes.data.map((b) => mapBookingToHostBooking(b)));
@@ -151,13 +149,13 @@ export function HostLayoutClient({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative w-full max-w-[100vw]">
       <div
-        className="grid grid-cols-1 md:grid-cols-[220px_1fr]"
+        className="grid grid-cols-1 md:grid-cols-[260px_1fr]"
         style={{ minHeight: "calc(100vh - 64px)" }}
       >
         <div className="hidden md:block">
           <HostSidebar activeItem={activeItem} />
         </div>
-        <main className="min-w-0 border-t border-[#e5e7eb] pb-[72px] md:border-t-0 md:pb-0">
+        <main className="min-w-0 bg-[#f7f9f8] pb-[72px] md:pb-0">
           {children}
         </main>
       </div>

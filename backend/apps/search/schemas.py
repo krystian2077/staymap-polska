@@ -76,6 +76,18 @@ def _parse_date_str(v: Any) -> date | None:
         return None
 
 
+def _getlist(query_dict, key: str) -> list[str]:
+    """Pobiera listę wartości dla klucza (QueryDict lub zwykły dict)."""
+    if hasattr(query_dict, "getlist"):
+        return [v for v in query_dict.getlist(key) if v]
+    val = query_dict.get(key)
+    if val is None:
+        return []
+    if isinstance(val, list):
+        return [str(v) for v in val if v]
+    return [str(val)]
+
+
 def parse_search_params(query_dict) -> tuple[dict[str, Any], list[str]]:
     """
     Parsuje query params HTTP do dict używanego przez SearchOrchestrator.
@@ -197,6 +209,27 @@ def parse_search_params(query_dict) -> tuple[dict[str, Any], list[str]]:
         if raw not in (None, "") and _truthy(raw):
             params[tag] = True
 
+    # listing_types — lista slugów (np. domek, apartament)
+    listing_types = _getlist(query_dict, "listing_types")
+    if listing_types:
+        params["listing_types"] = [t.strip().lower() for t in listing_types if t.strip()]
+
+    # amenities — lista ID (np. wifi, sauna)
+    amenities = _getlist(query_dict, "amenities")
+    if amenities:
+        params["amenities"] = [a.strip() for a in amenities if a.strip()]
+
+    # is_pet_friendly
+    pet_raw = data.get("is_pet_friendly")
+    if pet_raw not in (None, ""):
+        params["is_pet_friendly"] = _truthy(pet_raw)
+
+    # bbox (viewport mapy): south, west, north, east
+    for b_key in ("bbox_south", "bbox_west", "bbox_north", "bbox_east"):
+        bv = _parse_float(data.get(b_key))
+        if data.get(b_key) not in (None, "") and bv is not None:
+            params[b_key] = bv
+
     allowed = {
         "location",
         "latitude",
@@ -213,6 +246,13 @@ def parse_search_params(query_dict) -> tuple[dict[str, Any], list[str]]:
         "cursor",
         "page_size",
         "limit",
+        "listing_types",
+        "amenities",
+        "is_pet_friendly",
+        "bbox_south",
+        "bbox_west",
+        "bbox_north",
+        "bbox_east",
         *LOCATION_TAG_FIELD_NAMES,
     }
     unknown = set(data.keys()) - allowed
@@ -237,6 +277,9 @@ SAVED_SEARCH_PARAM_KEYS = frozenset(
         "max_price",
         "booking_mode",
         "ordering",
+        "listing_types",
+        "amenities",
+        "is_pet_friendly",
         *LOCATION_TAG_FIELD_NAMES,
     }
 )
@@ -269,6 +312,12 @@ def validate_saved_search_payload(raw: dict) -> tuple[dict, list[str]]:
             qd.append(key, str(val))
         elif isinstance(val, str):
             qd.append(key, val)
+        elif isinstance(val, list):
+            for item in val:
+                if isinstance(item, str):
+                    qd.append(key, item)
+                else:
+                    return {}, [f"Pole {key}: elementy listy muszą być ciągami znaków"]
         else:
             return {}, [f"Pole {key}: niedozwolony typ"]
 

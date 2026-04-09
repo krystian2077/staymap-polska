@@ -136,6 +136,68 @@ class SearchOrchestrator:
             if params.get(tag) is True:
                 qs = qs.filter(**{f"location__{tag}": True})
 
+        # listing_types — filtr po listing_type.slug w JSONField
+        if listing_types := params.get("listing_types"):
+            from django.db.models import Q as _Q
+            lt_q = _Q()
+            for lt_slug in listing_types:
+                lt_q |= _Q(listing_type__slug=lt_slug)
+            qs = qs.filter(lt_q)
+
+        # amenities — oferta musi mieć wszystkie wymagane amenity IDs
+        if amenities := params.get("amenities"):
+            for a_id in amenities:
+                # JSONField @> operator: checks if JSON array contains element with given id
+                qs = qs.filter(amenities__contains=[{"id": a_id}])
+
+        # is_pet_friendly
+        if params.get("is_pet_friendly") is True:
+            qs = qs.filter(is_pet_friendly=True)
+
+        # bbox / viewport mapy
+        if all(params.get(b) is not None for b in ("bbox_south", "bbox_west", "bbox_north", "bbox_east")):
+            from django.contrib.gis.geos import Polygon as _Polygon
+            try:
+                bbox_poly = _Polygon.from_bbox((
+                    float(params["bbox_west"]),
+                    float(params["bbox_south"]),
+                    float(params["bbox_east"]),
+                    float(params["bbox_north"]),
+                ))
+                bbox_poly.srid = 4326
+                qs = qs.filter(location__point__within=bbox_poly)
+            except Exception:
+                pass  # invalid bbox → ignore silently
+
+        # Dostępność po datach (BlockedDate + aktywne Booking)
+        if (df := params.get("date_from")) and (dt := params.get("date_to")):
+            try:
+                from apps.bookings.models import BlockedDate as _BD, Booking as _Bk
+                blocked_ids = (
+                    _BD.objects.filter(
+                        date__gte=df,
+                        date__lt=dt,
+                        deleted_at__isnull=True,
+                    )
+                    .values_list("listing_id", flat=True)
+                    .distinct()
+                )
+                booked_ids = (
+                    _Bk.objects.filter(
+                        check_in__lt=dt,
+                        check_out__gt=df,
+                        status__in=[_Bk.Status.CONFIRMED, _Bk.Status.AWAITING_PAYMENT],
+                        deleted_at__isnull=True,
+                    )
+                    .values_list("listing_id", flat=True)
+                    .distinct()
+                )
+                unavailable = set(blocked_ids) | set(booked_ids)
+                if unavailable:
+                    qs = qs.exclude(id__in=unavailable)
+            except Exception:
+                pass  # availability filter is best-effort
+
         return cls._apply_ranking(qs, params, has_point=has_point)
 
     @staticmethod

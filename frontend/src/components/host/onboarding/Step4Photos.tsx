@@ -53,7 +53,7 @@ export function Step4Photos({ listingId, images, onRefresh }: Props) {
 
       <div
         className={cn(
-          "mt-6 rounded-xl border-2 border-dashed border-[#e5e7eb] p-8 text-center transition-colors",
+          "mt-6 rounded-xl border-2 border-dashed border-brand-dark/[.06] p-8 text-center transition-colors",
           dragOver && "border-brand bg-brand-surface"
         )}
         onDragOver={(e) => {
@@ -96,7 +96,7 @@ export function Step4Photos({ listingId, images, onRefresh }: Props) {
         {images.map((img) => (
           <div
             key={img.id}
-            className="group relative aspect-square overflow-hidden rounded-lg border border-[#e5e7eb]"
+            className="group relative aspect-square overflow-hidden rounded-lg border border-brand-dark/[.06]"
           >
             {img.display_url ? (
               <Image src={img.display_url} alt="" fill className="object-cover" unoptimized />
@@ -115,7 +115,7 @@ export function Step4Photos({ listingId, images, onRefresh }: Props) {
         ))}
         <label
           htmlFor="photo-upload"
-          className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-[#e5e7eb] text-text-muted"
+          className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-brand-dark/[.06] text-text-muted"
         >
           + dodaj
         </label>

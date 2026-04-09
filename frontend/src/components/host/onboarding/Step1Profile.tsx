@@ -83,7 +83,7 @@ export function Step1Profile({
       <div className="mt-6">
         <p className="text-sm font-semibold text-brand-dark">Zdjęcie profilowe</p>
         <div
-          className="relative mt-2 flex h-20 w-20 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-[#e5e7eb] bg-brand-surface"
+          className="relative mt-2 flex h-20 w-20 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-brand-dark/[.06] bg-brand-surface"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();

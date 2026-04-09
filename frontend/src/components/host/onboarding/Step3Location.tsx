@@ -100,7 +100,7 @@ export function Step3Location({ location, onChange }: Props) {
         />
       </label>
 
-      <div ref={wrapRef} className="mt-3 h-[180px] overflow-hidden rounded-xl border border-[#e5e7eb]" />
+      <div ref={wrapRef} className="mt-3 h-[180px] overflow-hidden rounded-xl border border-brand-dark/[.06]" />
 
       <div className="mt-5 space-y-4">
         {LOCATION_TAG_GROUPS.map(({ title, chips }) => (
@@ -116,7 +116,7 @@ export function Step3Location({ location, onChange }: Props) {
                     onClick={() => onChange({ [c.key]: !on } as Partial<ListingLocation>)}
                     className={cn(
                       "rounded-full border-[1.5px] px-3 py-1.5 text-xs font-semibold transition-colors",
-                      on ? "border-brand bg-brand-muted text-brand-dark" : "border-[#e5e7eb] text-text-secondary"
+                      on ? "border-brand bg-brand-muted text-brand-dark" : "border-brand-dark/[.06] text-text-secondary"
                     )}
                   >
                     {c.label}

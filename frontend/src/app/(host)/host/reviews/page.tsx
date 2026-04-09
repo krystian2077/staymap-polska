@@ -121,7 +121,7 @@ export default function HostReviewsPage() {
               "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
               filter === k
                 ? "border-brand bg-brand-muted text-brand-dark"
-                : "border-[#e5e7eb] text-text-secondary hover:border-brand"
+                : "border-brand-dark/[.06] text-text-secondary hover:border-brand"
             )}
           >
             {lab}
@@ -157,7 +157,7 @@ export default function HostReviewsPage() {
             key={r.id}
             className={cn(
               "rounded-xl border p-4",
-              !r.is_public ? "border-amber-200 bg-amber-50/85 opacity-85" : "border-[#e5e7eb] bg-white"
+              !r.is_public ? "border-amber-200 bg-amber-50/85 opacity-85" : "bg-white ring-1 ring-black/[.04]"
             )}
           >
             {!r.is_public ? (
