@@ -1,6 +1,8 @@
-import { AiTeaser } from "@/components/home/AiTeaser";
+import { AiSection } from "@/components/home/AiSection";
+import { CtaSection } from "@/components/home/CtaSection";
 import { FeaturedListings } from "@/components/home/FeaturedListings";
 import { HeroSection } from "@/components/home/HeroSection";
+import { HostCta } from "@/components/home/HostCta";
 import { LastMinute } from "@/components/home/LastMinute";
 import { MarqueeTicker } from "@/components/home/MarqueeTicker";
 import { MountainCollection } from "@/components/home/MountainCollection";
@@ -270,13 +272,15 @@ export default async function HomePage() {
       <HeroSection />
       <MarqueeTicker />
       <TravelModes />
-      <AiTeaser />
+      <AiSection />
       <FeaturedListings listings={listings} />
+      <CtaSection />
       <StatsStrip />
       <RegionsGrid counts={regionCounts} />
       <LastMinute items={lastMinuteItems} />
       <WaterCollection cards={waterCards} />
       <MountainCollection cards={mountainCards} />
+      <HostCta />
       <Footer />
     </>
   );

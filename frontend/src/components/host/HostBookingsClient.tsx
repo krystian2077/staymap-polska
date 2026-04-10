@@ -131,9 +131,9 @@ export function HostBookingsClient({
                   </p>
                   <p className="mt-0.5 text-xs text-text-muted">
                     👥 {b.guests_count} gości · <span className="font-bold text-brand-dark">{b.final_amount} {b.currency}</span>
-                    {b.special_requests && (
-                      <span className="ml-2 italic">„{b.special_requests.slice(0, 80)}{b.special_requests.length > 80 ? "…" : ""}"</span>
-                    )}
+                      {b.special_requests && (
+                        <span className="ml-2 italic">&bdquo;{b.special_requests.slice(0, 80)}{b.special_requests.length > 80 ? "…" : ""}&rdquo;</span>
+                      )}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2">
