@@ -61,10 +61,16 @@ export function useConversationSocket(convId: string | null, token: string | nul
     };
   }, [convId, token, addMessage, setTyping, setOnline, markReadStore]);
 
-  const send = useCallback((data: object) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(data));
+  const send = useCallback((data: object): boolean => {
+    try {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify(data));
+        return true;
+      }
+    } catch {
+      /* ignore */
     }
+    return false;
   }, []);
 
   const sendMessage = useCallback(

@@ -1,5 +1,7 @@
 """Powiadomienia WebSocket — grupa `notifications_{user_id}`."""
 
+from typing import Optional
+
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
@@ -16,23 +18,26 @@ def push_user_event(user_id, data: dict) -> None:
 
 
 def notify_new_message(
-    *, recipient_user_id, conversation_id: str, preview: str, recipient_is_host: bool
+    *, recipient_user_id, conversation_id: str, preview: str, recipient_is_host: bool, message_id: Optional[str] = None
 ) -> None:
     link = (
         f"/host/messages?conv={conversation_id}"
         if recipient_is_host
-        else "/bookings"
+        else f"/messages?conv={conversation_id}"
     )
+    payload = {
+        "type": "message.new",
+        "title": "Nowa wiadomość",
+        "body": preview[:120] + ("..." if len(preview) > 120 else ""),
+        "link": link,
+    }
+    if message_id:
+        payload["message_id"] = str(message_id)
     push_user_event(
         recipient_user_id,
         {
             "type": "notification.new",
-            "payload": {
-                "type": "message.new",
-                "title": "Nowa wiadomość",
-                "body": preview[:120] + ("…" if len(preview) > 120 else ""),
-                "link": link,
-            },
+            "payload": payload,
         },
     )
 
@@ -57,6 +62,7 @@ def notify_host_new_booking_request(*, host_user_id, booking_id) -> None:
                 "title": "Nowa prośba o rezerwację",
                 "body": "Masz nową rezerwację do rozpatrzenia.",
                 "link": "/host/dashboard",
+                "booking_id": str(booking_id),
             },
         },
     )

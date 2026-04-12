@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { api } from "@/lib/api";
+import { getAccessToken } from "@/lib/authStorage";
 import { useAuthStore } from "@/lib/store/authStore";
 
 type Me = {
@@ -44,8 +45,8 @@ type ModRow = {
 
 const statusPl: Record<string, string> = {
   draft: "Szkic",
-  pending: "W moderacji",
-  approved: "Zatwierdzona",
+  pending: "Aktywna",
+  approved: "Aktywna",
   rejected: "Odrzucona",
   archived: "Zarchiwizowana",
 };
@@ -80,7 +81,7 @@ export function HostPanelClient() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !localStorage.getItem("access")) {
+    if (typeof window === "undefined" || !getAccessToken()) {
       setMe(null);
       return;
     }
@@ -166,7 +167,7 @@ export function HostPanelClient() {
     );
   }
 
-  if (!localStorage.getItem("access")) {
+  if (!getAccessToken()) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
         <h1 className="text-2xl font-extrabold text-brand-dark">Panel gospodarza</h1>

@@ -8,6 +8,7 @@ import pytest
 from django.test import override_settings
 
 from apps.ai_assistant.services import (
+    AISearchService,
     _geocode_if_needed,
     _parse_llm_json,
     _strip_json_fence,
@@ -38,6 +39,28 @@ def test_usage_tokens_and_cost():
 
     assert _usage_tokens(U()) == 15
     assert _usage_cost_usd(U()) == Decimal("0")
+
+
+def test_rule_based_hints_budget_and_location():
+    hints = AISearchService._rule_based_hints("cichy domek w gorach do 500 zl dla 4 osob")
+    assert hints.get("max_price") == 500
+    assert hints.get("guests") == 4
+    assert hints.get("near_mountains") is True
+    assert hints.get("location")
+
+
+def test_merge_llm_with_hints_prefers_price_asc_for_cheap_prompt():
+    merged = AISearchService._merge_llm_with_hints(
+        {"ordering": "recommended", "travel_mode": None},
+        "tanie miejsce z sauna",
+    )
+    assert merged["ordering"] == "price_asc"
+    assert merged.get("sauna") is True
+
+
+def test_best_fuzzy_match_returns_closest_candidate():
+    hit = AISearchService._best_fuzzy_match("zakopne", ["Zakopane", "Gdansk"], min_score=0.7)
+    assert hit == "Zakopane"
 
 
 @pytest.mark.django_db

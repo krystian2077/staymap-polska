@@ -28,6 +28,36 @@ interface SuggestedDest {
   listing_type?: string;
 }
 
+const FALLBACK_SUGGESTED_DESTS: SuggestedDest[] = [
+  {
+    name: "Mazury",
+    region: "Warmińsko-mazurskie",
+    lat: 53.8,
+    lng: 21.6,
+    icon: "lake",
+    description: "Jeziora i cisza blisko natury",
+    type: "keyword",
+  },
+  {
+    name: "Zakopane",
+    region: "Małopolskie",
+    lat: 49.2992,
+    lng: 19.9496,
+    icon: "mountain",
+    description: "Górskie domki i widoki",
+    type: "city",
+  },
+  {
+    name: "Bieszczady",
+    region: "Podkarpackie",
+    lat: 49.2,
+    lng: 22.3,
+    icon: "forest",
+    description: "Spokojne miejsca z dala od tłumów",
+    type: "keyword",
+  },
+];
+
 const SuggestionIcon = ({ type }: { type: string }) => {
   if (type === "nearby") {
     return (
@@ -140,8 +170,9 @@ export function HeroSearchBar() {
       try {
         const res = await api.get<{ data: SuggestedDest[] }>("/api/v1/search/suggested-destinations/");
         setSuggestedDests(res.data);
-      } catch (err) {
-        console.error("Failed to fetch suggested destinations", err);
+      } catch {
+        // Fallback keeps the UX stable when suggestions endpoint is temporarily unavailable.
+        setSuggestedDests(FALLBACK_SUGGESTED_DESTS);
       } finally {
         setIsLoadingSuggested(false);
       }
@@ -383,7 +414,7 @@ export function HeroSearchBar() {
             isAiMode ? "text-[#0a2e1a]" : "text-[#7a8f84] hover:text-[#0a2e1a]"
           )}
         >
-          <span>AI Search</span>
+         <span>StayMap AI</span>
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-tr from-[#7c3aed] to-[#a78bfa] text-[10px] text-white">
             ✨
           </span>

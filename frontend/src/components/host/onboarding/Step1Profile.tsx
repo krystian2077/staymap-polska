@@ -41,18 +41,17 @@ export function Step1Profile({
       }
       const fd = new FormData();
       fd.append("avatar", file);
+      fd.append("bio", bio); // Send current bio to update host_profile
       try {
         await api.patchForm("/api/v1/profile/", fd);
         setAvatarPreview(URL.createObjectURL(file));
         onAvatarUploaded?.();
         toast.success("Zdjęcie zapisane.");
-      } catch {
-        toast.error("Upload avatara wymaga wsparcia API (multipart).");
-        setAvatarPreview(URL.createObjectURL(file));
-        onAvatarUploaded?.();
+      } catch (e) {
+        toast.error((e as Error).message || "Błąd zapisu zdjęcia.");
       }
     },
-    [onAvatarUploaded]
+    [bio, onAvatarUploaded]
   );
 
   return (
@@ -61,7 +60,7 @@ export function Step1Profile({
       <p className="mt-1 text-sm text-text-muted">Goście chcą poznać Ciebie zanim zarezerwują pobyt.</p>
 
       <label className="mt-6 block text-sm font-semibold text-brand-dark">
-        Wyświetlana nazwa
+        Wyświetlana nazwa (wymagane)
         <input
           className="input mt-2"
           value={displayName}
@@ -71,7 +70,7 @@ export function Step1Profile({
       </label>
 
       <label className="mt-4 block text-sm font-semibold text-brand-dark">
-        Bio
+        Bio (opcjonalnie)
         <textarea
           className="input mt-2 min-h-[100px] resize-y"
           value={bio}
@@ -81,7 +80,7 @@ export function Step1Profile({
       </label>
 
       <div className="mt-6">
-        <p className="text-sm font-semibold text-brand-dark">Zdjęcie profilowe</p>
+        <p className="text-sm font-semibold text-brand-dark">Zdjęcie profilowe (opcjonalnie)</p>
         <div
           className="relative mt-2 flex h-20 w-20 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-brand-dark/[.06] bg-brand-surface"
           onDragOver={(e) => e.preventDefault()}

@@ -6,14 +6,17 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
+import { motion, AnimatePresence } from "framer-motion";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { SkeletonCard } from "@/components/ui/SkeletonCard";
 import { api, apiUrl } from "@/lib/api";
+import { getAccessToken } from "@/lib/authStorage";
 import {
   buildSearchQueryString,
   parseMapCenterFromSearchParams,
   parseSearchParamsToState,
 } from "@/lib/searchQuery";
+import { LOCATION_TAG_KEYS } from "@/lib/locationTags";
 import { urlSearchParamsToQueryPayload } from "@/lib/searchUrl";
 import type { MapBounds } from "@/lib/store/searchStore";
 import type { MapPin, SearchListResponse, SearchListing } from "@/lib/searchTypes";
@@ -21,6 +24,8 @@ import { useSearchStore } from "@/lib/store/searchStore";
 import { MODE_EMOJI, TRAVEL_MODE_LABELS } from "@/lib/travelModes";
 import { cn } from "@/lib/utils";
 import { HeroSearchBar } from "./HeroSearchBar";
+import { MyLocationButton } from "./MyLocationButton";
+import { PriceRangeFilter } from "./PriceRangeFilter";
 import { SearchFiltersBar } from "./SearchFiltersBar";
 import { SearchFiltersPanel } from "./SearchFiltersPanel";
 import { SearchMobileBottomSheet } from "./SearchMobileBottomSheet";
@@ -30,7 +35,7 @@ const SearchMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-full w-full items-center justify-center bg-brand-surface">
+      <div className="flex h-full w-full items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-3 text-text-muted">
           <div className="h-8 w-8 animate-spin rounded-full border-[3px] border-brand-border border-t-brand" />
           <span className="text-sm font-medium">Ładowanie mapy…</span>
@@ -80,6 +85,17 @@ export default function SearchPageClient() {
     const q = new URLSearchParams(sp.toString());
     replaceParams(parseSearchParamsToState(q));
   }, [sp, replaceParams]);
+
+  // Lock body scroll for search page
+  useEffect(() => {
+    const originalStyle = window.getComputedStyle(document.body).overflow;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.documentElement.style.overflow = "";
+      document.body.style.overflow = originalStyle;
+    };
+  }, []);
 
   // Fetch results
   const runSearch = useCallback(
@@ -163,6 +179,53 @@ export default function SearchPageClient() {
     router.replace(`/search?${newQ}`);
   }, [params, router]);
 
+  const handleLocationFound = useCallback(
+    (lat: number, lng: number) => {
+      // Przy geolokalizacji resetujemy filtry, które mogłyby blokować wyniki w nowym miejscu,
+      // ale zachowujemy daty i gości jako parametry intencjonalne.
+      const update: any = {
+        lat,
+        lng,
+        radius_km: 300,
+        location: "Moja lokalizacja",
+        bbox_south: undefined,
+        bbox_west: undefined,
+        bbox_north: undefined,
+        bbox_east: undefined,
+        // Reset filtrów zawężających:
+        listing_types: undefined,
+        amenities: undefined,
+        is_pet_friendly: undefined,
+        travel_mode: undefined,
+        min_price: undefined,
+        max_price: undefined,
+      };
+
+      // Czyścimy tagi otoczenia
+      for (const tag of LOCATION_TAG_KEYS) {
+        update[tag] = undefined;
+      }
+
+      setParams(update);
+
+      // Budujemy nextParams jawnie, aby uniknąć konfliktów ze starymi współrzędnymi w params
+      const nextParams: any = {
+        ...update,
+        date_from: params.date_from,
+        date_to: params.date_to,
+        guests: params.guests,
+        adults: params.adults,
+        children: params.children,
+        infants: params.infants,
+        pets: params.pets,
+      };
+
+      const newQ = buildSearchQueryString(nextParams);
+      router.replace(`/search?${newQ}`);
+    },
+    [params, setParams, router]
+  );
+
   // Scroll to selected card
   useEffect(() => {
     if (!selectedId) return;
@@ -173,7 +236,7 @@ export default function SearchPageClient() {
   }, [selectedId]);
 
   const openSaveSearchModal = () => {
-    if (typeof window === "undefined" || !localStorage.getItem("access")) {
+    if (typeof window === "undefined" || !getAccessToken()) {
       toast.error("Zaloguj się, aby zapisać wyszukiwanie.");
       return;
     }
@@ -226,6 +289,16 @@ export default function SearchPageClient() {
 
   const previewPayload = urlSearchParamsToQueryPayload(new URLSearchParams(sp.toString()));
 
+  const getOfertyLabel = (n: number) => {
+    const lastDigit = n % 10;
+    const lastTwoDigits = n % 100;
+    if (n === 1) return "oferta";
+    if (lastDigit >= 2 && lastDigit <= 4 && (lastTwoDigits < 10 || lastTwoDigits >= 20)) {
+      return "oferty";
+    }
+    return "ofert";
+  };
+
   const ResultsList = (
     <>
       {error && (
@@ -235,10 +308,20 @@ export default function SearchPageClient() {
       )}
 
       {loading && results.length === 0 && (
-        <div className="space-y-2.5 px-4 py-3">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-[100px] overflow-hidden rounded-[14px]">
-              <SkeletonCard />
+        <div className="space-y-4 px-4 py-5">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-[110px] overflow-hidden rounded-[20px] bg-white border border-brand-surface/20 p-3 shadow-sm">
+              <div className="flex gap-4 h-full">
+                <div className="w-[86px] h-[86px] shrink-0 rounded-[14px] bg-brand-surface/20 animate-pulse" />
+                <div className="flex-1 space-y-2.5 pt-1">
+                   <div className="h-4 w-[85%] bg-brand-surface/20 rounded-full animate-pulse" />
+                   <div className="h-3 w-[40%] bg-brand-surface/10 rounded-full animate-pulse" />
+                   <div className="flex justify-between items-end mt-auto">
+                     <div className="h-5 w-[60px] bg-brand-surface/20 rounded-full animate-pulse" />
+                     <div className="h-8 w-[80px] bg-brand-surface/10 rounded-lg animate-pulse" />
+                   </div>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -260,26 +343,36 @@ export default function SearchPageClient() {
         </div>
       )}
 
-      <div className="space-y-0 px-4 py-2">
-        {results.map((l: SearchListing) => (
-          <div
-            key={l.id}
-            ref={(el) => {
-              if (el) cardRefs.current.set(l.id, el);
-              else cardRefs.current.delete(l.id);
-            }}
-          >
-            <ListingCard
-              listing={l}
-              variant="compact"
-              highlighted={hoveredId === l.id || selectedId === l.id}
-              selected={selectedId === l.id}
-              onHover={(h) => setHovered(h ? l.id : null)}
-              onClick={() => setSelected(selectedId === l.id ? null : l.id)}
-            />
-          </div>
-        ))}
-      </div>
+      <AnimatePresence mode="popLayout">
+        <div className="space-y-3 px-4 py-4">
+          {results.map((l: SearchListing, idx: number) => (
+            <motion.div
+              key={l.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={{
+                duration: 0.24,
+                delay: Math.min(idx * 0.04, 0.4),
+                ease: [0.16, 1, 0.3, 1],
+              }}
+              ref={(el) => {
+                if (el) cardRefs.current.set(l.id, el as HTMLDivElement);
+                else cardRefs.current.delete(l.id);
+              }}
+            >
+              <ListingCard
+                listing={l}
+                variant="compact"
+                highlighted={hoveredId === l.id || selectedId === l.id}
+                selected={selectedId === l.id}
+                onHover={(h) => setHovered(h ? l.id : null)}
+                onClick={() => setSelected(selectedId === l.id ? null : l.id)}
+              />
+            </motion.div>
+          ))}
+        </div>
+      </AnimatePresence>
 
       {nextUrl && (
         <div className="px-4 pb-4 pt-2">
@@ -298,89 +391,127 @@ export default function SearchPageClient() {
 
   return (
     <div
-      className="flex flex-col bg-[#f8f9fb]"
-      style={{ height: "calc(100dvh - 4rem)", overflow: "hidden" }}
+      className="flex bg-white"
+      style={{ height: "calc(100dvh - 88px)", overflow: "hidden" }}
     >
-      {/* ── Top search / filter bar ────────────────────────────────────── */}
-      <div className="z-20 shrink-0 border-b border-gray-100/80 bg-gradient-to-b from-white to-gray-50/50 shadow-[0_2px_16px_rgba(0,0,0,.06)]">
-        <div className="flex items-center justify-center gap-2.5 px-3 py-2.5 sm:px-5">
-          <HeroSearchBar variant="strip" />
-          <SearchFiltersPanel
-            params={params}
-            onChange={handleFiltersChange}
-            onSearch={handleFiltersSearch}
-          />
-        </div>
-
-        {/* Active filter chips */}
-        <SearchFiltersBar
-          params={params}
-          onRemove={(update) => {
-            handleFiltersChange(update);
-            const newParams = { ...params, ...update };
-            const newQ = buildSearchQueryString(newParams);
-            router.replace(`/search?${newQ}`);
-          }}
-          className="justify-center px-5 pb-2"
-        />
-      </div>
-
-      {/* ── Main split area ────────────────────────────────────────────── */}
-      <div className="flex min-h-0 flex-1">
-
-        {/* LEFT — results rail (desktop only) */}
-        <aside
-          className={cn(
-            "hidden flex-col bg-white lg:flex",
-            "w-[380px] shrink-0 border-r border-gray-100",
-            "overflow-hidden",
-          )}
-        >
-          {/* Rail header */}
-          <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <p className="text-[13px] font-bold text-text">
-                {loading && results.length === 0
-                  ? "Szukam…"
-                  : `${count.toLocaleString("pl-PL")} ofert`}
-              </p>
-              {loading && results.length > 0 && (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-border border-t-brand" />
-              )}
+      {/* ── LEFT — results rail (desktop only) ─────────────────────────── */}
+      <aside
+        className={cn(
+          "hidden flex-col bg-white lg:flex",
+          "w-[460px] shrink-0 shadow-[20px_0_40px_rgba(0,0,0,0.03)]",
+          "overflow-hidden z-30 scrollbar-hide",
+        )}
+      >
+        {/* Rail header */}
+        <div className="flex items-center justify-between gap-4 border-b border-gray-100 bg-white px-6 py-5 relative overflow-hidden group/header">
+          <div className="flex flex-col relative z-10">
+            <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl bg-brand-surface border border-brand/10 shadow-sm group/stats transition-all hover:bg-brand-muted hover:border-brand/20">
+              <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-brand text-white shadow-[0_4px_12px_-4px_rgba(22,163,74,0.3)] group-hover/stats:scale-110 transition-transform duration-300">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 6h16M4 12h16M4 18h7" />
+                </svg>
+              </div>
+              <div className="flex flex-col -space-y-0.5">
+                <span className="text-[18px] font-black text-brand-dark tracking-tighter leading-tight">
+                  {loading && results.length === 0
+                    ? "..."
+                    : count.toLocaleString("pl-PL")}
+                </span>
+                <span className="text-[11px] font-bold text-brand-dark/40 uppercase tracking-widest leading-none">
+                  {loading && results.length === 0 ? "Szukam" : getOfertyLabel(count)}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
+          </div>
+          <div className="flex items-center gap-2.5 relative z-10">
+            <div className="relative group/sort">
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-dark/30 group-focus-within/sort:text-brand transition-colors pointer-events-none">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/>
+                </svg>
+              </div>
               <select
                 value={ordering}
                 onChange={(e) => changeOrdering(e.target.value)}
-                className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-[12px] font-medium text-text outline-none focus:border-brand"
+                className="appearance-none rounded-[14px] border border-gray-200 bg-white pl-9 pr-10 py-2.5 text-[12.5px] font-black text-brand-dark outline-none transition-all hover:border-brand/30 hover:bg-brand-surface/20 focus:ring-4 focus:ring-brand-surface cursor-pointer shadow-sm"
               >
                 <option value="recommended">Polecane</option>
-                <option value="price_asc">Cena ↑</option>
-                <option value="price_desc">Cena ↓</option>
+                <option value="price_asc">Cena rosnąco</option>
+                <option value="price_desc">Cena malejąco</option>
                 <option value="newest">Najnowsze</option>
               </select>
-              <button
-                type="button"
-                onClick={openSaveSearchModal}
-                title="Zapisz wyszukiwanie"
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 text-sm text-text-secondary transition-colors hover:border-brand hover:text-brand"
-              >
-                💾
-              </button>
+              <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-brand-dark/30 group-hover:text-brand transition-colors">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m6 9 6 6 6-6" />
+                </svg>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={openSaveSearchModal}
+              className="group/save flex items-center justify-center gap-2 h-[42px] px-3.5 rounded-[14px] bg-brand-surface text-brand transition-all hover:bg-brand hover:text-white hover:shadow-[0_10px_25px_-8px_rgba(22,163,74,0.3)] active:scale-95 border border-brand/10 shadow-sm"
+              title="Zapisz to wyszukiwanie"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover/save:scale-110 transition-transform">
+                <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
+                <polyline points="17 21 17 13 7 13 7 21" />
+                <polyline points="7 3 7 8 15 8" />
+              </svg>
+              <span className="hidden xl:inline text-[13px] font-black tracking-tight">Zapisz</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable results */}
+        <div className="flex-1 overflow-y-auto overscroll-contain scrollbar-hide">
+          {ResultsList}
+        </div>
+      </aside>
+
+      {/* ── RIGHT — content area (map + filters) ────────────────────────── */}
+      <div className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-brand-950">
+        {/* Decorative glows */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-brand/20 blur-[120px] rounded-full pointer-events-none animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-400/10 blur-[120px] rounded-full pointer-events-none" />
+
+        {/* Top search / filter bar */}
+        <div className="z-20 flex flex-col items-center border-b border-white/5 bg-brand-950/40 backdrop-blur-xl overflow-x-auto scrollbar-hide relative overflow-hidden">
+          <div className="relative z-10 flex min-w-max items-center justify-center gap-5 px-6 py-7 sm:px-10">
+            <MyLocationButton
+              onLocationFound={handleLocationFound}
+              className="hidden lg:flex"
+            />
+            <PriceRangeFilter
+              params={params}
+              onChange={handleFiltersChange}
+              onSearch={handleFiltersSearch}
+              className="hidden lg:flex"
+            />
+            <HeroSearchBar variant="strip" />
+            <SearchFiltersPanel
+              params={params}
+              onChange={handleFiltersChange}
+              onSearch={handleFiltersSearch}
+            />
           </div>
 
-          {/* Scrollable results */}
-          <div className="flex-1 overflow-y-auto overscroll-contain">
-            {ResultsList}
-          </div>
-        </aside>
+          {/* Active filter chips */}
+          <SearchFiltersBar
+            params={params}
+            onRemove={(update) => {
+              handleFiltersChange(update);
+              const newParams = { ...params, ...update };
+              const newQ = buildSearchQueryString(newParams);
+              router.replace(`/search?${newQ}`);
+            }}
+            className="lg:justify-center px-6 pb-5 relative z-10"
+          />
+        </div>
 
-        {/* RIGHT — map (full width on mobile) */}
         <main className="relative flex-1 overflow-hidden">
           {/* Map wrapper with padding/rounding on desktop */}
           <div className="h-full w-full p-0 lg:p-3">
-            <div className="relative h-full w-full overflow-hidden rounded-none lg:rounded-[18px] lg:shadow-[0_4px_24px_rgba(0,0,0,.1)]">
+            <div className="relative h-full w-full overflow-hidden rounded-none lg:rounded-[18px] lg:shadow-[0_4px_24px_rgba(0,0,0,.1)] bg-white">
               <SearchMap
                 pins={mapPins}
                 results={results}
@@ -408,7 +539,7 @@ export default function SearchPageClient() {
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
                   <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                {count > 0 ? `${count} ofert` : "Oferty"}
+                {count > 0 ? `${count.toLocaleString("pl-PL")} ${getOfertyLabel(count)}` : "Pokaż oferty"}
               </button>
             </div>
           </div>
@@ -422,22 +553,32 @@ export default function SearchPageClient() {
         title="Oferty"
         count={count}
       >
-        {/* Mobile header */}
-        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
-          <p className="text-[12px] font-bold text-text">
-            {count.toLocaleString("pl-PL")} wyników
+      {/* Mobile header */}
+      <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <div className="h-5 w-[3px] rounded-full bg-brand" />
+          <p className="text-[14px] font-black text-brand-dark tracking-tight">
+            {count.toLocaleString("pl-PL")} {getOfertyLabel(count)}
           </p>
+        </div>
+        <div className="relative group">
           <select
             value={ordering}
             onChange={(e) => changeOrdering(e.target.value)}
-            className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-[11px] font-medium text-text outline-none focus:border-brand"
+            className="appearance-none rounded-lg border border-gray-200 bg-white pl-2 pr-7 py-1 text-[11px] font-bold text-text outline-none focus:border-brand focus:ring-2 focus:ring-brand/10"
           >
             <option value="recommended">Polecane</option>
             <option value="price_asc">Cena ↑</option>
             <option value="price_desc">Cena ↓</option>
             <option value="newest">Najnowsze</option>
           </select>
+          <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </div>
         </div>
+      </div>
         {ResultsList}
       </SearchMobileBottomSheet>
 

@@ -30,6 +30,15 @@ export function SearchMapPopupCard({ pin, listing, onClose }: Props) {
   const locLine = [city, region].filter(Boolean).join(", ") || "Polska";
   const href = slug ? `/listing/${slug}` : "#";
 
+  const cacheListing = () => {
+    if (typeof window === "undefined" || !listing?.slug) return;
+    try {
+      localStorage.setItem(`listing-cache:${listing.slug}`, JSON.stringify(listing));
+    } catch {
+      // noop
+    }
+  };
+
   return (
     <div
       className="relative w-[240px] overflow-hidden rounded-[16px] border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,.16)] transition-all duration-200"
@@ -87,7 +96,10 @@ export function SearchMapPopupCard({ pin, listing, onClose }: Props) {
               "rounded-md bg-brand px-3 py-1.5 text-[11px] font-bold text-white",
               "transition-all duration-150 hover:bg-brand-700 active:scale-95"
             )}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation();
+              cacheListing();
+            }}
           >
             Zobacz →
           </Link>

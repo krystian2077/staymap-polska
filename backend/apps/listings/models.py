@@ -65,6 +65,16 @@ class Listing(BaseModel):
         help_text="Uzasadnienie moderacji (np. powód odrzucenia).",
     )
     max_guests = models.PositiveSmallIntegerField(default=2)
+    guests_included = models.PositiveSmallIntegerField(
+        default=2,
+        help_text="Liczba gości wliczona w cenę bazową.",
+    )
+    extra_guest_fee = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Dodatkowa opłata za każdego gościa powyżej guests_included (za noc).",
+    )
     short_description = models.CharField(max_length=320, blank=True)
     bedrooms = models.PositiveSmallIntegerField(default=1)
     beds = models.PositiveSmallIntegerField(default=1)

@@ -7,25 +7,24 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   draft: ListingDraft;
-  profileBioLen: number;
-  hasAvatar: boolean;
+  displayName: string;
   canSubmit: boolean;
 };
 
-export function Step6Publish({ draft, profileBioLen, hasAvatar, canSubmit }: Props) {
+export function Step6Publish({ draft, displayName, canSubmit }: Props) {
   const items = [
     {
-      ok: profileBioLen > 20 && hasAvatar,
+      ok: displayName.trim().length > 0,
       warn: false,
-      title: "Profil hosta",
-      desc: "Bio + avatar",
+      title: "Nazwa hosta",
+      desc: "Wyświetlana nazwa jest wymagana",
       href: "#",
     },
     {
-      ok: draft.title.length > 10 && draft.description.length > 50,
+      ok: draft.title.trim().length >= 5 && draft.description.trim().length >= 20,
       warn: false,
       title: "Opis oferty",
-      desc: "Tytuł i opis",
+      desc: `Tytuł min. 5 znaków, opis min. 20 znaków`,
       href: "#",
     },
     {
@@ -36,10 +35,10 @@ export function Step6Publish({ draft, profileBioLen, hasAvatar, canSubmit }: Pro
       href: "#",
     },
     {
-      ok: draft.images.length >= 5,
+      ok: draft.images.length >= 1,
       warn: false,
-      title: `Zdjęcia (${draft.images.length}/5)`,
-      desc: "Minimum 5 zdjęć",
+      title: `Zdjęcia (${draft.images.length}/1)`,
+      desc: "Minimum 1 zdjęcie",
       href: "#",
     },
     {
@@ -50,10 +49,10 @@ export function Step6Publish({ draft, profileBioLen, hasAvatar, canSubmit }: Pro
       href: "#",
     },
     {
-      ok: draft.amenity_ids.length >= 5,
-      warn: draft.amenity_ids.length > 0 && draft.amenity_ids.length < 5,
-      title: "Udogodnienia (opcjonalnie)",
-      desc: "Warto dodać minimum 5 dla lepszej widoczności",
+      ok: draft.amenity_ids.length >= 1,
+      warn: false,
+      title: `Udogodnienia (${draft.amenity_ids.length}/1)`,
+      desc: "Minimum 1 udogodnienie",
       href: "/host/new-listing",
     },
   ];
@@ -61,7 +60,7 @@ export function Step6Publish({ draft, profileBioLen, hasAvatar, canSubmit }: Pro
   return (
     <div>
       <h2 className="text-[22px] font-extrabold text-brand-dark">🚀 Publikacja</h2>
-      <p className="mt-1 text-sm text-text-muted">Sprawdź listę i wyślij ofertę do moderacji.</p>
+      <p className="mt-1 text-sm text-text-muted">Sprawdź listę i opublikuj ofertę.</p>
 
       <ul className="mt-6 flex flex-col gap-2.5">
         {items.map((it) => {
@@ -110,10 +109,8 @@ export function Step6Publish({ draft, profileBioLen, hasAvatar, canSubmit }: Pro
       </ul>
 
       <div className="mt-6 rounded-[14px] bg-brand-dark p-5 text-center">
-        <p className="text-xl font-extrabold text-white">Wyślij do moderacji 🚀</p>
-        <p className="mt-1.5 text-[13px] text-white/65">
-          Sprawdzimy w ciągu 24h i dostaniesz e-mail.
-        </p>
+        <p className="text-xl font-extrabold text-white">Opublikuj ofertę 🚀</p>
+        <p className="mt-1.5 text-[13px] text-white/65">Po publikacji oferta będzie widoczna dla gości.</p>
         {!canSubmit ? (
           <p className="mt-3 text-xs text-amber-200">Uzupełnij brakujące pola — przycisk jest na dole strony.</p>
         ) : null}

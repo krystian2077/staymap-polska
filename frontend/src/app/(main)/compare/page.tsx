@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { getAccessToken } from "@/lib/authStorage";
 import { publicMediaUrl } from "@/lib/mediaUrl";
 import { useCompareStore } from "@/lib/store/compareStore";
 import { cn } from "@/lib/utils";
@@ -28,7 +29,6 @@ function avgDestScore(listing: Listing): number {
   if (!d) return 0;
   const vals = [
     d.romantic,
-    d.wellness,
     d.nature,
     d.outdoor,
     d.quiet,
@@ -85,18 +85,18 @@ export default function ComparePage() {
 
   useEffect(() => {
     if (!mounted || typeof window === "undefined") return;
-    if (!localStorage.getItem("access")) {
+    if (!getAccessToken()) {
       router.replace("/login?next=/compare");
     }
   }, [mounted, router]);
 
   useEffect(() => {
-    const t = localStorage.getItem("access");
+    const t = getAccessToken();
     if (!t || !sessionId) return;
     void loadSession(sessionId, t);
   }, [sessionId, loadSession]);
 
-  const token = mounted && typeof window !== "undefined" ? localStorage.getItem("access") : null;
+  const token = mounted && typeof window !== "undefined" ? getAccessToken() : null;
 
   const winnerId = useMemo(() => {
     if (listings.length < 2) return null;
@@ -192,14 +192,14 @@ export default function ComparePage() {
 
   const prices = listings.map((l) => l.base_price);
   const ratings = listings.map((l) => l.average_rating ?? 0);
-  const reviews = listings.map((l) => l.review_count);
-  const wellness = listings.map((l) => l.destination_score_cache?.wellness ?? 0);
-  const romantic = listings.map((l) => l.destination_score_cache?.romantic ?? 0);
-  const nature = listings.map((l) => l.destination_score_cache?.nature ?? 0);
+  const reviews = listings.map((l) => l.review_count || 0);
+  const workation = listings.map((l) => l.destination_score_cache?.workation || 0);
+  const romantic = listings.map((l) => l.destination_score_cache?.romantic || 0);
+  const nature = listings.map((l) => l.destination_score_cache?.nature || 0);
 
   const pm = rowMeta("price", prices);
   const rm = rowMeta("rating", ratings);
-  const wm = rowMeta("number", wellness);
+  const wm = rowMeta("number", workation);
   const romM = rowMeta("number", romantic);
   const natM = rowMeta("number", nature);
   const revM = rowMeta("reviews", reviews);
@@ -214,19 +214,25 @@ export default function ComparePage() {
       label: "Cena / noc",
       kind: "price",
       meta: pm,
-      cells: listings.map((l) => `${l.base_price} ${l.currency}`),
+      cells: listings.map((l) => `${l.base_price || 0} ${l.currency || 'PLN'}`),
     },
     {
       label: "Ocena",
       kind: "rating",
       meta: rm,
-      cells: listings.map((l) => (l.average_rating != null ? l.average_rating.toFixed(1) : "—")),
+      cells: listings.map((l) => (l.average_rating != null ? Number(l.average_rating).toFixed(1) : "—")),
+    },
+    {
+      label: "Typ",
+      kind: "text",
+      meta: { emphasizeIdx: new Set(), badIdx: new Set() },
+      cells: listings.map((l) => l.listing_type?.name || "Obiekt 🏠"),
     },
     {
       label: "Recenzje",
       kind: "reviews",
       meta: revM,
-      cells: listings.map((l) => l.review_count),
+      cells: listings.map((l) => (l.review_count || 0)),
     },
     {
       label: "Sauna",
@@ -253,15 +259,27 @@ export default function ComparePage() {
       kind: "number",
       meta: rowMeta(
         "number",
-        listings.map((l) => l.max_guests)
+        listings.map((l) => l.max_guests || 2)
       ),
-      cells: listings.map((l) => l.max_guests),
+      cells: listings.map((l) => (l.max_guests || 2)),
     },
     {
-      label: "Wellness score",
+      label: "Sypialnie",
+      kind: "number",
+      meta: rowMeta("number", listings.map((l) => l.bedrooms || 1)),
+      cells: listings.map((l) => l.bedrooms || 1),
+    },
+    {
+      label: "Łóżka",
+      kind: "number",
+      meta: rowMeta("number", listings.map((l) => l.beds || 1)),
+      cells: listings.map((l) => l.beds || 1),
+    },
+    {
+      label: "Workation",
       kind: "number",
       meta: wm,
-      cells: listings.map((l) => (l.destination_score_cache?.wellness ?? "—") as string | number),
+      cells: listings.map((l) => (l.destination_score_cache?.workation ?? "—") as string | number),
     },
     {
       label: "Romantyczność",
@@ -274,12 +292,6 @@ export default function ComparePage() {
       kind: "number",
       meta: natM,
       cells: listings.map((l) => (l.destination_score_cache?.nature ?? "—") as string | number),
-    },
-    {
-      label: "Anulowanie",
-      kind: "text",
-      meta: { emphasizeIdx: new Set(), badIdx: new Set() },
-      cells: listings.map((l) => policyLabel(l.cancellation_policy)),
     },
   ];
 

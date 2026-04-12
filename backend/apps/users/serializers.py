@@ -89,13 +89,27 @@ class UserMeSerializer(serializers.ModelSerializer):
             return None
         return hp.avatar_url
 
+    def _get_clean_url(self, url: str | None) -> str | None:
+        if not url:
+            return None
+        if url.startswith("http"):
+            from urllib.parse import urlparse
+            url = urlparse(url).path
+        if not url.startswith("/"):
+            url = f"/{url}"
+        if not url.startswith("/media/"):
+            url = f"/media{url}"
+        return url
+
     def get_avatar_url(self, obj):
         prof = self._profile(obj)
-        request = self.context.get("request")
-        if prof.avatar:
-            url = prof.avatar.url
-            return request.build_absolute_uri(url) if request else url
-        return self._host_avatar(obj, request)
+        try:
+            if prof.avatar and prof.avatar.name:
+                return self._get_clean_url(prof.avatar.url)
+        except Exception as e:
+            print(f"Error getting avatar URL: {e}")
+            pass
+        return self._get_clean_url(self._host_avatar(obj, self.context.get("request")))
 
     def update(self, instance, validated_data):
         empty = serializers.empty

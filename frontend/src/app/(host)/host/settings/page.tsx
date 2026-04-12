@@ -3,6 +3,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { clearAuthTokens } from "@/lib/authStorage";
 import { useAuthStore } from "@/lib/store/authStore";
 import { cn } from "@/lib/utils";
 
@@ -82,7 +83,7 @@ export default function HostSettingsPage() {
               className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700"
               onClick={() => {
                 logout();
-                document.cookie = "access_token=; path=/; max-age=0";
+                clearAuthTokens();
                 window.location.href = "/";
               }}
             >

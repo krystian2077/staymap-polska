@@ -71,6 +71,7 @@ class ConversationConsumer(AsyncJsonWebsocketConsumer):
                 conversation_id=str(conv.pk),
                 preview=body,
                 recipient_is_host=True,
+                message_id=str(msg.id),
             )
         elif user.id == host_uid and guest_uid:
             notify_new_message(
@@ -78,6 +79,7 @@ class ConversationConsumer(AsyncJsonWebsocketConsumer):
                 conversation_id=str(conv.pk),
                 preview=body,
                 recipient_is_host=False,
+                message_id=str(msg.id),
             )
         return data
 

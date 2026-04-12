@@ -286,6 +286,10 @@ SAVED_SEARCH_PARAM_KEYS = frozenset(
         "listing_types",
         "amenities",
         "is_pet_friendly",
+        "bbox_south",
+        "bbox_west",
+        "bbox_north",
+        "bbox_east",
         *LOCATION_TAG_FIELD_NAMES,
     }
 )

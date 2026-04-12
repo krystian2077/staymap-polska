@@ -19,17 +19,14 @@ export function PriceBreakdown({
   quote: PricingBreakdown | null;
   loading?: boolean;
 }) {
-  const [open, setOpen] = useState(true);
-
   if (loading) {
     return (
-      <div className="space-y-2 rounded-[14px] border border-gray-200 p-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="h-4 animate-pulse rounded bg-gray-100"
-            style={{ width: `${70 + (i % 3) * 10}%` }}
-          />
+      <div className="space-y-4 rounded-[2rem] border border-gray-100 bg-white/50 p-6 shadow-sm">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex justify-between gap-4">
+            <div className="h-5 animate-pulse rounded-lg bg-gray-100" style={{ width: `${40 + (i % 3) * 15}%` }} />
+            <div className="h-5 w-20 animate-pulse rounded-lg bg-gray-100" />
+          </div>
         ))}
       </div>
     );
@@ -37,8 +34,10 @@ export function PriceBreakdown({
 
   if (!quote) {
     return (
-      <div className="rounded-[14px] border border-dashed border-gray-200 bg-gray-50/80 p-4 text-center text-sm text-gray-500">
-        Wybierz daty, aby zobaczyć cenę
+      <div className="group relative overflow-hidden rounded-[2rem] border border-dashed border-gray-200 bg-gray-50/30 p-8 text-center transition-all hover:bg-gray-50/50">
+        <p className="text-[14px] font-black tracking-tight text-gray-400 uppercase group-hover:text-brand transition-colors">
+          Wybierz daty, aby zobaczyć cenę
+        </p>
       </div>
     );
   }
@@ -48,72 +47,86 @@ export function PriceBreakdown({
   const hasDiscount = quote.long_stay_discount > 0;
 
   return (
-    <div className="overflow-hidden rounded-[14px] border border-gray-200">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between bg-gray-50 px-4 py-3 text-left transition-colors hover:bg-brand-surface"
-      >
-        <span className="text-[13px] font-bold text-brand-dark">Szczegóły ceny</span>
-        <span className="text-sm font-extrabold text-brand-dark">{money(quote.total, cur)}</span>
-      </button>
-      {open && (
-        <div className="space-y-2.5 px-4 py-3 text-sm">
-          <div className="flex justify-between gap-4 text-gray-600">
-            <span className="flex flex-wrap items-center gap-2">
-              {money(quote.nightly_rate, cur)} × {quote.nights}{" "}
-              {quote.nights === 1 ? "noc" : quote.nights < 5 ? "noce" : "nocy"}
-              {hasSeason && (
-                <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">
-                  Sezon ×{quote.seasonal_multiplier.toFixed(2)}
-                </span>
-              )}
+    <div className="overflow-hidden rounded-[2rem] border border-gray-100 bg-white shadow-sm transition-all hover:shadow-md">
+      <div className="space-y-4 px-6 py-6 text-[14px] leading-relaxed">
+        <div className="flex justify-between gap-4 text-gray-500 font-semibold">
+          <span className="flex flex-wrap items-center gap-2">
+            {money(quote.nightly_rate, cur)} × {quote.nights}{" "}
+            {quote.nights === 1 ? "noc" : quote.nights < 5 ? "noce" : "nocy"}
+            {hasSeason && (
+              <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-[10px] font-black text-amber-700 ring-1 ring-inset ring-amber-200/50">
+                SEZON
+              </span>
+            )}
+          </span>
+          <span className="shrink-0 font-black text-brand-dark">
+            {money(quote.accommodation_subtotal, cur)}
+          </span>
+        </div>
+        
+        {quote.extra_guests && quote.extra_guests > 0 ? (
+          <div className="flex justify-between gap-4 text-gray-500 font-semibold">
+            <span className="flex items-center gap-2">
+              Dodatkowi goście
+              <div title={`${quote.extra_guests} × ${money(quote.extra_guest_fee_per_night || 0, cur)} / noc`} className="cursor-help text-gray-300 hover:text-brand transition-colors">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
             </span>
-            <span className="shrink-0 font-medium text-gray-900">
-              {money(quote.accommodation_subtotal, cur)}
+            <span className="shrink-0 font-black text-brand-dark">
+              {money(quote.extra_guests_total || 0, cur)}
             </span>
           </div>
-          {hasDiscount && (
-            <div className="flex justify-between gap-4 text-emerald-700">
-              <span>
-                Rabat za długi pobyt
-                {quote.long_stay_discount_percent ? (
-                  <span className="text-emerald-600"> ({quote.long_stay_discount_percent}%)</span>
-                ) : null}
-              </span>
-              <span className="font-semibold">−{money(quote.long_stay_discount, cur)}</span>
+        ) : null}
+
+        {hasDiscount && (
+          <div className="flex justify-between gap-4 text-emerald-600 font-black bg-emerald-50/50 -mx-6 px-6 py-2">
+            <span className="flex items-center gap-2">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12z" />
+              </svg>
+              Rabat za długi pobyt
+              {quote.long_stay_discount_percent ? (
+                <span className="font-bold"> ({quote.long_stay_discount_percent}%)</span>
+              ) : null}
+            </span>
+            <span className="shrink-0">−{money(quote.long_stay_discount, cur)}</span>
+          </div>
+        )}
+
+        <div className="flex justify-between gap-4 text-gray-500 font-semibold">
+          <span className="flex items-center gap-2">
+            Opłata za sprzątanie
+            <div title="Jednorazowa opłata pobierana przez gospodarza" className="cursor-help text-gray-300 hover:text-brand transition-colors">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
-          )}
-          <div className="flex justify-between gap-4 text-gray-600">
-            <span className="flex items-center gap-1">
-              Opłata za sprzątanie
-              <span
-                title="Jednorazowa opłata przy każdej rezerwacji"
-                className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-gray-400 text-[9px] text-gray-500"
-              >
-                ?
-              </span>
-            </span>
-            <span className="font-medium">{money(quote.cleaning_fee, cur)}</span>
-          </div>
-          <div className="flex justify-between gap-4 text-gray-600">
-            <span className="flex items-center gap-1">
-              Opłata serwisowa StayMap
-              <span
-                title={`${quote.service_fee_percent ?? 15}% od zakwaterowania po rabatach`}
-                className="inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full border border-gray-400 text-[9px] text-gray-500"
-              >
-                ?
-              </span>
-            </span>
-            <span className="font-medium">{money(quote.service_fee, cur)}</span>
-          </div>
-          <div className="mt-2 flex justify-between border-t border-gray-100 pt-3 text-base font-extrabold text-brand-dark">
-            <span>Łącznie (PLN)</span>
+          </span>
+          <span className="shrink-0 font-black text-brand-dark">{money(quote.cleaning_fee, cur)}</span>
+        </div>
+
+        <div className="flex justify-between gap-4 text-gray-500 font-semibold">
+          <span className="flex items-center gap-2">
+            Opłata serwisowa
+            <div title={`Obejmuje obsługę rezerwacji i wsparcie 24/7 (${quote.service_fee_percent ?? 15}%)`} className="cursor-help text-gray-300 hover:text-brand transition-colors">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </span>
+          <span className="shrink-0 font-black text-brand-dark">{money(quote.service_fee, cur)}</span>
+        </div>
+
+        <div className="mt-2 flex justify-between border-t border-gray-50 pt-5 text-[19px] font-black text-brand-dark tracking-tighter">
+          <span>Razem</span>
+          <div className="flex flex-col items-end">
             <span>{money(quote.total, cur)}</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mt-0.5">Wszystkie opłaty wliczone</span>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -50,34 +50,48 @@ class PricingService:
         cleaning = listing.cleaning_fee or Decimal("0")
         svc_pct = _service_fee_percent()
 
+        extra_guests = max(0, guests - listing.guests_included)
+        extra_fee_per_night = (Decimal(str(extra_guests)) * listing.extra_guest_fee).quantize(Decimal("0.01"))
+
         custom_map = cls._custom_prices_map(listing, check_in, check_out)
         nightly_lines = []
-        accommodation = Decimal("0")
+        accommodation_base_total = Decimal("0")
+        extra_guests_total = Decimal("0")
 
         for d in _iter_nights(check_in, check_out):
             base = custom_map.get(d, listing.base_price)
             seasonal = cls._seasonal_multiplier(listing, d)
             holiday = cls._holiday_multiplier(listing, d)
-            line_total = (base * seasonal * holiday).quantize(Decimal("0.01"))
-            accommodation += line_total
+            
+            # Cena za noc (obiekt)
+            nightly_base = (base * seasonal * holiday).quantize(Decimal("0.01"))
+            
+            accommodation_base_total += nightly_base
+            extra_guests_total += extra_fee_per_night
+            
             nightly_lines.append(
                 {
                     "date": d.isoformat(),
                     "base_price": str(base),
                     "seasonal_multiplier": str(seasonal),
                     "holiday_multiplier": str(holiday),
-                    "line_total": str(line_total),
+                    "nightly_base": str(nightly_base),
+                    "extra_guests_fee": str(extra_fee_per_night),
+                    "line_total": str(nightly_base + extra_fee_per_night),
                 }
             )
 
-        discount_pct = cls._long_stay_discount_percent(listing, nights)
-        long_stay_discount = (accommodation * discount_pct / Decimal("100")).quantize(Decimal("0.01"))
-        accommodation_after = (accommodation - long_stay_discount).quantize(Decimal("0.01"))
+        # Suma przed rabatem (zakwaterowanie + goście)
+        subtotal_with_guests = accommodation_base_total + extra_guests_total
 
-        service_fee = (accommodation_after * svc_pct / Decimal("100")).quantize(Decimal("0.01"))
+        discount_pct = cls._long_stay_discount_percent(listing, nights)
+        long_stay_discount = (subtotal_with_guests * discount_pct / Decimal("100")).quantize(Decimal("0.01"))
+        accommodation_after = (subtotal_with_guests - long_stay_discount).quantize(Decimal("0.01"))
+
+        service_fee = ((accommodation_after + cleaning) * svc_pct / Decimal("100")).quantize(Decimal("0.01"))
         total = (accommodation_after + cleaning + service_fee).quantize(Decimal("0.01"))
 
-        avg_nightly = (accommodation / Decimal(nights)).quantize(Decimal("0.01")) if nights else Decimal("0")
+        avg_nightly_base = (accommodation_base_total / Decimal(nights)).quantize(Decimal("0.01")) if nights else Decimal("0")
 
         if nightly_lines:
             nlines = len(nightly_lines)
@@ -94,13 +108,17 @@ class PricingService:
         return {
             "nights": nights,
             "guests": guests,
-            "nightly_rate": str(avg_nightly),
+            "guests_included": listing.guests_included,
+            "extra_guests": extra_guests,
+            "extra_guest_fee_per_night": str(listing.extra_guest_fee),
+            "extra_guests_total": str(extra_guests_total),
+            "nightly_rate": str(avg_nightly_base),
             "seasonal_multiplier": str(avg_seasonal),
             "holiday_multiplier": str(avg_holiday),
             "nightly_lines": nightly_lines,
             "seasonal_note": "per noc — reguła o najwyższym priority",
             "holiday_note": "per noc — święta PL lub reguła oferty",
-            "accommodation_subtotal": str(accommodation.quantize(Decimal("0.01"))),
+            "accommodation_subtotal": str(accommodation_base_total),
             "long_stay_discount_percent": str(discount_pct),
             "long_stay_discount": str(long_stay_discount),
             "accommodation_after_discount": str(accommodation_after),

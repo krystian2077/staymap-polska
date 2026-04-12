@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, apiUrl } from "@/lib/api";
+import { clearAuthTokens, getAccessToken } from "@/lib/authStorage";
 import { useAuthStore } from "@/lib/store/authStore";
 import { NavbarNotifications } from "@/components/NavbarNotifications";
 import { cn } from "@/lib/utils";
@@ -14,7 +15,7 @@ function initials(first: string, last: string) {
 }
 
 async function fetchWishlistCount(): Promise<number> {
-  const token = localStorage.getItem("access");
+  const token = getAccessToken();
   if (!token) return 0;
   const res = await fetch(apiUrl("/api/v1/wishlist/"), {
     headers: { Authorization: `Bearer ${token}` },
@@ -56,7 +57,7 @@ export function Navbar() {
 
   useEffect(() => {
     if (!mounted || typeof window === "undefined") return;
-    const token = localStorage.getItem("access");
+    const token = getAccessToken();
     if (!token) {
       setUser(null);
       return;
@@ -201,7 +202,7 @@ export function Navbar() {
                   type="button"
                   onClick={() => {
                     logout();
-                    document.cookie = "access_token=; path=/; max-age=0";
+                    clearAuthTokens();
                     window.location.href = "/";
                   }}
                   className="btn-ghost hidden text-xs font-semibold sm:inline-flex text-text-muted hover:text-text hover:bg-brand-surface/80 transition-colors duration-300"

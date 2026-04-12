@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { getAccessToken } from "@/lib/authStorage";
 import { publicMediaUrl } from "@/lib/mediaUrl";
 import { useAIStore } from "@/lib/store/aiStore";
 import { MODE_EMOJI, TRAVEL_MODE_LABELS } from "@/lib/travelModes";
@@ -152,52 +153,109 @@ function AIProcessingState({
 }
 
 function AIResultCard({ result, index }: { result: AIResult; index: number }) {
-  const img = result.images?.find((i) => i.is_cover)?.display_url ?? result.images?.[0]?.display_url;
+  const img =
+    result.cover_image ??
+    result.images?.find((i) => i.is_cover)?.display_url ??
+    result.images?.[0]?.display_url;
   const src = publicMediaUrl(img);
+  const bookingModeLabel =
+    result.booking_mode === "instant"
+      ? "Natychmiast"
+      : result.booking_mode === "request"
+        ? "Na zapytanie"
+        : null;
+  const short = (result.short_description || "").trim();
+  const imageCount = Array.isArray(result.images) ? result.images.length : 0;
   return (
     <Link
       href={`/listing/${result.slug}`}
       className={cn(
-        "group block overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-card transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-1 hover:border-brand-border hover:shadow-hover"
+        "group animate-offer-card-in block h-full overflow-hidden rounded-[24px] border border-[#e4ebe7] bg-white shadow-[0_12px_34px_-24px_rgba(10,15,13,.32)] transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-[7px] hover:border-[#bbf7d0] hover:shadow-[0_30px_80px_-26px_rgba(10,15,13,.38)]"
       )}
       style={{ animationDelay: `${index * 80}ms` }}
     >
-      <div className="relative h-[160px] overflow-hidden bg-brand-surface">
+      <div className="relative h-[236px] overflow-hidden bg-[linear-gradient(145deg,#dff8e9,#bcefd4)]">
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-[1.03]" />
+          <img
+            src={src}
+            alt={result.title}
+            className="h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(.16,1,.3,1)] group-hover:scale-[1.08]"
+          />
         ) : (
-          <div className="flex h-full items-center justify-center text-4xl">{result.listing_type?.icon ?? "🏠"}</div>
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-white/90">
+            <span className="text-6xl drop-shadow">{result.listing_type?.icon ?? "🏠"}</span>
+            <span className="rounded-full bg-black/20 px-3 py-1 text-[11px] font-semibold backdrop-blur-sm">
+              Brak zdjęcia oferty
+            </span>
+          </div>
         )}
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,.04)_18%,rgba(10,46,26,.25)_100%)]" />
         <span
-          className="absolute left-2 top-2 rounded-lg px-2 py-0.5 text-[10px] font-bold text-white"
+          className="absolute left-3 top-3 rounded-pill px-3 py-1 text-[11px] font-bold text-white"
           style={{ background: "rgba(124,58,237,.9)" }}
         >
           {result.match_score}% dopasowanie
         </span>
-        <span className="absolute right-2 top-2 rounded bg-[#7c3aed] px-1.5 py-0.5 text-[10px] font-bold text-white">
+        <span className="absolute right-3 top-3 rounded-pill bg-[#7c3aed] px-2.5 py-1 text-[11px] font-bold text-white">
           AI Pick
         </span>
+
+        {imageCount > 0 ? (
+          <span className="absolute bottom-3 right-3 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+            📷 {imageCount}
+          </span>
+        ) : null}
       </div>
-      <div className="px-3.5 py-3">
-        <h3 className="mb-1 line-clamp-2 text-[13px] font-bold leading-snug text-text">{result.title}</h3>
-        <p className="mb-2 text-[11px] text-text-muted">
+
+      <div className="flex min-h-[228px] flex-col px-5 pb-5 pt-4">
+        <h3 className="mb-1.5 line-clamp-2 text-[16px] font-extrabold leading-[1.28] text-[#0a0f0d]">{result.title}</h3>
+        <p className="mb-2.5 flex items-center gap-1 text-[12px] text-[#6e8378]">
+          <span>📍</span>
           {result.location?.city}, {result.location?.region}
         </p>
+
+        {short ? (
+          <p className="mb-3 line-clamp-2 text-[12px] leading-relaxed text-[#5f746b]">{short}</p>
+        ) : null}
+
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {typeof result.max_guests === "number" ? (
+            <span className="rounded-full bg-[#f3f4f6] px-2.5 py-1 text-[11px] font-semibold text-[#475569]">
+              👥 do {result.max_guests}
+            </span>
+          ) : null}
+          {bookingModeLabel ? (
+            <span className="rounded-full bg-[#ecfdf5] px-2.5 py-1 text-[11px] font-semibold text-[#047857]">
+              ⚡ {bookingModeLabel}
+            </span>
+          ) : null}
+          {typeof result.distance_km === "number" ? (
+            <span className="rounded-full bg-[#eff6ff] px-2.5 py-1 text-[11px] font-semibold text-[#1d4ed8]">
+              🧭 {result.distance_km.toFixed(1)} km
+            </span>
+          ) : null}
+        </div>
+
         {result.match_reasons?.length ? (
-          <div className="mb-2 rounded-md bg-[#ede9fe] px-2 py-1.5 text-[11px] font-medium text-[#6d28d9]">
+          <div className="mb-3 rounded-md bg-[#ede9fe] px-2.5 py-1.5 text-[11px] font-medium text-[#6d28d9]">
             ✓ {result.match_reasons.join(" · ")}
           </div>
         ) : null}
-        <div className="flex items-center justify-between text-sm">
-          <span className="font-extrabold text-text">
+
+        <div className="mt-auto flex items-center justify-between border-t border-[#edf2ef] pt-3 text-sm">
+          <span className="font-extrabold text-[#0a0f0d]">
             {result.base_price} {result.currency}
-            <span className="text-xs font-normal text-text-muted"> / noc</span>
+            <span className="text-xs font-normal text-[#7a8f84]"> / noc</span>
           </span>
-          <span className="text-amber-500">
-            ★ <span className="font-bold text-text">{result.average_rating ?? "—"}</span>
-            <span className="text-[11px] text-text-muted"> ({result.review_count})</span>
+          <span className="flex items-center gap-1 text-amber-500">
+            ★ <span className="font-bold text-[#0a0f0d]">{result.average_rating ?? "—"}</span>
+            <span className="text-[11px] text-[#7a8f84]"> ({result.review_count})</span>
           </span>
+        </div>
+
+        <div className="mt-3 inline-flex w-fit items-center gap-1 rounded-full border border-[#dcfce7] bg-[#f0fdf4] px-3 py-1 text-[11px] font-semibold text-[#15803d]">
+          Zobacz szczegóły →
         </div>
       </div>
     </Link>
@@ -207,50 +265,299 @@ function AIResultCard({ result, index }: { result: AIResult; index: number }) {
 function AIChatPanel({
   session,
   onUseSuggestion,
+  prompt,
+  setPrompt,
+  onSubmit,
+  busy,
 }: {
   session: AISession;
   onUseSuggestion: (text: string) => void;
+  prompt: string;
+  setPrompt: (text: string) => void;
+  onSubmit: () => void;
+  busy: boolean;
 }) {
-  const conversation = session.conversation ?? [];
+  const rawConversation = session.messages ?? session.conversation ?? [];
+  const assistantReply = session.latest_response ?? session.assistant_reply ?? "";
+  const isProcessing = session.status === "pending" || session.status === "processing";
+  const [conversation, setConversation] = useState(rawConversation);
+  const [assistantRevealPending, setAssistantRevealPending] = useState(false);
+  const showWelcome = !assistantReply && conversation.length === 0;
+  const feedRef = useRef<HTMLDivElement>(null);
+  const revealTimerRef = useRef<number | null>(null);
+  const lastAssistantKeyRef = useRef<string>("");
+  const [sendPulse, setSendPulse] = useState(false);
+
+  const lastRaw = rawConversation[rawConversation.length - 1];
+  const lastRawKey = lastRaw ? `${lastRaw.role}:${lastRaw.created_at}:${lastRaw.text}` : "";
+
+  useEffect(() => {
+    if (revealTimerRef.current) {
+      window.clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = null;
+    }
+
+    if (!lastRaw) {
+      setConversation(rawConversation);
+      setAssistantRevealPending(false);
+      lastAssistantKeyRef.current = "";
+      return;
+    }
+
+    if (lastRaw.role !== "assistant") {
+      setConversation(rawConversation);
+      setAssistantRevealPending(false);
+      return;
+    }
+
+    const assistantKey = `${lastRaw.created_at}:${lastRaw.text}`;
+    if (assistantKey === lastAssistantKeyRef.current) {
+      setConversation(rawConversation);
+      setAssistantRevealPending(false);
+      return;
+    }
+
+    lastAssistantKeyRef.current = assistantKey;
+    setConversation(rawConversation.slice(0, -1));
+    setAssistantRevealPending(true);
+
+    // Naturalny reveal odpowiedzi AI: 2-3 sekundy animacji pisania.
+    const revealDelayMs = 2000 + Math.floor(Math.random() * 1000);
+    const snapshot = rawConversation;
+    revealTimerRef.current = window.setTimeout(() => {
+      revealTimerRef.current = null;
+      setConversation(snapshot);
+      setAssistantRevealPending(false);
+    }, revealDelayMs);
+  }, [lastRawKey, session.session_id]);
+
+  useEffect(() => {
+    return () => {
+      if (revealTimerRef.current) {
+        window.clearTimeout(revealTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!busy) setSendPulse(false);
+  }, [busy]);
+
+  const handleSubmit = () => {
+    setSendPulse(true);
+    onSubmit();
+  };
+
+  const shouldShowTyping =
+    assistantRevealPending || (isProcessing && (!lastRaw || lastRaw.role !== "assistant"));
+
+  useEffect(() => {
+    const el = feedRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [conversation.length, assistantReply, isProcessing, assistantRevealPending]);
+
+  const fmtTime = (value: string) => {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" });
+  };
+
+  const statusPill = isProcessing
+    ? { label: "AI analizuje", className: "bg-amber-50 text-amber-700 border-amber-200" }
+    : session.status === "failed"
+      ? { label: "Błąd odpowiedzi", className: "bg-rose-50 text-rose-700 border-rose-200" }
+      : { label: "", className: "" };
+
   return (
-    <section className="mx-7 mt-5 rounded-2xl border border-[#ddd6fe] bg-white p-4 shadow-sm">
-      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#7c3aed]">AI Concierge</p>
-      <div className="max-h-[260px] space-y-2 overflow-auto pr-1">
-        {conversation.map((m, idx) => (
-          <div
-            key={`${m.created_at}-${idx}`}
-            className={cn(
-              "max-w-[92%] rounded-xl px-3 py-2 text-sm",
-              m.role === "assistant"
-                ? "border border-[#ddd6fe] bg-[#f5f3ff] text-[#5b21b6]"
-                : "ml-auto border border-[#d1fae5] bg-[#ecfdf5] text-[#065f46]"
-            )}
-          >
-            {m.text}
+    <section className="mx-auto mt-8 w-[calc(100%-3.5rem)] max-w-[980px] overflow-hidden rounded-[28px] border border-[#ececf3] bg-white shadow-[0_24px_64px_-34px_rgba(15,23,42,.35)]">
+      <div className="border-b border-[#ececf3] bg-[linear-gradient(135deg,#ffffff_0%,#fafbfc_100%)] px-5 py-4 sm:px-6">
+          <div className="grid grid-cols-3 items-center py-2">
+            {/* Lewa kolumna: napis */}
+            <div className="flex items-center justify-start">
+              <span
+                className="text-4xl font-extrabold bg-gradient-to-r from-[#15803d] via-[#34d399] to-[#bbf7d0] bg-clip-text text-transparent drop-shadow-lg pl-2 pr-6 select-none whitespace-nowrap"
+                style={{ WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}
+              >
+                StayMap AI
+              </span>
+            </div>
+            {/* Środek: awatar wyśrodkowany */}
+            <div className="flex items-center justify-center">
+              <span className="inline-flex h-20 w-20 shrink-0 items-center justify-center rounded-full shadow-[0_8px_24px_rgba(26,74,46,.3)] bg-white border-2 border-[#1a4a2e]">
+                <svg className="h-16 w-16" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="100" cy="100" r="97" fill="#ffffff"/>
+                  <circle cx="100" cy="100" r="95" fill="none" stroke="#1a4a2e" strokeWidth="2.5"/>
+                  <text x="100" y="120" textAnchor="middle" fill="#1a4a2e" fontSize="64" fontWeight="700" fontFamily="Georgia,'Times New Roman',serif" letterSpacing="-3">SM</text>
+                  <circle cx="153" cy="54" r="8" fill="#43a047"/>
+                  <circle cx="153" cy="54" r="12" fill="none" stroke="#43a047" strokeWidth="1" opacity=".3"/>
+                </svg>
+              </span>
+            </div>
+            {/* Prawa kolumna: pusta (na przyszłość) */}
+            <div />
           </div>
-        ))}
+          {statusPill.label && (
+            <div className="flex justify-center">
+              <span className={cn("rounded-full border px-3 py-1.5 text-[11px] font-bold transition-all", statusPill.className)}>
+                {statusPill.label}
+              </span>
+            </div>
+          )}
       </div>
 
-      {session.assistant_reply ? (
-        <div className="mt-3 rounded-xl border border-[#ddd6fe] bg-[#ede9fe] px-3 py-2 text-sm font-medium text-[#6d28d9]">
-          {session.assistant_reply}
-        </div>
-      ) : null}
+      <div className="px-5 pb-5 pt-4 sm:px-6 sm:pb-6">
+        <div
+          ref={feedRef}
+          className="mb-4 max-h-[420px] space-y-3 overflow-auto rounded-2xl bg-[#fbfbfd] p-3 sm:p-4"
+        >
+          {showWelcome ? (
+            <div className="flex justify-start">
+              <div className="max-w-[92%] rounded-2xl border border-[#ececf3] bg-white px-4 py-3 text-[14px] leading-relaxed text-[#111827] shadow-sm">
+                Cześć! Opisz, czego szukasz, a pomogę dobrać najlepsze oferty.
+              </div>
+            </div>
+          ) : null}
 
-      {session.follow_up_suggestions?.length ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {session.follow_up_suggestions.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => onUseSuggestion(s)}
-              className="rounded-full border border-[#c4b5fd] bg-[#faf5ff] px-3 py-1.5 text-xs font-semibold text-[#6d28d9] transition hover:-translate-y-px"
+          {conversation.map((m, idx) => (
+            <div
+              key={`${m.created_at}-${idx}`}
+              className={cn(
+                "flex animate-chat-msg-in",
+                m.role === "assistant" ? "justify-start animate-chat-assistant-in" : "justify-end animate-chat-user-in"
+              )}
+              style={{ animationDelay: `${Math.min(idx, 8) * 50}ms` }}
             >
-              {s}
-            </button>
+              <div className={cn("flex max-w-[94%] items-end gap-2", m.role === "assistant" ? "flex-row" : "flex-row-reverse")}>
+                <span
+                  className={cn(
+                    "animate-chat-avatar-pop inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                  )}
+                  aria-hidden
+                >
+                  <svg className="h-full w-full" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="100" cy="100" r="97" fill="#ffffff"/>
+                    <circle cx="100" cy="100" r="95" fill="none" stroke="#1a4a2e" strokeWidth="2.5"/>
+                    <text x="100" y="120" textAnchor="middle" fill="#1a4a2e" fontSize="52" fontWeight="700" fontFamily="Georgia,'Times New Roman',serif" letterSpacing="-3">SM</text>
+                    <circle cx="153" cy="54" r="8" fill="#43a047"/>
+                    <circle cx="153" cy="54" r="12" fill="none" stroke="#43a047" strokeWidth="1" opacity=".3"/>
+                  </svg>
+                </span>
+                <div
+                  className={cn(
+                    "rounded-2xl px-4 py-3 text-[14px] leading-relaxed",
+                    m.role === "assistant"
+                      ? "border border-[#ececf3] bg-white text-[#111827] shadow-sm"
+                      : "bg-[#111827] text-white",
+                    m.role === "assistant" && idx === conversation.length - 1 && !isProcessing
+                      ? "animate-chat-ai-reveal"
+                      : ""
+                  )}
+                >
+                  <div>{m.text}</div>
+                  <div
+                    className={cn("mt-1 text-[10px]", m.role === "assistant" ? "text-[#9ca3af]" : "text-white/60")}
+                  >
+                    {fmtTime(m.created_at)}
+                  </div>
+                </div>
+              </div>
+            </div>
           ))}
+
+          {shouldShowTyping ? (
+            <div className="flex justify-start animate-chat-typing-shell">
+              <div className="flex items-end gap-2">
+                <span
+                  className="animate-chat-avatar-pop inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
+                  aria-hidden
+                >
+                  <svg className="h-full w-full" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="100" cy="100" r="97" fill="#ffffff"/>
+                    <circle cx="100" cy="100" r="95" fill="none" stroke="#1a4a2e" strokeWidth="2.5"/>
+                    <text x="100" y="120" textAnchor="middle" fill="#1a4a2e" fontSize="52" fontWeight="700" fontFamily="Georgia,'Times New Roman',serif" letterSpacing="-3">SM</text>
+                    <circle cx="153" cy="54" r="8" fill="#43a047"/>
+                    <circle cx="153" cy="54" r="12" fill="none" stroke="#43a047" strokeWidth="1" opacity=".3"/>
+                  </svg>
+                </span>
+                <div className="inline-flex items-center gap-2.5 rounded-2xl border border-[#ececf3] bg-white px-3.5 py-2.5 text-[#6b7280] shadow-sm">
+                <div className="flex items-center gap-1">
+                  {[0, 1, 2].map((d) => (
+                    <span
+                      key={d}
+                      className="h-1.5 w-1.5 rounded-full bg-[#9ca3af] animate-dot-bounce"
+                      style={{ animationDelay: `${d * 150}ms` }}
+                    />
+                  ))}
+                </div>
+                <span className="text-[11px] font-medium text-[#9ca3af] animate-chat-typing-text">
+                  AI przygotowuje odpowiedz...
+                </span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {!showWelcome && !conversation.length && !isProcessing ? (
+            <div className="rounded-xl border border-dashed border-[#d1d5db] bg-white px-3 py-2 text-xs text-[#6b7280]">
+              Rozmowa startuje po pierwszym zapytaniu.
+            </div>
+          ) : null}
         </div>
-      ) : null}
+
+        {session.follow_up_suggestions?.length ? (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {session.follow_up_suggestions.map((s, idx) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => onUseSuggestion(s)}
+                className="animate-chat-chip-in rounded-full border border-[#ddd6fe] bg-[#f5f3ff] px-3.5 py-1.5 text-xs font-bold text-[#5b21b6] transition-all hover:-translate-y-px hover:bg-[#ede9fe]"
+                style={{ animationDelay: `${idx * 55}ms` }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-3">
+          <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-[#6b7280]">
+            Napisz kolejną wiadomość
+          </label>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+            rows={2}
+            placeholder="Doprecyzuj preferencje, np. tylko z jacuzzi, bliżej jeziora, albo tańsze opcje."
+            className="min-h-[58px] w-full resize-none rounded-xl border border-[#d1d5db] bg-white px-3 py-2.5 text-sm text-[#111827] outline-none placeholder:text-[#9ca3af] focus:border-[#6b7280]"
+          />
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span className="text-[11px] text-[#6b7280]">
+              {session.status === "complete"
+                ? "Możesz kontynuować rozmowę w tej samej sesji."
+                : "AI analizuje bieżącą wiadomość i dopasowuje oferty live."}
+            </span>
+            <button
+              type="button"
+              disabled={busy || !prompt.trim()}
+              onClick={handleSubmit}
+              className={cn(
+                "rounded-full bg-[#111827] px-4 py-2 text-xs font-bold text-white transition-all hover:-translate-y-px hover:bg-[#000000] disabled:cursor-not-allowed disabled:opacity-60",
+                sendPulse ? "animate-chat-send-pulse" : ""
+              )}
+            >
+              {busy ? "Wysyłanie..." : "Wyślij"}
+            </button>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
@@ -278,7 +585,6 @@ function AiSearchContent() {
   const error = useAIStore((s) => s.error);
   const reset = useAIStore((s) => s.reset);
   const results = useAIStore((s) => s.results);
-  const filters = useAIStore((s) => s.filters);
   const startSearch = useAIStore((s) => s.startSearch);
 
   // Czyszczenie błędów przy montowaniu dla lepszego UX podczas testów
@@ -297,7 +603,7 @@ function AiSearchContent() {
     if (p && mounted && !session && !loading && !polling && !error && searchStartedFor.current !== p) {
       searchStartedFor.current = p;
       setPrompt(p);
-      const token = typeof window !== "undefined" ? localStorage.getItem("access") : null;
+      const token = typeof window !== "undefined" ? getAccessToken() : null;
       if (token) {
         void startSearch(p, token);
       }
@@ -306,7 +612,7 @@ function AiSearchContent() {
 
   useEffect(() => {
     if (!mounted || typeof window === "undefined") return;
-    if (!localStorage.getItem("access")) {
+    if (!getAccessToken()) {
       router.replace("/login?next=/ai");
     }
   }, [mounted, router]);
@@ -324,13 +630,14 @@ function AiSearchContent() {
 
   async function submitSearch(overridePrompt?: string, overrideSessionId?: string) {
     if (busy) return;
-    const token = localStorage.getItem("access");
+    const token = getAccessToken();
     if (!token) {
       router.push("/login?next=/ai");
       return;
     }
     const p = (overridePrompt ?? prompt).trim();
     if (!p) return;
+    setPrompt("");
     await startSearch(p, token, overrideSessionId ?? session?.session_id);
   }
 
@@ -341,7 +648,7 @@ function AiSearchContent() {
     return <div className="min-h-[40vh] bg-[#0a2e1a]" />;
   }
 
-  if (typeof window !== "undefined" && !localStorage.getItem("access")) {
+  if (typeof window !== "undefined" && !getAccessToken()) {
     return null;
   }
 
@@ -473,62 +780,77 @@ function AiSearchContent() {
         </div>
       ) : null}
 
-      {(loading || polling) && !complete ? (
+      {(loading || polling) && !session ? (
         <AIProcessingState session={session} prompt={prompt} />
       ) : null}
 
-      {complete ? (
+      {session ? (
         <section className="bg-white pb-8">
-          <header className="flex flex-wrap items-end justify-between gap-2 px-7 pt-5">
-            <div>
-              <h2 className="text-base font-extrabold text-text">
-                {results.length} ofert dla Ciebie ✨
-              </h2>
-              <p className="text-[13px] text-text-muted">
-                Posortowane wg dopasowania AI{session?.model_used ? ` · model: ${session.model_used}` : ""}
-              </p>
-            </div>
-          </header>
+          <div className="mx-auto w-full max-w-[1240px] px-7">
+            <div className="pt-5" />
 
-          {session ? (
             <AIChatPanel
               session={session}
+              prompt={prompt}
+              setPrompt={setPrompt}
+              busy={busy}
+              onSubmit={() => void submitSearch()}
               onUseSuggestion={(text) => {
-                setPrompt(text);
                 void submitSearch(text, session.session_id);
               }}
             />
-          ) : null}
 
-          <div className="mx-7 mb-5 mt-4 flex items-center gap-2.5 rounded-[10px] border border-[#ddd6fe] bg-[#ede9fe] px-3.5 py-2.5 text-[13px] font-medium text-[#7c3aed]">
-            <span aria-hidden>💬</span>
-            <span className="min-w-0 flex-1 truncate">
-              &quot;{prompt}&quot;
-              {filters?.travel_mode ? (
-                <>
-                  {" "}
-                  · Tryb: {TRAVEL_MODE_LABELS[filters.travel_mode] ?? filters.travel_mode}
-                </>
-              ) : null}
-            </span>
-            <button type="button" className="shrink-0 text-xs font-bold underline" onClick={() => reset()}>
-              Zmień
-            </button>
-          </div>
+            {results.length > 0 && complete ? (
+              <div className="mb-6 mt-6 rounded-2xl border border-[#ececf3] bg-[linear-gradient(135deg,#fbfbfd,#f9f9fd)] px-4 py-3.5">
+                <p className="text-center text-sm font-semibold text-[#111827]">
+                  ✨ Znalazłem <span className="text-[#7c3aed]">{results.length} ofert</span> dla Ciebie
+                </p>
+              </div>
+            ) : null}
 
-          <div className="grid grid-cols-1 gap-4 px-7 sm:grid-cols-2 lg:grid-cols-3">
-            {results.map((r, i) => (
-              <AIResultCard key={r.listing_id} result={r} index={i} />
-            ))}
-          </div>
+            <div className="mb-5 mt-4 flex items-center gap-2.5 rounded-[10px] border border-[#ddd6fe] bg-[#ede9fe] px-3.5 py-2.5 text-[13px] font-medium text-[#7c3aed]">
+              <span aria-hidden>💬</span>
+              <span className="min-w-0 flex-1 truncate">
+                &quot;{prompt}&quot;
+              </span>
+              <button type="button" className="shrink-0 text-xs font-bold underline" onClick={() => reset()}>
+                Zmień
+              </button>
+            </div>
 
-          <div className="mt-6 flex justify-center px-7">
-            <Link href="/search" className="btn-secondary">
-              Pokaż więcej wyników
-            </Link>
+            {complete ? (
+              <>
+                {results.length > 0 ? (
+                  <>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {results.map((r, i) => (
+                        <AIResultCard key={r.listing_id} result={r} index={i} />
+                      ))}
+                    </div>
+
+                    <div className="mt-6 flex justify-center">
+                      <Link href="/search" className="btn-secondary">
+                        Pokaż więcej wyników
+                      </Link>
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-4 rounded-2xl border border-[#ddd6fe] bg-[#faf8ff] px-4 py-5 text-sm text-[#5b21b6]">
+                    Nie znalazłem jeszcze pasujących ofert dla tego zapytania. Spróbuj doprecyzować lokalizację,
+                    budżet albo liczbę gości w czacie powyżej.
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="mt-4 rounded-2xl border border-dashed border-[#ddd6fe] bg-[#faf5ff] px-4 py-5 text-sm text-[#6d28d9]">
+                AI pracuje nad dopasowaniem ofert. Rozmowa już jest aktywna i możesz doprecyzować preferencje.
+              </div>
+            )}
           </div>
         </section>
       ) : null}
     </div>
   );
 }
+
+

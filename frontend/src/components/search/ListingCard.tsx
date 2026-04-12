@@ -11,9 +11,18 @@ export function ListingCard({ listing }: Props) {
     listing.location?.region ||
     (listing.location ? `${listing.location.lat.toFixed(2)}, ${listing.location.lng.toFixed(2)}` : "—");
 
+  const cacheListing = () => {
+    if (typeof window === "undefined" || !listing?.slug) return;
+    try {
+      localStorage.setItem(`listing-cache:${listing.slug}`, JSON.stringify(listing));
+    } catch {
+      // noop
+    }
+  };
+
   return (
     <article className="overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-sm transition hover:border-neutral-400 dark:border-neutral-700 dark:bg-neutral-950 dark:hover:border-neutral-500">
-      <Link href={`/listing/${listing.slug}`} className="block">
+      <Link href={`/listing/${listing.slug}`} className="block" onClick={cacheListing}>
         <div className="aspect-[16/10] w-full bg-neutral-100 dark:bg-neutral-800">
           {coverSrc ? (
             // eslint-disable-next-line @next/next/no-img-element

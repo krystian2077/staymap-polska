@@ -1,4 +1,4 @@
-from urllib.parse import urlencode
+﻿from urllib.parse import urlencode
 import unicodedata
 
 from django.db import models
@@ -16,7 +16,7 @@ from apps.listings.models import Listing, ListingImage, ListingLocation
 from apps.search.cursors import decode_offset, encode_offset
 from apps.search.schemas import parse_search_params
 from apps.search.serializers import ListingSearchSerializer
-from apps.search.services import MAX_MAP_PINS, SearchOrchestrator
+from apps.search.services import MAX_MAP_PINS, PUBLIC_SEARCH_STATUSES, SearchOrchestrator
 
 
 def _search_params_for_cache(params: dict) -> dict:
@@ -58,9 +58,9 @@ def _normalize_text(value: str) -> str:
 HOME_REGION_DEFINITIONS = [
     {
         "key": "gory",
-        "title": "Góry",
+        "title": "GĂłry",
         "subtitle": "Tatry, Beskidy i Bieszczady",
-        "emoji": "🏔️",
+        "emoji": "đźŹ”ď¸Ź",
         "bg": "linear-gradient(145deg,#d8e7e1,#b9d0c7)",
         "glow": "rgba(34,197,94,.26)",
         "anchor_label": "Zakopane i okolice",
@@ -79,14 +79,14 @@ HOME_REGION_DEFINITIONS = [
     },
     {
         "key": "baltyk",
-        "title": "Bałtyk",
-        "subtitle": "Sopot, Hel, Kołobrzeg",
-        "emoji": "🌊",
+        "title": "BaĹ‚tyk",
+        "subtitle": "Sopot, Hel, KoĹ‚obrzeg",
+        "emoji": "đźŚŠ",
         "bg": "linear-gradient(145deg,#cad9e2,#afc4d0)",
         "glow": "rgba(56,189,248,.24)",
         "anchor_label": "Pas nadmorski",
         "search_params": {
-            "location": "Bałtyk",
+            "location": "BaĹ‚tyk",
             "latitude": 54.45,
             "longitude": 18.67,
             "radius_km": 120,
@@ -98,8 +98,8 @@ HOME_REGION_DEFINITIONS = [
     {
         "key": "jeziora",
         "title": "Jeziora",
-        "subtitle": "Mazury i relaks nad wodą",
-        "emoji": "🏊",
+        "subtitle": "Mazury i relaks nad wodÄ…",
+        "emoji": "đźŹŠ",
         "bg": "linear-gradient(145deg,#d0dfca,#b8cbaf)",
         "glow": "rgba(16,185,129,.23)",
         "anchor_label": "Kraina Wielkich Jezior",
@@ -117,7 +117,7 @@ HOME_REGION_DEFINITIONS = [
         "key": "uzdrowiska",
         "title": "Uzdrowiska & SPA",
         "subtitle": "Kotlina Klodzka, Cieplice, Swieradow",
-        "emoji": "♨️",
+        "emoji": "â™¨ď¸Ź",
         "bg": "linear-gradient(145deg,#d8d5e9,#beb7de)",
         "glow": "rgba(167,139,250,.25)",
         "anchor_label": "Slow travel i regeneracja",
@@ -136,12 +136,12 @@ HOME_REGION_DEFINITIONS = [
         "key": "lasy",
         "title": "Lasy",
         "subtitle": "Bory, puszcze i totalny reset",
-        "emoji": "🌿",
+        "emoji": "đźŚż",
         "bg": "linear-gradient(145deg,#dad2ca,#c3bbb0)",
         "glow": "rgba(132,204,22,.18)",
         "anchor_label": "Puszcza i dzika przyroda",
         "search_params": {
-            "location": "Białowieża",
+            "location": "BiaĹ‚owieĹĽa",
             "latitude": 52.74,
             "longitude": 23.86,
             "radius_km": 120,
@@ -244,6 +244,7 @@ class SearchViewSet(ViewSet):
         img_qs = ListingImage.objects.order_by("-is_cover", "sort_order", "id")
         qs = (
             Listing.objects.filter(id__in=page_ids)
+            .filter(status__in=PUBLIC_SEARCH_STATUSES)
             .select_related("location", "host__user")
             .prefetch_related(Prefetch("images", queryset=img_qs))
             .defer("description")
@@ -295,7 +296,7 @@ class SearchViewSet(ViewSet):
             try:
                 limit = min(MAX_MAP_PINS, max(1, int(lim_raw)))
             except (TypeError, ValueError):
-                raise ValidationError(f"limit musi być liczbą całkowitą 1–{MAX_MAP_PINS}")
+                raise ValidationError(f"limit musi byÄ‡ liczbÄ… caĹ‚kowitÄ… 1â€“{MAX_MAP_PINS}")
 
         qs = SearchOrchestrator.build_map_queryset(cache_params)[:limit]
         pins = []
@@ -326,7 +327,7 @@ class SearchViewSet(ViewSet):
         counts = {region["key"]: region["count"] for region in regions}
         return Response({"data": counts})
 
-    @extend_schema(summary="Regiony homepage (pełna synchronizacja z mapą i filtrami)")
+    @extend_schema(summary="Regiony homepage (peĹ‚na synchronizacja z mapÄ… i filtrami)")
     @action(detail=False, methods=["get"], url_path="regions")
     def regions(self, request):
         return Response({"data": _build_home_regions_payload()})
@@ -336,78 +337,79 @@ class SearchViewSet(ViewSet):
     def suggested_destinations(self, request):
         """Pobiera oferty zgrupowane po kategoriach: Góry, Bałtyk, Jeziora, Zachodnia Polska, Lasy."""
         data = []
-        
-        # Definicja regionów z filtrami lokalizacji
+
         regions = [
             {
                 "id": "gory",
                 "name": "Góry",
                 "icon": "city",
                 "description": "Górskie wędrówki i piękne widoki",
-                "filters": {"location__near_mountains": True},
-                "fallback": {"name": "Zakopane", "region": "Podhale", "lat": 49.2992, "lng": 19.9495}
+                "filters": {"near_mountains": True},
+                "fallback": {"name": "Zakopane", "region": "Podhale", "lat": 49.2992, "lng": 19.9495},
             },
             {
                 "id": "baltyk",
                 "name": "Bałtyk",
                 "icon": "beach",
                 "description": "Plaże i morski klimat",
-                "filters": {"location__near_sea": True},
-                "fallback": {"name": "Gdańsk", "region": "Pomorskie", "lat": 54.3520, "lng": 18.6466}
+                "filters": {"near_sea": True},
+                "fallback": {"name": "Gdańsk", "region": "Pomorskie", "lat": 54.3520, "lng": 18.6466},
             },
             {
                 "id": "jeziora",
                 "name": "Jeziora",
                 "icon": "beach",
                 "description": "Relaks nad wodą",
-                "filters": {"location__near_lake": True},
-                "fallback": {"name": "Mikołajki", "region": "Warmińsko-Mazurskie", "lat": 53.7510, "lng": 21.4910}
+                "filters": {"near_lake": True},
+                "fallback": {"name": "Mikołajki", "region": "Warmińsko-Mazurskie", "lat": 53.7510, "lng": 21.4910},
             },
             {
                 "id": "zachodnia_polska",
                 "name": "Zachodnia Polska",
                 "icon": "city",
                 "description": "Bogate dziedzictwo kulturowe",
-                "filters": {"location__region__in": ["Lubuskie", "Dolny Śląsk", "Wielkopolska", "Zachodniopomorskie"]},
-                "fallback": {"name": "Wrocław", "region": "Dolny Śląsk", "lat": 51.1079, "lng": 17.0385}
+                "filters": {"region__in": ["Lubuskie", "Dolny Śląsk", "Wielkopolska", "Zachodniopomorskie"]},
+                "fallback": {"name": "Wrocław", "region": "Dolny Śląsk", "lat": 51.1079, "lng": 17.0385},
             },
             {
                 "id": "lasy",
                 "name": "Lasy",
                 "icon": "city",
                 "description": "Cisza, spokój i przyroda",
-                "filters": {"location__near_forest": True},
-                "fallback": {"name": "Białowieża", "region": "Podlasie", "lat": 52.7406, "lng": 24.9970}
+                "filters": {"near_forest": True},
+                "fallback": {"name": "Białowieża", "region": "Podlasie", "lat": 52.7406, "lng": 24.9970},
             },
         ]
 
         for region in regions:
-            # Szukamy pierwsze lepsze lokalizacji z tym filtrem
             sample = ListingLocation.objects.filter(
-                listing__status__in=[Listing.Status.APPROVED, Listing.Status.PENDING, Listing.Status.DRAFT],
-                **region["filters"]
+                listing__status__in=PUBLIC_SEARCH_STATUSES,
+                **region["filters"],
             ).select_related("listing").first()
 
             if sample:
-                data.append({
-                    "name": region["name"],
-                    "region": sample.region or "Polska",
-                    "lat": sample.point.y,
-                    "lng": sample.point.x,
-                    "icon": region["icon"],
-                    "description": region["description"]
-                })
+                data.append(
+                    {
+                        "name": region["name"],
+                        "region": sample.region or "Polska",
+                        "lat": sample.point.y,
+                        "lng": sample.point.x,
+                        "icon": region["icon"],
+                        "description": region["description"],
+                    }
+                )
             else:
-                # Jeśli brak ofert, używamy fallback
                 fallback = region["fallback"]
-                data.append({
-                    "name": region["name"],
-                    "region": fallback["region"],
-                    "lat": fallback["lat"],
-                    "lng": fallback["lng"],
-                    "icon": region["icon"],
-                    "description": region["description"]
-                })
+                data.append(
+                    {
+                        "name": region["name"],
+                        "region": fallback["region"],
+                        "lat": fallback["lat"],
+                        "lng": fallback["lng"],
+                        "icon": region["icon"],
+                        "description": region["description"],
+                    }
+                )
 
         return Response({"data": data})
 
@@ -426,18 +428,18 @@ class SearchViewSet(ViewSet):
 
         results = []
 
-        # 1. Specjalne słowa kluczowe (typy terenu i typy obiektów)
+        # 1. Specjalne sĹ‚owa kluczowe (typy terenu i typy obiektĂłw)
         keyword_map = {
-            "góry": {"field": "near_mountains", "label": "Góry", "icon": "city", "desc": "Piękne widoki i szlaki"},
-            "jezioro": {"field": "near_lake", "label": "Jeziora", "icon": "beach", "desc": "Wypoczynek nad wodą"},
-            "jeziora": {"field": "near_lake", "label": "Jeziora", "icon": "beach", "desc": "Wypoczynek nad wodą"},
-            "morze": {"field": "near_sea", "label": "Morze", "icon": "beach", "desc": "Piaszczyste plaże i bałtycki klimat"},
-            "bałtyk": {"field": "near_sea", "label": "Morze", "icon": "beach", "desc": "Piaszczyste plaże i bałtycki klimat"},
-            "plaża": {"field": "beach_access", "label": "Plaże", "icon": "beach", "desc": "Słońce i szum fal"},
-            "las": {"field": "near_forest", "label": "Lasy", "icon": "city", "desc": "Cisza, spokój i natura"},
-            "narty": {"field": "ski_slopes_nearby", "label": "Narty", "icon": "city", "desc": "Zimowe szaleństwo na stoku"},
-            "domek": {"type_slug": "domek", "label": "Domki", "icon": "city", "desc": "Przytulne domki na wyłączność"},
-            "domki": {"type_slug": "domek", "label": "Domki", "icon": "city", "desc": "Przytulne domki na wyłączność"},
+            "gĂłry": {"field": "near_mountains", "label": "GĂłry", "icon": "city", "desc": "PiÄ™kne widoki i szlaki"},
+            "jezioro": {"field": "near_lake", "label": "Jeziora", "icon": "beach", "desc": "Wypoczynek nad wodÄ…"},
+            "jeziora": {"field": "near_lake", "label": "Jeziora", "icon": "beach", "desc": "Wypoczynek nad wodÄ…"},
+            "morze": {"field": "near_sea", "label": "Morze", "icon": "beach", "desc": "Piaszczyste plaĹĽe i baĹ‚tycki klimat"},
+            "baĹ‚tyk": {"field": "near_sea", "label": "Morze", "icon": "beach", "desc": "Piaszczyste plaĹĽe i baĹ‚tycki klimat"},
+            "plaĹĽa": {"field": "beach_access", "label": "PlaĹĽe", "icon": "beach", "desc": "SĹ‚oĹ„ce i szum fal"},
+            "las": {"field": "near_forest", "label": "Lasy", "icon": "city", "desc": "Cisza, spokĂłj i natura"},
+            "narty": {"field": "ski_slopes_nearby", "label": "Narty", "icon": "city", "desc": "Zimowe szaleĹ„stwo na stoku"},
+            "domek": {"type_slug": "domek", "label": "Domki", "icon": "city", "desc": "Przytulne domki na wyĹ‚Ä…cznoĹ›Ä‡"},
+            "domki": {"type_slug": "domek", "label": "Domki", "icon": "city", "desc": "Przytulne domki na wyĹ‚Ä…cznoĹ›Ä‡"},
             "apartament": {"type_slug": "apartament", "label": "Apartamenty", "icon": "city", "desc": "Komfortowe apartamenty"},
             "apartamenty": {"type_slug": "apartament", "label": "Apartamenty", "icon": "city", "desc": "Komfortowe apartamenty"},
             "chata": {"type_slug": "chata", "label": "Chaty", "icon": "city", "desc": "Drewniane chaty z klimatem"},
@@ -452,13 +454,13 @@ class SearchViewSet(ViewSet):
                 if "field" in info:
                     sample = ListingLocation.objects.filter(
                         **{info["field"]: True}, 
-                        listing__status__in=[Listing.Status.APPROVED, Listing.Status.PENDING, Listing.Status.DRAFT]
+                        listing__status__in=PUBLIC_SEARCH_STATUSES
                     ).first()
                 else:
                     # Szukamy po typie obiektu (JSONField)
                     sample_listing = Listing.objects.filter(
                         listing_type__slug=info["type_slug"],
-                        status__in=[Listing.Status.APPROVED, Listing.Status.PENDING, Listing.Status.DRAFT]
+                        status__in=PUBLIC_SEARCH_STATUSES
                     ).first()
                     sample = sample_listing.location if sample_listing and hasattr(sample_listing, 'location') else None
 
@@ -467,7 +469,7 @@ class SearchViewSet(ViewSet):
 
                 results.append({
                     "name": info["label"],
-                    "region": "W całej Polsce",
+                    "region": "W caĹ‚ej Polsce",
                     "lat": lat,
                     "lng": lng,
                     "icon": info["icon"],
@@ -481,7 +483,7 @@ class SearchViewSet(ViewSet):
         cities = (
             ListingLocation.objects.filter(
                 Q(city__icontains=q) | Q(region__icontains=q),
-                listing__status__in=[Listing.Status.APPROVED, Listing.Status.PENDING, Listing.Status.DRAFT]
+                listing__status__in=PUBLIC_SEARCH_STATUSES
             )
             .values("city", "region")
             .annotate(count=models.Count("id"))
@@ -496,7 +498,7 @@ class SearchViewSet(ViewSet):
             
             sample = ListingLocation.objects.filter(
                 city=name, 
-                listing__status__in=[Listing.Status.APPROVED, Listing.Status.PENDING, Listing.Status.DRAFT]
+                listing__status__in=PUBLIC_SEARCH_STATUSES
             ).first()
             if sample:
                 results.append({
@@ -511,3 +513,4 @@ class SearchViewSet(ViewSet):
                 seen_cities.add(name)
 
         return Response({"data": results[:8]})
+

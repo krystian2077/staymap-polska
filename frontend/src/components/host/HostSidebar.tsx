@@ -7,6 +7,9 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useHostStore } from "@/lib/store/hostStore";
 import { useMessagingStore } from "@/lib/store/messagingStore";
+import { useHostNotificationStore } from "@/lib/store/hostNotificationStore";
+
+import { motion, AnimatePresence } from "framer-motion";
 
 type BadgeKind = "default" | "warn";
 
@@ -19,20 +22,22 @@ function SidebarBadge({
 }) {
   if (value == null || value === 0 || value === "") return null;
   return (
-    <span
+    <motion.span
+      initial={{ scale: 0.5, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
       className={cn(
         "ml-auto shrink-0 rounded-full px-[7px] py-0.5 text-[10px] font-bold text-white shadow-sm",
         kind === "warn" ? "bg-amber-500 shadow-amber-500/20" : "bg-brand shadow-brand/20"
       )}
     >
       {value}
-    </span>
+    </motion.span>
   );
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-1.5 mt-6 px-5 text-[10px] font-extrabold uppercase tracking-[.12em] text-brand-dark/40 first:mt-0">
+    <p className="mb-2 mt-10 px-8 text-[11px] font-extrabold uppercase tracking-[.2em] text-brand-dark/30 first:mt-0">
       {children}
     </p>
   );
@@ -51,29 +56,38 @@ type ItemProps = {
 function Item({ id, href, icon, label, badge, badgeKind, activeItem }: ItemProps) {
   const active = activeItem === id;
   return (
-    <Link
-      href={href}
-      className={cn(
-        "group relative mb-0.5 flex cursor-pointer items-center gap-3 rounded-xl px-4 py-2.5 text-[13px] font-medium transition-all duration-200",
-        active
-          ? "bg-white font-bold text-brand-dark shadow-[0_2px_8px_rgba(0,0,0,.06)] ring-1 ring-black/[.04]"
-          : "text-brand-dark/60 hover:bg-white/70 hover:text-brand-dark hover:shadow-[0_1px_4px_rgba(0,0,0,.04)]"
-      )}
-    >
-      {active && (
-        <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand shadow-[0_0_6px_rgba(22,163,74,.4)]" />
-      )}
-      <span
+    <Link href={href} className="block group">
+      <motion.div
+        whileHover={{ x: 6, scale: 1.01 }}
+        whileTap={{ scale: 0.98 }}
         className={cn(
-          "flex h-7 w-7 items-center justify-center rounded-lg text-sm leading-none transition-transform duration-200 group-hover:scale-110",
-          active ? "bg-brand-surface" : "bg-transparent"
+          "relative mb-2 flex cursor-pointer items-center gap-4 rounded-2xl px-8 py-4 text-[16px] font-semibold transition-all duration-300",
+          active
+            ? "bg-brand-surface font-bold text-brand-dark shadow-[0_8px_20px_rgba(22,163,74,0.1)] ring-1 ring-brand/10"
+            : "text-brand-dark/60 hover:bg-white hover:text-brand-dark hover:shadow-[0_4px_16px_rgba(0,0,0,0.04)]"
         )}
-        aria-hidden
       >
-        {icon}
-      </span>
-      <span className="min-w-0 flex-1 truncate">{label}</span>
-      <SidebarBadge value={badge ?? null} kind={badgeKind} />
+        <AnimatePresence>
+          {active && (
+            <motion.span
+              layoutId="sidebar-active-indicator"
+              className="absolute left-0 top-1/2 h-10 w-[6px] -translate-y-1/2 rounded-r-full bg-brand shadow-[0_0_15px_rgba(22,163,74,0.5)]"
+              transition={{ type: "spring", stiffness: 400, damping: 40 }}
+            />
+          )}
+        </AnimatePresence>
+        <span
+          className={cn(
+            "flex h-9 w-9 items-center justify-center rounded-xl text-lg leading-none transition-all duration-500",
+            active ? "bg-white text-brand shadow-md scale-110" : "bg-transparent grayscale group-hover:grayscale-0 group-hover:scale-110"
+          )}
+          aria-hidden
+        >
+          {icon}
+        </span>
+        <span className="min-w-0 flex-1 truncate">{label}</span>
+        <SidebarBadge value={badge ?? null} kind={badgeKind} />
+      </motion.div>
     </Link>
   );
 }
@@ -84,6 +98,7 @@ export function HostSidebar({ activeItem }: { activeItem: string }) {
   const stats = useHostStore((s) => s.stats);
   const pendingCount = useHostStore((s) => s.pendingCount);
   const unreadTotal = useMessagingStore((s) => s.unreadTotal);
+  const notificationUnread = useHostNotificationStore((s) => s.unreadCount);
 
   const reviewsPending = stats?.reviews_pending_response ?? 0;
 
@@ -99,22 +114,24 @@ export function HostSidebar({ activeItem }: { activeItem: string }) {
   const rating = profile?.average_rating ?? 4.92;
 
   return (
-    <aside className="sticky top-16 flex h-[calc(100vh-4rem)] w-[260px] shrink-0 flex-col overflow-y-auto border-r border-brand-dark/[.06] bg-gradient-to-b from-[#f4f8f5] via-[#f0f5f1] to-[#eaf1ec]">
+    <aside className="sticky top-16 flex h-[calc(100vh-4rem)] w-[340px] shrink-0 flex-col overflow-y-auto border-r border-brand-dark/[.03] bg-white custom-scrollbar">
       {/* Profile card */}
-      <div className="px-5 pb-4 pt-6">
-        <button
+      <div className="px-8 pb-8 pt-10">
+        <motion.button
+          whileHover={{ y: -4, shadow: "0 24px 48px rgba(0,0,0,0.12)" }}
+          whileTap={{ scale: 0.97 }}
           type="button"
           onClick={() => router.push("/host/dashboard")}
-          className="group flex w-full items-center gap-3 rounded-2xl bg-white/80 p-3 text-left shadow-card ring-1 ring-black/[.03] backdrop-blur transition-all duration-200 hover:bg-white hover:shadow-elevated"
+          className="group flex w-full items-center gap-4 rounded-[28px] bg-white p-5 text-left shadow-[0_12px_32px_rgba(0,0,0,0.05)] ring-1 ring-black/[.02] transition-all duration-500 hover:ring-brand/20"
         >
-          <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-brand-muted ring-2 ring-brand/20">
+          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-brand-muted ring-2 ring-brand/10">
             {profile?.avatar_url ? (
               <Image
                 src={profile.avatar_url}
                 alt=""
-                width={44}
-                height={44}
-                className="h-full w-full object-cover"
+                width={48}
+                height={48}
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                 unoptimized
               />
             ) : (
@@ -124,23 +141,26 @@ export function HostSidebar({ activeItem }: { activeItem: string }) {
             )}
             {profile?.is_verified && (
               <span
-                className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] shadow-sm"
+                className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] shadow-md"
                 title="Zweryfikowany"
               >
                 ⭐
               </span>
             )}
           </div>
-          <div className="min-w-0 pt-0.5">
-            <p className="truncate text-sm font-bold text-brand-dark">{displayName}</p>
-            <p className="text-[11px] text-text-muted">
-              Superhost · {rating.toFixed(2)} ★
-            </p>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-extrabold text-brand-dark tracking-tight">{displayName}</p>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="h-1 w-1 rounded-full bg-brand" />
+              <p className="text-[11px] font-medium text-text-muted">
+                Superhost · {rating.toFixed(2)} ★
+              </p>
+            </div>
           </div>
-        </button>
+        </motion.button>
       </div>
 
-      <nav className="flex flex-1 flex-col px-3 pb-6">
+      <nav className="flex flex-1 flex-col px-6 pb-20">
         <SectionLabel>Główne</SectionLabel>
         <Item id="dashboard" href="/host/dashboard" icon="📊" label="Dashboard" activeItem={activeItem} />
         <Item
@@ -165,6 +185,7 @@ export function HostSidebar({ activeItem }: { activeItem: string }) {
           href="/host/notifications"
           icon="🔔"
           label="Powiadomienia"
+          badge={notificationUnread > 0 ? notificationUnread : null}
           activeItem={activeItem}
         />
 
@@ -204,6 +225,24 @@ export function HostSidebar({ activeItem }: { activeItem: string }) {
         <Item id="payouts" href="/host/payouts" icon="💳" label="Wypłaty" activeItem={activeItem} />
         <Item id="settings" href="/host/settings" icon="⚙️" label="Ustawienia" activeItem={activeItem} />
       </nav>
+
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #16a34a33;
+          border-radius: 10px;
+          border: 1px solid transparent;
+          background-clip: padding-box;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #16a34a66;
+        }
+      `}</style>
     </aside>
   );
 }

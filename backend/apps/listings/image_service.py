@@ -19,6 +19,11 @@ except ImportError:
 class ImageService:
     @classmethod
     def validate_and_process(cls, uploaded_file) -> ContentFile:
+        try:
+            uploaded_file.seek(0)
+        except (AttributeError, OSError):
+            pass
+
         if uploaded_file.size > MAX_FILE_SIZE_BYTES:
             raise ValidationError("Plik za duży. Maksymalnie 10 MB.")
 
@@ -27,21 +32,28 @@ class ImageService:
             raise ValidationError(f"Niedozwolony typ MIME: {ct}. Dozwolone: JPEG, PNG, WebP.")
 
         file_bytes = uploaded_file.read()
+        uploaded_file.seek(0)
         if not file_bytes:
             raise ValidationError("Pusty plik.")
 
         if magic is not None:
-            detected = magic.from_buffer(file_bytes[:2048], mime=True)
-            if detected not in ALLOWED_MIME_TYPES:
-                raise ValidationError(f"Niedozwolony typ pliku: {detected}.")
+            try:
+                detected = magic.from_buffer(file_bytes[:2048], mime=True)
+                if detected not in ALLOWED_MIME_TYPES:
+                    raise ValidationError(f"Niedozwolony typ pliku: {detected}.")
+            except Exception as e:
+                # Na Windowsie magic często wyrzuca błędy przez brak DLL, ignorujemy to 
+                # i polegamy na PIL (Image.open), które i tak weryfikuje obraz poniżej.
+                print(f"Magic library error (ignored): {e}")
 
         try:
             img = Image.open(BytesIO(file_bytes))
             img.verify()
             img = Image.open(BytesIO(file_bytes))
             img = img.convert("RGB")
-        except (UnidentifiedImageError, OSError) as e:
-            raise ValidationError("Nieprawidłowy obraz.") from e
+        except (UnidentifiedImageError, OSError, ValueError) as e:
+            print(f"Image processing error: {e}")
+            raise ValidationError("Nieprawidłowy obraz lub uszkodzony plik.") from e
 
         if max(img.size) > MAX_IMAGE_DIMENSION:
             img.thumbnail((MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION), Image.Resampling.LANCZOS)

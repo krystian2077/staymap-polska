@@ -6,9 +6,9 @@ export default function ListingSubmittedPage() {
       <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-brand-surface ring-4 ring-brand/10">
         <span className="text-4xl">🎉</span>
       </div>
-      <h1 className="mt-6 text-2xl font-extrabold text-brand-dark">Oferta wysłana do moderacji</h1>
+      <h1 className="mt-6 text-2xl font-extrabold text-brand-dark">Oferta opublikowana</h1>
       <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-        Sprawdzimy ją w ciągu ok. 24 godzin. Dostaniesz e-mail z wynikiem.
+        Gratulacje! Twoja oferta jest już dostępna i może pojawiać się w wynikach wyszukiwania.
       </p>
       <div className="mt-10 flex flex-wrap justify-center gap-3">
         <Link href="/host/dashboard" className="btn-primary shadow-brand-lg">

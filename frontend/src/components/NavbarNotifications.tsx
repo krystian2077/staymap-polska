@@ -1,21 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { useNotifications } from "@/hooks/useNotifications";
 import { useMessagingStore } from "@/lib/store/messagingStore";
 
 export function NavbarNotifications() {
-  const [token, setToken] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const unreadTotal = useMessagingStore((s) => s.unreadTotal);
   const markAllRead = useMessagingStore((s) => s.markAllRead);
-  const { notifications } = useNotifications(token);
-
-  useEffect(() => {
-    setToken(typeof window !== "undefined" ? localStorage.getItem("access") : null);
-  }, []);
+  const { notifications } = useNotifications();
 
    return (
      <div className="relative">

@@ -15,7 +15,7 @@ from apps.location_intelligence.area_summary import get_or_build_area_summary
 
 
 def listing_cover_image_absolute_url(obj: Listing, request) -> str | None:
-    """Ta sama logika okładki co w liście wyszukiwania — używana też przez discovery."""
+    """Zwraca relatywny URL do okładki (obsługiwany przez proxy Next.js)."""
     imgs = getattr(obj, "_prefetched_objects_cache", {}).get("images")
     if imgs is not None:
         ordered = sorted(
@@ -32,8 +32,16 @@ def listing_cover_image_absolute_url(obj: Listing, request) -> str | None:
     if not target or not target.image:
         return None
     url = target.image.url
-    if request:
-        return request.build_absolute_uri(url)
+    if url.startswith("http"):
+        from urllib.parse import urlparse
+        url = urlparse(url).path
+    
+    if not url.startswith("/"):
+        url = f"/{url}"
+    
+    if not url.startswith("/media/"):
+        url = f"/media{url}"
+        
     return url
 
 
@@ -78,10 +86,17 @@ class ListingImageSerializer(serializers.ModelSerializer):
     def _abs_url(self, obj):
         if not obj.image:
             return None
-        request = self.context.get("request")
         url = obj.image.url
-        if request:
-            return request.build_absolute_uri(url)
+        if url.startswith("http"):
+            from urllib.parse import urlparse
+            url = urlparse(url).path
+        
+        if not url.startswith("/"):
+            url = f"/{url}"
+            
+        if not url.startswith("/media/"):
+            url = f"/media{url}"
+            
         return url
 
     def get_url(self, obj):
@@ -94,6 +109,21 @@ class ListingImageSerializer(serializers.ModelSerializer):
 class ListingListSerializer(serializers.ModelSerializer):
     location = serializers.SerializerMethodField()
     cover_image = serializers.SerializerMethodField()
+    listing_type = serializers.SerializerMethodField()
+    is_pet_friendly = serializers.BooleanField(read_only=True)
+    bedrooms = serializers.SerializerMethodField()
+    beds = serializers.SerializerMethodField()
+    bathrooms = serializers.SerializerMethodField()
+    images = ListingImageSerializer(many=True, read_only=True)
+    amenities = serializers.SerializerMethodField()
+    cancellation_policy = serializers.CharField(read_only=True)
+    check_in_time = serializers.CharField(read_only=True)
+    check_out_time = serializers.CharField(read_only=True)
+    destination_score_cache = serializers.JSONField(read_only=True, allow_null=True)
+    area_summary = serializers.SerializerMethodField()
+    base_price = serializers.FloatField(read_only=True)
+    cleaning_fee = serializers.FloatField(read_only=True, allow_null=True)
+    average_rating = serializers.FloatField(read_only=True, allow_null=True)
 
     class Meta:
         model = Listing
@@ -107,14 +137,58 @@ class ListingListSerializer(serializers.ModelSerializer):
             "currency",
             "status",
             "max_guests",
+            "guests_included",
+            "extra_guest_fee",
             "booking_mode",
             "average_rating",
             "review_count",
             "location",
             "cover_image",
+            "listing_type",
+            "is_pet_friendly",
+            "bedrooms",
+            "beds",
+            "bathrooms",
+            "images",
+            "amenities",
+            "cancellation_policy",
+            "check_in_time",
+            "check_out_time",
+            "destination_score_cache",
+            "area_summary",
             "created_at",
         )
         read_only_fields = fields
+
+    def get_listing_type(self, obj):
+        lt = obj.listing_type
+        if isinstance(lt, dict) and lt.get("name"):
+            return lt
+        return {"name": "Obiekt", "icon": "🏠", "slug": "obiekt"}
+
+    def get_bedrooms(self, obj):
+        try:
+            val = obj.bedrooms
+            return int(val) if val is not None else 1
+        except (AttributeError, TypeError, ValueError):
+            return 1
+
+    def get_beds(self, obj):
+        try:
+            val = obj.beds
+            return int(val) if val is not None else 1
+        except (AttributeError, TypeError, ValueError):
+            return 1
+
+    def get_bathrooms(self, obj):
+        try:
+            val = obj.bathrooms
+            return int(val) if val is not None else 1
+        except (AttributeError, TypeError, ValueError):
+            return 1
+
+    def get_area_summary(self, obj):
+        return get_or_build_area_summary(obj)
 
     def get_location(self, obj):
         if not hasattr(obj, "location") or obj.location is None:
@@ -131,6 +205,34 @@ class ListingListSerializer(serializers.ModelSerializer):
 
     def get_cover_image(self, obj):
         return listing_cover_image_absolute_url(obj, self.context.get("request"))
+
+    def get_amenities(self, obj):
+        raw = obj.amenities if isinstance(obj.amenities, list) else []
+        out = []
+        for item in raw:
+            if isinstance(item, str):
+                out.append(
+                    {
+                        "id": item,
+                        "name": item.replace("_", " ").capitalize(),
+                        "icon": item,
+                        "category": "other",
+                    }
+                )
+                continue
+            if isinstance(item, dict):
+                aid = str(item.get("id") or item.get("name") or "")
+                if not aid:
+                    continue
+                out.append(
+                    {
+                        "id": aid,
+                        "name": str(item.get("name") or aid.replace("_", " ").capitalize()),
+                        "icon": str(item.get("icon") or aid),
+                        "category": str(item.get("category") or "other"),
+                    }
+                )
+        return out
 
 
 class HostProfileSerializer(serializers.ModelSerializer):
@@ -186,39 +288,13 @@ class HostProfileSerializer(serializers.ModelSerializer):
 
 class ListingDetailSerializer(ListingListSerializer):
     description = serializers.CharField()
-    images = ListingImageSerializer(many=True, read_only=True)
     host = serializers.SerializerMethodField()
-    location = serializers.SerializerMethodField()
-    amenities = serializers.JSONField(read_only=True)
-    bedrooms = serializers.IntegerField(read_only=True)
-    beds = serializers.IntegerField(read_only=True)
-    bathrooms = serializers.IntegerField(read_only=True)
-    is_pet_friendly = serializers.BooleanField(read_only=True)
-    cancellation_policy = serializers.CharField(read_only=True)
-    check_in_time = serializers.CharField(read_only=True)
-    check_out_time = serializers.CharField(read_only=True)
-    listing_type = serializers.JSONField(read_only=True)
-    destination_score_cache = serializers.JSONField(read_only=True, allow_null=True)
-    area_summary = serializers.SerializerMethodField()
     service_fee_percent = serializers.SerializerMethodField()
 
     class Meta(ListingListSerializer.Meta):
         fields = ListingListSerializer.Meta.fields + (
             "description",
-            "images",
             "host",
-            "location",
-            "amenities",
-            "bedrooms",
-            "beds",
-            "bathrooms",
-            "is_pet_friendly",
-            "cancellation_policy",
-            "check_in_time",
-            "check_out_time",
-            "listing_type",
-            "destination_score_cache",
-            "area_summary",
             "service_fee_percent",
         )
 
@@ -251,6 +327,11 @@ class ListingDetailSerializer(ListingListSerializer):
 
 class ListingWriteSerializer(serializers.ModelSerializer):
     location = ListingLocationWriteSerializer()
+    amenities = serializers.ListField(
+        child=serializers.CharField(max_length=64),
+        required=False,
+        allow_empty=True,
+    )
 
     class Meta:
         model = Listing
@@ -263,6 +344,10 @@ class ListingWriteSerializer(serializers.ModelSerializer):
             "booking_mode",
             "status",
             "max_guests",
+            "bedrooms",
+            "beds",
+            "bathrooms",
+            "amenities",
             "location",
         )
         extra_kwargs = {

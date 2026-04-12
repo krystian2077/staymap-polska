@@ -6,9 +6,11 @@ import { useEffect, useMemo, useState } from "react";
 import { HostMobileNav } from "@/components/host/HostMobileNav";
 import { HostSidebar } from "@/components/host/HostSidebar";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { useNotifications } from "@/hooks/useNotifications";
 import { api, refreshSession } from "@/lib/api";
 import { mapApiConversation, mapBookingToHostBooking } from "@/lib/utils/hostMap";
 import { useHostStore } from "@/lib/store/hostStore";
+import { useHostNotificationStore } from "@/lib/store/hostNotificationStore";
 import { useMessagingStore } from "@/lib/store/messagingStore";
 import type { HostProfile, HostStats } from "@/types/host";
 
@@ -65,9 +67,14 @@ export function HostLayoutClient({ children }: { children: React.ReactNode }) {
   const setStats = useHostStore((s) => s.setStats);
   const setBookings = useHostStore((s) => s.setBookings);
   const setConversations = useMessagingStore((s) => s.setConversations);
+  const seedNotifications = useHostNotificationStore((s) => s.seedNotifications);
+
+  // Utrzymuj aktywne nasluchiwanie WS na wszystkich widokach hosta.
+  useNotifications();
 
   const noSidebar = pathname.startsWith("/host/new-listing");
   const activeItem = useMemo(() => deriveActiveItem(pathname), [pathname]);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -110,15 +117,36 @@ export function HostLayoutClient({ children }: { children: React.ReactNode }) {
           );
           if (!cancelled && Array.isArray(bookRes.data)) {
             setBookings(bookRes.data.map((b) => mapBookingToHostBooking(b)));
+
           }
         } catch {
           if (!cancelled) setBookings([]);
         }
 
         try {
+          const notifRes = await api.get<{
+            data: Array<{
+              id: string;
+              type: string;
+              title: string;
+              body: string;
+              link: string;
+              created_at: string;
+              is_read: boolean;
+            }>;
+          }>("/api/v1/host/notifications/");
+          if (!cancelled && Array.isArray(notifRes.data)) {
+            seedNotifications(notifRes.data);
+          }
+        } catch {
+          // keep local notifications cache if API call fails
+        }
+
+        try {
           const convRes = await api.get<{ data: Record<string, unknown>[] }>("/api/v1/conversations/");
           if (!cancelled && Array.isArray(convRes.data)) {
             setConversations(convRes.data.map((c) => mapApiConversation(c)));
+
           }
         } catch {
           if (!cancelled) setConversations([]);
@@ -132,7 +160,7 @@ export function HostLayoutClient({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [router, setProfile, setStats, setBookings, setConversations]);
+  }, [router, setProfile, setStats, setBookings, setConversations, seedNotifications]);
 
   if (!ready) {
     return (
@@ -149,13 +177,13 @@ export function HostLayoutClient({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative w-full max-w-[100vw]">
       <div
-        className="grid grid-cols-1 md:grid-cols-[260px_1fr]"
+        className="grid grid-cols-1 md:grid-cols-[340px_1fr]"
         style={{ minHeight: "calc(100vh - 64px)" }}
       >
         <div className="hidden md:block">
           <HostSidebar activeItem={activeItem} />
         </div>
-        <main className="min-w-0 bg-[#f7f9f8] pb-[72px] md:pb-0">
+        <main className="min-w-0 bg-[#f8fafc] pb-[72px] md:pb-0">
           {children}
         </main>
       </div>

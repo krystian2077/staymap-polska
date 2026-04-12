@@ -758,44 +758,24 @@ class Command(BaseCommand):
         from apps.discovery.services import DiscoveryFeedService
         from apps.listings.models import Listing
 
-        lake_slugs = [
-            "apartament-nad-jeziorem-niegocin",
-            "domek-nad-stawem-wielkopolska",
-            "dom-morski-bryza-hel",
-        ]
         mountain_slugs = [
             "domek-z-widokiem-na-giewont-zakopane",
             "chata-szklarska-poręba-kamienna",
             "glamping-bieszczady-dolina",
         ]
 
-        col_lake, _ = DiscoveryCollection.objects.get_or_create(
-            slug="nad-jeziorem",
-            defaults={
-                "title": "Nad jeziorem i wodą",
-                "description": "Domki i apartamenty blisko wody — idealne na lato i SUP.",
-                "sort_order": 1,
-                "is_active": True,
-                "travel_mode": "lake",
-            },
-        )
         col_mount, _ = DiscoveryCollection.objects.get_or_create(
             slug="gory-weekend",
             defaults={
                 "title": "Góry na weekend",
                 "description": "Tatry, Bieszczady i spokój lasu — wyjazd od piątku do niedzieli.",
-                "sort_order": 2,
+                "sort_order": 1,
                 "is_active": True,
                 "travel_mode": "mountains",
             },
         )
 
-        CollectionListing.objects.filter(collection__in=[col_lake, col_mount]).delete()
-
-        for i, slug in enumerate(lake_slugs):
-            listing = Listing.objects.filter(slug=slug, status=Listing.Status.APPROVED).first()
-            if listing:
-                CollectionListing.objects.create(collection=col_lake, listing=listing, sort_order=i)
+        CollectionListing.objects.filter(collection=col_mount).delete()
 
         for i, slug in enumerate(mountain_slugs):
             listing = Listing.objects.filter(slug=slug, status=Listing.Status.APPROVED).first()

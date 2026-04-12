@@ -175,7 +175,7 @@ export default function BookingSummaryPage() {
               <Image src={cover} alt="" fill className="object-cover" sizes="80px" unoptimized />
             ) : (
               <span className="flex h-full items-center justify-center text-2xl">
-                {listing.listing_type.icon}
+                {listing.listing_type?.icon ?? "🏠"}
               </span>
             )}
           </div>

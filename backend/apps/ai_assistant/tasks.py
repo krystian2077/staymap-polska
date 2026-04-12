@@ -4,6 +4,7 @@ from celery import shared_task
 from django.utils import timezone
 
 from apps.ai_assistant.models import AiTravelSession
+from apps.ai_assistant.services import AISearchService
 
 logger = logging.getLogger(__name__)
 
@@ -29,3 +30,10 @@ def monthly_ai_cost_report():
     """Miejsce na raport kosztów OpenAI (log / e-mail) — szkielet pod produkcję."""
     logger.info("monthly_ai_cost_report: stub — skonfiguruj metryki po wdrożeniu płatności AI.")
     return {"status": "stub"}
+
+
+@shared_task(name="apps.ai_assistant.tasks.process_ai_search", bind=True)
+def process_ai_search(self, session_id: str, prompt_id: str):
+    """Asynchroniczne przetwarzanie promptu AI i zapis wyników do istniejącej sesji."""
+    return AISearchService.process_existing_prompt(session_id, prompt_id)
+

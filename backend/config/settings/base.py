@@ -218,7 +218,7 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(minute=12),
     },
     "cleanup-expired-compare-sessions": {
-        "task": "apps.discovery.tasks.cleanup_expired_compare_sessions_task",
+        "task": "apps.discovery.tasks.cleanup_expired_compare_sessions",
         "schedule": crontab(minute=22),
     },
     "send-review-reminder-emails": {

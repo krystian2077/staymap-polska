@@ -2,12 +2,18 @@ import type { Listing } from "./listing";
 
 export interface PricingBreakdown {
   nights: number;
+  guests?: number;
+  guests_included?: number;
+  extra_guests?: number;
+  extra_guest_fee_per_night?: number;
+  extra_guests_total?: number;
   nightly_rate: number;
   seasonal_multiplier: number;
   holiday_multiplier: number;
   long_stay_discount: number;
   long_stay_discount_percent?: number;
   accommodation_subtotal: number;
+  accommodation_after_discount: number;
   cleaning_fee: number;
   service_fee: number;
   service_fee_percent?: number;

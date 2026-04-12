@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, refreshSession } from "@/lib/api";
+import { getAccessToken } from "@/lib/authStorage";
 import { useAuthStore } from "@/lib/store/authStore";
 
 export default function HostOnboardingPage() {
@@ -12,9 +13,12 @@ export default function HostOnboardingPage() {
   const setUser = useAuthStore((s) => s.setUser);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [hasToken, setHasToken] = useState(false);
 
-  const hasToken =
-    typeof window !== "undefined" && !!localStorage.getItem("access");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setHasToken(Boolean(getAccessToken()));
+  }, []);
 
   const activate = async () => {
     setBusy(true);

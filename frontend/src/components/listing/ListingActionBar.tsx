@@ -4,10 +4,12 @@ import * as Dialog from "@radix-ui/react-dialog";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { motion } from "framer-motion";
 
 import { api } from "@/lib/api/client";
 import { useAuthJsonGet } from "@/lib/hooks/useJsonGet";
 import { useAuthStore } from "@/lib/store/authStore";
+import { cn } from "@/lib/utils";
 
 function wishlistListingIds(payload: unknown): string[] {
   const d = (payload as { data?: unknown })?.data;
@@ -96,7 +98,8 @@ export function ListingActionBar({ listingId, listingTitle, slug }: Props) {
       }
       await refetchWishlist();
       setOptimisticLiked(null);
-    } catch {
+    } catch (err) {
+      console.error("[Wishlist] Toggle failed:", err);
       setOptimisticLiked(null);
       toast.error("Nie udało się zaktualizować listy życzeń.");
     }
@@ -104,38 +107,81 @@ export function ListingActionBar({ listingId, listingTitle, slug }: Props) {
 
   return (
     <>
-      <div
-        className="mb-6 flex items-center justify-between rounded-xl border border-[#e5e7eb] bg-white px-4 py-3.5 shadow-[0_2px_8px_rgba(0,0,0,.05)]"
-        style={{ position: "relative" }}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="group relative flex flex-col gap-6 overflow-hidden rounded-[2.5rem] border border-brand/20 bg-gradient-to-br from-brand-950 via-brand-900 to-brand-800 p-6 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5 transition-all hover:shadow-brand/20 hover:border-brand/40 sm:flex-row sm:items-center sm:justify-between sm:px-10 sm:py-7"
       >
-        <p className="max-w-[60%] truncate text-[13px] font-semibold text-[#111827]">
-          {listingTitle}
-        </p>
-        <div className="flex shrink-0 items-center gap-2">
-          <button
+        {/* Decorative elements */}
+        <div className="absolute -right-20 -top-20 h-40 w-40 rounded-full bg-brand-light/10 blur-3xl transition-all group-hover:scale-150 group-hover:bg-brand-light/20" />
+        <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-blue-400/10 blur-3xl transition-all group-hover:scale-125 group-hover:bg-blue-400/20" />
+
+        <div className="relative min-w-0">
+          <p className="text-[22px] font-black leading-tight tracking-tight text-white sm:text-2xl drop-shadow-sm">
+            {listingTitle}
+          </p>
+          <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.3em] text-brand-light/70">
+            Szczegóły oferty
+          </p>
+        </div>
+
+        <div className="relative flex shrink-0 items-center gap-3">
+          <motion.button
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
             type="button"
             onClick={() => void share()}
-            className="flex items-center gap-1.5 rounded-lg border border-[#e5e7eb] bg-white px-3 py-1.5 text-xs font-semibold text-[#6b7280] transition-all duration-150 hover:border-brand hover:bg-[#f0fdf4] hover:text-brand"
+            className="group/btn flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/10 px-6 py-3.5 text-sm font-bold text-white shadow-sm transition-all hover:border-brand/30 hover:bg-brand hover:text-white hover:shadow-lg hover:shadow-brand/20 backdrop-blur-sm"
           >
-            <svg className="h-3 w-3" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-              <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z" />
+            <svg
+              className="h-4.5 w-4.5 transition-transform duration-300 group-hover/btn:-translate-y-1 group-hover/btn:translate-x-0.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+              <polyline points="16 6 12 2 8 6" />
+              <line x1="12" y1="2" x2="12" y2="15" />
             </svg>
             Udostępnij
-          </button>
-          <button
+          </motion.button>
+
+          <motion.button
+            layout
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95 }}
             type="button"
             onClick={() => void toggleWishlist()}
-            className={`flex items-center gap-1.5 rounded-lg border-[1.5px] bg-white px-3.5 py-1.5 text-xs font-bold transition-all duration-200 ${
+            className={cn(
+              "group/btn relative flex items-center gap-2.5 overflow-hidden rounded-2xl border-[1.5px] px-6 py-3.5 text-sm font-bold transition-all duration-500 backdrop-blur-sm whitespace-nowrap",
               liked
-                ? "border-rose-600 bg-rose-50 text-rose-600"
-                : "border-[#e5e7eb] text-[#111827] hover:border-brand hover:text-brand"
-            }`}
+                ? "border-rose-500/50 bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-xl shadow-rose-950/40 ring-1 ring-white/20"
+                : "border-white/10 bg-white/10 text-white hover:border-rose-400/30 hover:bg-rose-500 hover:text-white hover:shadow-lg hover:shadow-rose-900/40"
+            )}
           >
-            <span aria-hidden>{liked ? "♥" : "♡"}</span>
-            {liked ? "Zapisane" : "Zapisz"}
-          </button>
+            <svg
+              className={cn(
+                "h-4.5 w-4.5 transition-all duration-500",
+                liked ? "scale-110 fill-current text-white" : "group-hover/btn:scale-125"
+              )}
+              viewBox="0 0 24 24"
+              fill={liked ? "currentColor" : "none"}
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+            </svg>
+            <motion.span layout className="relative">
+              {liked ? "W ulubionych" : "Zapisz"}
+            </motion.span>
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
 
       <Dialog.Root open={authOpen} onOpenChange={setAuthOpen}>
         <Dialog.Portal>
@@ -145,7 +191,7 @@ export function ListingActionBar({ listingId, listingTitle, slug }: Props) {
               Zaloguj się
             </Dialog.Title>
             <Dialog.Description className="mt-2 text-sm text-[#6b7280]">
-              Zaloguj się, żeby zapisać tę ofertę w ulubionych.
+              Zaloguj się, aby dodać tę ofertę do ulubionych.
             </Dialog.Description>
             <div className="mt-5 flex justify-end gap-2">
               <Dialog.Close asChild>

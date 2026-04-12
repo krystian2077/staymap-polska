@@ -2,13 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import type { Amenity, DestinationScore, Listing } from "@/types/listing";
-import { generateBadges, MODE_EMOJI, SCORE_LABELS } from "@/lib/utils/booking";
+import type { DestinationScore } from "@/types/listing";
+import { MODE_EMOJI, SCORE_LABELS } from "@/lib/utils/booking";
 
 type Props = {
   scores: DestinationScore;
-  amenities: Amenity[];
-  listing: Listing;
 };
 
 function scoresToRecord(s: DestinationScore): Record<string, number> {
@@ -20,17 +18,8 @@ function scoresToRecord(s: DestinationScore): Record<string, number> {
   return out;
 }
 
-export function DestinationScoreSection({ scores, amenities, listing }: Props) {
+export function DestinationScoreSection({ scores }: Props) {
   const record = useMemo(() => scoresToRecord(scores), [scores]);
-  const badges = useMemo(
-    () =>
-      generateBadges(
-        record,
-        amenities.map((a) => a.icon),
-        listing
-      ),
-    [record, amenities, listing]
-  );
 
   const sortedDims = useMemo(() => {
     return Object.entries(record)
@@ -55,90 +44,39 @@ export function DestinationScoreSection({ scores, amenities, listing }: Props) {
   }, []);
 
   return (
-    <section className="mb-8 grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-8">
+    <section className="w-full">
       <div ref={rowRef}>
-        <h2 className="sec-h mb-2">Destination Score</h2>
-        <p className="text-sm text-[#6b7280]">
-          Heurystyczna ocena 0–10 obliczona z udogodnień, danych OSM i recenzji.
+        <h2 className="mb-4 text-[22px] font-black tracking-tight text-brand-dark">Inteligentna ocena miejsca</h2>
+        <p className="mb-8 text-[15px] font-medium leading-relaxed text-gray-400">
+          Nasza autorska ocena 0–10 obliczona na podstawie udogodnień, danych geograficznych i realnych opinii gości.
         </p>
-        <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 lg:gap-x-20 gap-y-6">
           {sortedDims.map(({ key, score }, index) => {
             const label = SCORE_LABELS[key] ?? key;
             const emoji = MODE_EMOJI[key] ?? "✨";
             const pct = Math.min(100, Math.max(0, score * 10));
             return (
-              <div key={key} className="flex items-center gap-2">
-                <span className="w-[100px] shrink-0 text-xs font-semibold text-[#6b7280]">
-                  {emoji} {label}
-                </span>
-                <div className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-[#e5e7eb]">
+              <div key={key} className="flex flex-col gap-2.5">
+                <div className="flex justify-between text-[13px] font-black uppercase tracking-widest text-gray-400">
+                  <span className="flex items-center gap-2">
+                    <span className="text-lg opacity-80" aria-hidden>{emoji}</span> 
+                    {label}
+                  </span>
+                  <span className="text-brand-dark">{score.toFixed(1)}</span>
+                </div>
+                <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-gray-50 shadow-inner">
                   <div
-                    className="h-full rounded-full bg-brand transition-[width] duration-[800ms] ease-[cubic-bezier(.16,1,.3,1)]"
+                    className="h-full rounded-full bg-gradient-to-r from-brand/40 to-brand shadow-[0_0_12px_rgba(22,101,52,0.2)] transition-[width] duration-[1200ms] ease-[cubic-bezier(.16,1,.3,1)]"
                     style={{
                       width: barsOn ? `${pct}%` : "0%",
                       transitionDelay: barsOn ? `${100 * index}ms` : "0ms",
                     }}
                   />
                 </div>
-                <span className="w-7 shrink-0 text-right text-xs font-extrabold text-[#0a2e1a]">
-                  {score.toFixed(1)}
-                </span>
               </div>
             );
           })}
         </div>
-      </div>
-
-      <div>
-        <h2 className="sec-h mb-2">Dlaczego to miejsce pasuje</h2>
-        <p className="text-sm text-[#6b7280]">
-          Każdy badge wyjaśnia, co konkretnie sprawia, że oferta pasuje do trybu podróży.
-        </p>
-        <ul className="mt-4">
-          {badges.map((b, i) => (
-            <li
-              key={`${b.mode}-${b.is_positive ? "p" : "n"}`}
-              className={`mb-2.5 flex cursor-pointer items-start gap-2.5 rounded-xl border-[1.5px] px-3.5 py-3 transition-all duration-200 ease-[cubic-bezier(.16,1,.3,1)] ${
-                b.is_positive
-                  ? "border-[#bbf7d0] bg-[#f0fdf4] hover:translate-x-[3px] hover:border-brand hover:bg-[#dcfce7]"
-                  : "border-[#e5e7eb] bg-[#f9fafb] hover:bg-[#f3f4f6]"
-              }`}
-              style={{
-                opacity: 0,
-                transform: "translateY(20px)",
-                animation: `fade-up 0.55s cubic-bezier(.16,1,.3,1) forwards`,
-                animationDelay: `${i * 80}ms`,
-              }}
-            >
-              <span className="mt-0.5 shrink-0 text-xl" aria-hidden>
-                {MODE_EMOJI[b.mode] ?? "✨"}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p
-                  className={`text-[13px] font-bold ${
-                    b.is_positive ? "text-[#0a2e1a]" : "text-[#6b7280]"
-                  }`}
-                >
-                  {b.title}
-                </p>
-                <p
-                  className={`mt-0.5 text-xs leading-relaxed ${
-                    b.is_positive ? "text-[#6b7280]" : "text-[#9ca3af]"
-                  }`}
-                >
-                  {b.reason}
-                </p>
-              </div>
-              <span
-                className={`shrink-0 text-lg font-extrabold ${
-                  b.is_positive ? "text-brand" : "text-[#9ca3af]"
-                }`}
-              >
-                {b.score.toFixed(1)}
-              </span>
-            </li>
-          ))}
-        </ul>
       </div>
     </section>
   );

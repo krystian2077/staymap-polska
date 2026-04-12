@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 
 import { api } from "@/lib/api";
+import { publicMediaUrl } from "@/lib/mediaUrl";
 import { cn } from "@/lib/utils";
 
 type Img = { id: string; display_url: string; is_cover: boolean; sort_order: number };
@@ -18,6 +19,7 @@ type Props = {
 export function Step4Photos({ listingId, images, onRefresh }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const upload = useCallback(
     async (file: File) => {
@@ -46,10 +48,25 @@ export function Step4Photos({ listingId, images, onRefresh }: Props) {
     [images.length, listingId, onRefresh]
   );
 
+  const handleDelete = async (imageId: string) => {
+    if (!confirm("Czy na pewno chcesz usunąć to zdjęcie?")) return;
+    setDeletingId(imageId);
+    try {
+      await api.delete(`/api/v1/host/listings/${listingId}/images/${imageId}/`);
+      toast.success("Zdjęcie usunięte.");
+      onRefresh();
+    } catch (e) {
+      toast.error("Błąd podczas usuwania zdjęcia.");
+      console.error(e);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div>
       <h2 className="text-[22px] font-extrabold text-brand-dark">📷 Zdjęcia</h2>
-      <p className="mt-1 text-sm text-text-muted">Minimum 5 zdjęć. Pierwsze może być okładką.</p>
+      <p className="mt-1 text-sm text-text-muted">Minimum 1 zdjęcie. Pierwsze może być okładką.</p>
 
       <div
         className={cn(
@@ -82,7 +99,7 @@ export function Step4Photos({ listingId, images, onRefresh }: Props) {
         <label htmlFor="photo-upload" className="cursor-pointer">
           <span className="text-[32px]">🖼️</span>
           <p className="mt-2 font-semibold text-brand-dark">Dodaj zdjęcia</p>
-          <p className="text-sm text-text-muted">Min. 5 zdjęć · JPG/PNG/WebP · max 10 MB każde</p>
+          <p className="text-sm text-text-muted">Min. 1 zdjęcie · JPG/PNG/WebP · max 10 MB każde</p>
         </label>
       </div>
 
@@ -98,13 +115,37 @@ export function Step4Photos({ listingId, images, onRefresh }: Props) {
             key={img.id}
             className="group relative aspect-square overflow-hidden rounded-lg border border-brand-dark/[.06]"
           >
-            {img.display_url ? (
-              <Image src={img.display_url} alt="" fill className="object-cover" unoptimized />
+            {publicMediaUrl(img.display_url) ? (
+              <Image src={publicMediaUrl(img.display_url) || ""} alt="Podgląd zdjęcia oferty" fill className="object-cover" unoptimized />
             ) : null}
-            <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
               <span className="rounded-md bg-white/90 px-2 py-1 text-[10px] font-bold text-brand-dark">
                 {img.is_cover ? "Okładka" : "Zdjęcie"}
               </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void handleDelete(img.id);
+                }}
+                disabled={deletingId === img.id}
+                className="mt-1 rounded-full bg-red-500 p-2 text-white transition-colors hover:bg-red-600 disabled:opacity-50"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 6h18" />
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                </svg>
+              </button>
             </div>
             {img.is_cover ? (
               <span className="absolute bottom-1 left-1 rounded bg-brand-dark px-1.5 py-0.5 text-[10px] font-bold text-white">
@@ -122,7 +163,7 @@ export function Step4Photos({ listingId, images, onRefresh }: Props) {
       </div>
 
       <p className="mt-3 text-center text-sm font-semibold text-brand-dark">
-        {images.length}/5 zdjęć
+        Dodano zdjęć: {images.length} (wymagane min. 1)
       </p>
     </div>
   );

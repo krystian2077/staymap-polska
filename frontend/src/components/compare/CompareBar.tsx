@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { getAccessToken } from "@/lib/authStorage";
 import { useCompareStore } from "@/lib/store/compareStore";
 
 export function CompareBar() {
@@ -27,7 +28,7 @@ export function CompareBar() {
 
   if (listings.length === 0) return null;
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("access") : null;
+  const token = typeof window !== "undefined" ? getAccessToken() : null;
 
   return (
     <div

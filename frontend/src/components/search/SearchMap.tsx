@@ -104,8 +104,8 @@ export function SearchMap({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     L.geoJSON(maskGeo as any, {
       style: {
-        fillColor: "#d8dee6",
-        fillOpacity: 0.52,
+        fillColor: "#ffffff",
+        fillOpacity: 0.85,
         stroke: false,
         weight: 0,
       },
@@ -221,12 +221,12 @@ export function SearchMap({
       const priceLabel = !Number.isNaN(priceNum) ? `${Math.round(priceNum)} zł` : p.price;
 
       const icon = L.divIcon({
-        html: `<div class="smap-pin" data-id="${p.id}">${priceLabel}</div>`,
+        html: `<div class="smap-pin" data-id="${p.id}"><span class="mr-1 opacity-60 text-[10px]">od</span>${priceLabel}</div>`,
         className: "smap-pin-host",
         iconSize: [1, 1],
         iconAnchor: [24, 36],
       });
-      const marker = L.marker([p.lat, p.lng], { icon });
+      const marker = L.marker([p.lat, p.lng], { icon, riseOnHover: true });
 
       marker.on("mouseover", () => onPinHover?.(p.id));
       marker.on("mouseout", () => onPinHover?.(null));
@@ -370,7 +370,7 @@ export function SearchMap({
       {/* Mapa */}
       <div
         ref={wrapRef}
-        className="h-full w-full flex-1 [&_.leaflet-container]:h-full [&_.leaflet-container]:w-full"
+        className="h-full w-full flex-1 bg-white [&_.leaflet-container]:h-full [&_.leaflet-container]:w-full [&_.leaflet-container]:bg-white"
         aria-label="Mapa ofert (OpenStreetMap, CARTO)"
       />
 
@@ -378,7 +378,7 @@ export function SearchMap({
       <div className="pointer-events-none absolute left-3 top-3 z-[900] flex flex-col gap-1.5">
         <button
           type="button"
-          className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-xl bg-white/95 shadow-elevated backdrop-blur-sm transition-all hover:-translate-y-px hover:shadow-hover active:scale-95"
+          className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-elevated backdrop-blur-sm transition-all hover:-translate-y-px hover:shadow-hover active:scale-95"
           onClick={handleResetPoland}
           title="Pokaż całą Polskę"
         >
@@ -388,7 +388,7 @@ export function SearchMap({
         </button>
         <button
           type="button"
-          className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-xl bg-white/95 shadow-elevated backdrop-blur-sm transition-all hover:-translate-y-px hover:shadow-hover active:scale-95"
+          className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-elevated backdrop-blur-sm transition-all hover:-translate-y-px hover:shadow-hover active:scale-95"
           onClick={handleGeolocate}
           title="Moja lokalizacja"
         >
@@ -422,7 +422,7 @@ export function SearchMap({
       )}
 
       {/* Atrybucja */}
-      <div className="pointer-events-none absolute bottom-2 right-10 z-[900] text-[9px] text-gray-500">
+      <div className="pointer-events-none absolute bottom-2 right-10 z-[900] text-[9px] text-gray-500 bg-white/60 backdrop-blur-sm px-1.5 py-0.5 rounded-md">
         <span className="pointer-events-auto">
           © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="underline">OSM</a>
           {" "}© <a href="https://opentopomap.org" target="_blank" rel="noreferrer" className="underline">OpenTopoMap</a>

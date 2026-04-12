@@ -129,3 +129,49 @@ def test_search_regions_payload_contains_sync_query(api_client, user_host):
     assert "starting_price" in first
     assert "highlights" in first and isinstance(first["highlights"], list)
 
+
+@pytest.mark.django_db
+def test_search_and_map_exclude_draft_and_pending(api_client, user_host):
+    _approved_listing(user_host, title="Approved A", lat=52.23, lng=21.01, city="Warszawa")
+    ListingService.create_listing(
+        user_host,
+        listing_data={
+            "title": "Pending A",
+            "description": "x",
+            "base_price": "120.00",
+            "currency": "PLN",
+            "booking_mode": "instant",
+            "status": Listing.Status.PENDING,
+            "max_guests": 2,
+        },
+        location_data={"lat": 52.24, "lng": 21.02, "city": "Warszawa", "region": "test", "country": "PL"},
+    )
+    ListingService.create_listing(
+        user_host,
+        listing_data={
+            "title": "Draft A",
+            "description": "x",
+            "base_price": "110.00",
+            "currency": "PLN",
+            "booking_mode": "instant",
+            "status": Listing.Status.DRAFT,
+            "max_guests": 2,
+        },
+        location_data={"lat": 52.25, "lng": 21.03, "city": "Warszawa", "region": "test", "country": "PL"},
+    )
+
+    r = api_client.get("/api/v1/search/", {"location": "Warszawa"})
+    assert r.status_code == 200
+    titles = [x["title"] for x in r.json()["data"]]
+    assert "Approved A" in titles
+    assert "Pending A" not in titles
+    assert "Draft A" not in titles
+
+    m = api_client.get("/api/v1/search/map/", {"location": "Warszawa"})
+    assert m.status_code == 200
+    pin_titles = [x["title"] for x in m.json()["data"]]
+    assert "Approved A" in pin_titles
+    assert "Pending A" not in pin_titles
+    assert "Draft A" not in pin_titles
+
+

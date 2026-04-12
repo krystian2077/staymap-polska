@@ -6,15 +6,22 @@ from .models import Conversation
 
 
 def resolve_guest_user(*, listing: Listing, request_user, guest_id=None):
+    from rest_framework.exceptions import PermissionDenied, ValidationError
+
     host_uid = listing.host.user_id
     if request_user.id == host_uid:
         if not guest_id:
-            from rest_framework.exceptions import ValidationError
-
             raise ValidationError({"guest_id": ["Host musi podać identyfikator gościa."]})
         from apps.users.models import User
 
-        return get_object_or_404(User.objects.filter(deleted_at__isnull=True), pk=guest_id)
+        guest = get_object_or_404(User.objects.filter(deleted_at__isnull=True), pk=guest_id)
+        if guest.id == host_uid:
+            raise ValidationError({"guest_id": ["Nie można utworzyć rozmowy z samym sobą."]})
+        return guest
+
+    if listing.status != Listing.Status.APPROVED:
+        raise PermissionDenied("Nie można wysłać wiadomości dla nieaktywnej oferty.")
+
     return request_user
 
 

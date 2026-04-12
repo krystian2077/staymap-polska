@@ -12,7 +12,7 @@ from apps.bookings.models import Booking
 from .models import Review
 
 
-BLIND_PERIOD_DAYS = 14
+BLIND_PERIOD_DAYS = 0
 
 
 class ReviewService:
@@ -62,8 +62,8 @@ class ReviewService:
             author_display_first=author.first_name,
             author_display_last=author.last_name,
             blind_release_at=release_at,
-            is_public=False,
-            is_blind_review_released=False,
+            is_public=True,
+            is_blind_review_released=True,
             overall_rating=data["overall_rating"],
             title=data.get("title", ""),
             content=data["content"],

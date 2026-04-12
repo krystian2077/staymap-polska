@@ -38,29 +38,36 @@ export function GuestsField({
 
   return (
     <Popover.Root open={open} onOpenChange={setOpen}>
-      <Popover.Trigger asChild>
-        <button
-          type="button"
-          className="flex w-full items-center justify-between rounded-[10px] border-[1.5px] border-gray-200 px-3.5 py-2.5 text-left transition-colors hover:border-brand hover:bg-brand-surface"
-        >
-          <div>
-            <span className="mb-0.5 block text-[10px] font-bold uppercase tracking-wide text-gray-400">
-              Goście
-            </span>
-            <span className="font-medium text-brand-dark">
-              {formatGuests(adults, kids)}
-              {pets > 0 ? ` · ${pets} zwierz.` : ""}
-            </span>
-          </div>
-          <span className="text-gray-400">{open ? "▲" : "▼"}</span>
-        </button>
-      </Popover.Trigger>
+        <Popover.Trigger asChild>
+          <button
+            type="button"
+            className={`flex w-full items-center justify-between rounded-[1.5rem] bg-white px-5 py-4 text-left transition-all hover:bg-gray-50/80 ${
+              open ? "ring-2 ring-brand/20 z-10" : ""
+            }`}
+          >
+            <div>
+              <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-brand transition-colors">
+                Goście
+              </span>
+              <span className="text-[15px] font-bold text-brand-dark">
+                {formatGuests(adults, kids)}
+                {pets > 0 ? ` · ${pets} zwierz.` : ""}
+              </span>
+            </div>
+            <div className={`transition-transform duration-500 ${open ? "rotate-180 text-brand" : "text-gray-300"}`}>
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </button>
+        </Popover.Trigger>
       <Popover.Portal>
         <Popover.Content
-          className="z-50 mt-1 w-[min(100vw-2rem,320px)] rounded-[14px] border-[1.5px] border-gray-200 bg-white p-4 shadow-[0_8px_32px_rgba(0,0,0,.1)]"
-          sideOffset={4}
+          className="z-50 mt-2 w-[min(100vw-2rem,360px)] rounded-[2rem] border border-gray-100 bg-white p-6 shadow-[0_20px_50px_rgba(0,0,0,0.15)] backdrop-blur-xl"
+          sideOffset={8}
+          align="end"
         >
-          <div className="space-y-0 divide-y divide-gray-100">
+          <div className="space-y-1 divide-y divide-gray-50">
             <CounterRow
               label="Dorośli"
               sub="18+"
@@ -112,26 +119,26 @@ function CounterRow({
   onChange: (n: number) => void;
 }) {
   return (
-    <div className="flex items-center justify-between py-2.5">
+    <div className="flex items-center justify-between py-4">
       <div>
-        <p className="text-sm font-semibold text-brand-dark">{label}</p>
-        <p className="text-xs text-gray-400">{sub}</p>
+        <p className="text-[15px] font-black tracking-tight text-brand-dark">{label}</p>
+        <p className="text-xs font-medium text-gray-400">{sub}</p>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <button
           type="button"
           disabled={value <= min}
           onClick={() => onChange(value - 1)}
-          className="flex h-[30px] w-[30px] items-center justify-center rounded-full border-[1.5px] border-gray-200 text-lg font-medium transition-colors hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-35"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-100 text-xl font-medium transition-all hover:border-brand hover:text-brand hover:bg-brand/5 disabled:cursor-not-allowed disabled:opacity-20"
         >
           −
         </button>
-        <span className="min-w-[1.5rem] text-center text-sm font-bold">{value}</span>
+        <span className="min-w-[1.5rem] text-center text-[16px] font-black text-brand-dark">{value}</span>
         <button
           type="button"
           disabled={value >= max}
           onClick={() => onChange(value + 1)}
-          className="flex h-[30px] w-[30px] items-center justify-center rounded-full border-[1.5px] border-gray-200 text-lg font-medium transition-colors hover:border-brand hover:text-brand disabled:cursor-not-allowed disabled:opacity-35"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-100 text-xl font-medium transition-all hover:border-brand hover:text-brand hover:bg-brand/5 disabled:cursor-not-allowed disabled:opacity-20"
         >
           +
         </button>

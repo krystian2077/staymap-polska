@@ -86,47 +86,27 @@ def _rebuild_discovery_collections_mass(command: BaseCommand) -> None:
     from apps.discovery.models import CollectionListing, DiscoveryCollection
     from apps.listings.models import Listing
 
-    col_lake, _ = DiscoveryCollection.objects.get_or_create(
-        slug="nad-jeziorem",
-        defaults={
-            "title": "Nad jeziorem i wodą",
-            "description": "Domki i apartamenty blisko wody — idealne na lato i SUP.",
-            "sort_order": 1,
-            "is_active": True,
-            "travel_mode": "lake",
-        },
-    )
     col_mount, _ = DiscoveryCollection.objects.get_or_create(
         slug="gory-weekend",
         defaults={
             "title": "Góry na weekend",
             "description": "Tatry, Bieszczady i spokój lasu — wyjazd od piątku do niedzieli.",
-            "sort_order": 2,
+            "sort_order": 1,
             "is_active": True,
             "travel_mode": "mountains",
         },
     )
-    CollectionListing.objects.filter(collection__in=[col_lake, col_mount]).delete()
+    CollectionListing.objects.filter(collection=col_mount).delete()
 
-    lake_qs = (
-        Listing.objects.filter(status=Listing.Status.APPROVED)
-        .filter(Q(location__near_lake=True) | Q(location__near_sea=True))
-        .order_by("id")
-    )
     mtn_qs = (
         Listing.objects.filter(status=Listing.Status.APPROVED, location__near_mountains=True).order_by(
             "id"
         )
     )
-    lake_list = list(lake_qs[:8])
     mtn_list = list(mtn_qs[:8])
-    if not lake_list:
-        lake_list = list(Listing.objects.filter(status=Listing.Status.APPROVED).order_by("id")[:8])
     if not mtn_list:
         mtn_list = list(Listing.objects.filter(status=Listing.Status.APPROVED).order_by("id")[:8])
 
-    for i, listing in enumerate(lake_list):
-        CollectionListing.objects.create(collection=col_lake, listing=listing, sort_order=i)
     for i, listing in enumerate(mtn_list):
         CollectionListing.objects.create(collection=col_mount, listing=listing, sort_order=i)
 

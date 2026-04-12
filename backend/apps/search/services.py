@@ -22,6 +22,7 @@ SEARCH_CACHE_TTL = 300  # 5 min (Etap 2.5)
 MAX_CACHED_IDS = 2500
 # Piny mapy — domyślnie tyle samo co max wyników w cache (masowy seed ~2500 ofert).
 MAX_MAP_PINS = MAX_CACHED_IDS
+PUBLIC_SEARCH_STATUSES = [Listing.Status.APPROVED]
 
 
 def invalidate_search_cache() -> None:
@@ -63,7 +64,9 @@ class SearchOrchestrator:
         normalized = cls._normalize_params_for_cache(params)
         serialized = json.dumps(normalized, sort_keys=True, default=str)
         digest = hashlib.md5(serialized.encode()).hexdigest()
-        return f"search:v1:{digest}"
+        # v2: po zmianie polityki statusów publicznych (tylko approved)
+        # wymuszamy nową przestrzeń kluczy, aby nie czytać starych cache z pending/draft.
+        return f"search:v2:{digest}"
 
     @classmethod
     def get_ordered_ids(cls, params: dict[str, Any]) -> list[UUID]:
@@ -98,7 +101,7 @@ class SearchOrchestrator:
 
         qs = (
             Listing.objects.filter(
-                status__in=[Listing.Status.APPROVED, Listing.Status.PENDING, Listing.Status.DRAFT]
+                status__in=PUBLIC_SEARCH_STATUSES
             )
             .select_related("location", "host__user")
             .defer("description")
@@ -113,13 +116,14 @@ class SearchOrchestrator:
         location = location_raw.lower()
 
         # Słowa kluczowe kategorii (ignorują filtr tekstowy miasta, aktywują tagi)
-        # Dodajemy warianty bez polskich znaków dla tolerancyjnego rozpoznawania (np. "gory" -> "góry")
+        # Dodajemy warianty bez polskich znaków dla tolerancyjnego rozpoznawania
         category_keywords = {
             "góry", "gory", "jezioro", "jeziora", "lake", "morze", "bałtyk", "baltyk",
             "plaża", "plaza", "las", "narty", "ski",
-            "domek", "domki", "apartament", "apartamenty", "chata", "chaty", "w pobliżu"
+            "domek", "domki", "apartament", "apartamenty", "chata", "chaty", "w pobliżu",
+            "moja lokalizacja", "w poblizu"
         }
-        is_category_location = location in category_keywords
+        is_category_location = location in category_keywords or "moja lokalizacja" in location or "w pobliżu" in location or "w poblizu" in location
 
         # Mapowanie słów kluczowych na filtry tagów (jeśli użytkownik wpisał słowo, ale nie wybrał kafelka)
         if location in ("góry", "gory"):
@@ -144,15 +148,22 @@ class SearchOrchestrator:
             is_generic_search = (not params.get("location") or is_category_location) and (
                 any(params.get(tag) is True for tag in LOCATION_TAG_FIELD_NAMES) or 
                 params.get("listing_types") or 
-                params.get("travel_mode")
+                params.get("travel_mode") or
+                is_category_location
             )
 
+            # Promień: jawny z parametrów > (1000km jeśli generyczne else 50km)
+            # Jeśli to wyszukiwanie generyczne (np. Moja lokalizacja), wymuszamy promień ogólnopolski (1000km),
+            # aby uniknąć pustych wyników przy domyślnym promieniu 300km przesyłanym z frontendu.
             if is_generic_search:
                 radius_km = 1000.0
+            elif params.get("radius_km"):
+                radius_km = float(params["radius_km"])
             else:
-                radius_km = float(params.get("radius_km") or 50)
+                radius_km = 50.0
 
-            qs = qs.filter(location__point__dwithin=(point, D(km=radius_km))).annotate(
+            # Używamy Distance dla geography, aby mieć pewność poprawnego działania
+            qs = qs.filter(location__point__distance_lte=(point, D(km=radius_km))).annotate(
                 distance=Distance("location__point", point)
             )
 
@@ -198,8 +209,8 @@ class SearchOrchestrator:
         if params.get("is_pet_friendly") is True:
             qs = qs.filter(is_pet_friendly=True)
 
-        # bbox / viewport mapy
-        if all(params.get(b) is not None for b in ("bbox_south", "bbox_west", "bbox_north", "bbox_east")):
+        # bbox / viewport mapy — ignorujemy, jeśli mamy konkretny punkt i promień (priorytet geolokalizacji)
+        if not has_point and all(params.get(b) is not None for b in ("bbox_south", "bbox_west", "bbox_north", "bbox_east")):
             from django.contrib.gis.geos import Polygon as _Polygon
             try:
                 bbox_poly = _Polygon.from_bbox((

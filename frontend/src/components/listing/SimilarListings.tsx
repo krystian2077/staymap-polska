@@ -70,7 +70,7 @@ function SimilarListingCard({ item, index, travelMode }: CardProps) {
           className="absolute right-2 top-2 rounded-full px-2.5 py-0.5 text-[10px] font-bold text-[#0a2e1a]"
           style={{ background: "var(--brand-muted)" }}
         >
-          {item.distance_km.toFixed(1)} km od Ciebie
+          {item.distance_km?.toFixed(1) ?? "0"} km od Ciebie
         </span>
         <button
           type="button"
@@ -93,7 +93,7 @@ function SimilarListingCard({ item, index, travelMode }: CardProps) {
           <svg className="h-2.5 w-2.5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
           </svg>
-          {item.location.city}, {item.location.region}
+          {item.location?.city}, {item.location?.region}
         </p>
         <div className="flex items-center justify-between">
           <div>
@@ -102,7 +102,7 @@ function SimilarListingCard({ item, index, travelMode }: CardProps) {
           </div>
           <div className="text-right">
             <span className="text-xs font-bold text-[#111827]">
-              ★ {item.average_rating != null ? item.average_rating.toFixed(1) : "—"}
+              ★ {item.average_rating != null ? Number(item.average_rating).toFixed(1) : "—"}
             </span>
             <span className="ml-1 text-[11px] text-[#9ca3af]">({item.review_count})</span>
           </div>
@@ -161,27 +161,27 @@ export function SimilarListings({
   const moreListings = moreData?.data ?? [];
 
   return (
-    <div className="mb-10 min-h-[200px]">
-      <h2 className="sec-h mb-2">Podobne oferty w okolicy</h2>
-      <p className="mb-5 text-sm text-[#6b7280]">
-        Oferty o podobnym charakterze w promieniu 30 km
+    <div className="mb-20 mt-12 min-h-[200px]">
+      <h2 className="mb-4 text-2xl font-black tracking-tight text-brand-dark">Podobne oferty w okolicy</h2>
+      <p className="mb-8 text-sm leading-relaxed text-gray-500 max-w-2xl">
+        Sprawdź inne miejsca o podobnym charakterze w promieniu 30 km od tej lokalizacji
         {travelMode
-          ? `, posortowane wg trybu ${MODE_EMOJI[travelMode] ?? ""} ${TRAVEL_MODE_LABELS[travelMode] ?? travelMode}`
+          ? `, zoptymalizowane pod kątem Twojego trybu podróży (${TRAVEL_MODE_LABELS[travelMode] ?? travelMode})`
           : ""}
         .
       </p>
 
-      <div className="grid min-h-[180px] grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid min-h-[180px] grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="animate-pulse overflow-hidden rounded-[14px] border border-[#e5e7eb]"
+                className="animate-pulse overflow-hidden rounded-[20px] border border-gray-100 bg-white shadow-sm"
               >
-                <div className="h-[150px] bg-gray-100" />
-                <div className="space-y-2 p-3.5">
-                  <div className="h-3 w-[80%] rounded bg-gray-100" />
-                  <div className="h-3 w-1/2 rounded bg-gray-100" />
+                <div className="h-[180px] bg-gray-50" />
+                <div className="space-y-3 p-5">
+                  <div className="h-4 w-[85%] rounded bg-gray-50" />
+                  <div className="h-3 w-1/2 rounded bg-gray-50" />
                 </div>
               </div>
             ))
@@ -196,17 +196,19 @@ export function SimilarListings({
       </div>
 
       {!isLoading && items.length === 0 && (
-        <p className="py-6 text-center text-sm text-[#9ca3af]">Brak podobnych ofert.</p>
+        <div className="flex flex-col items-center justify-center py-12 rounded-3xl bg-gray-50 border-2 border-dashed border-gray-200">
+          <p className="text-sm font-bold text-gray-400">Brak podobnych ofert w najbliższej okolicy.</p>
+        </div>
       )}
 
       {showMore && (
-        <div className="mt-10">
-          <h3 className="sec-h mb-2">Więcej w {currentCity}</h3>
-          <p className="mb-5 text-sm text-[#6b7280]">Wszystkie zatwierdzone oferty w tym rejonie</p>
-          <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-3">
+        <div className="mt-16">
+          <h3 className="mb-4 text-xl font-black tracking-tight text-brand-dark">Więcej ofert w mieście {currentCity}</h3>
+          <p className="mb-8 text-sm text-gray-500">Odkryj wszystkie dostępne i zweryfikowane oferty w tym rejonie.</p>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {moreLoading
               ? Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="h-40 animate-pulse rounded-[14px] bg-gray-100" />
+                  <div key={i} className="h-64 animate-pulse rounded-[20px] bg-gray-50 shadow-sm" />
                 ))
               : moreListings.map((l) => (
                   <ListingCard key={l.id} listing={l} variant="grid" />

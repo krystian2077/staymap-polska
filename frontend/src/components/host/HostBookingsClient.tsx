@@ -10,15 +10,17 @@ import { mapBookingToHostBooking } from "@/lib/utils/hostMap";
 import { cn } from "@/lib/utils";
 import type { HostBooking } from "@/types/host";
 
-const CARD = "rounded-2xl bg-white shadow-card ring-1 ring-black/[.04]";
+import { motion, AnimatePresence } from "framer-motion";
+
+const CARD = "rounded-[32px] bg-white shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-black/[0.02]";
 
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
-  pending: { label: "Oczekująca", cls: "bg-amber-100 text-amber-800" },
-  awaiting_payment: { label: "Oczekuje płatności", cls: "bg-blue-100 text-blue-800" },
-  confirmed: { label: "Potwierdzona", cls: "bg-emerald-100 text-emerald-800" },
-  cancelled: { label: "Anulowana", cls: "bg-gray-100 text-gray-500" },
-  rejected: { label: "Odrzucona", cls: "bg-red-100 text-red-800" },
-  completed: { label: "Zakończona", cls: "bg-brand-muted text-brand-dark" },
+  pending: { label: "Oczekująca", cls: "bg-amber-50 text-amber-700 ring-1 ring-amber-500/10" },
+  awaiting_payment: { label: "Oczekuje płatności", cls: "bg-blue-50 text-blue-700 ring-1 ring-blue-500/10" },
+  confirmed: { label: "Potwierdzona", cls: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/10" },
+  cancelled: { label: "Anulowana", cls: "bg-gray-50 text-gray-500 ring-1 ring-gray-500/10" },
+  rejected: { label: "Odrzucona", cls: "bg-red-50 text-red-700 ring-1 ring-red-500/10" },
+  completed: { label: "Zakończona", cls: "bg-brand-surface text-brand-dark ring-1 ring-brand/10" },
 };
 
 export function HostBookingsClient({
@@ -58,11 +60,17 @@ export function HostBookingsClient({
   };
 
   return (
-    <div className="p-6 lg:p-8">
-      <div className="mb-6">
-        <p className="text-[11px] font-extrabold uppercase tracking-[.15em] text-brand">Rezerwacje</p>
-        <h1 className="mt-1 text-[22px] font-extrabold text-brand-dark">{title}</h1>
-        <div className="mt-3 flex flex-wrap gap-2">
+    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
+      <div className="mb-10">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <p className="text-[12px] font-extrabold uppercase tracking-[.25em] text-brand mb-1.5">Zarządzanie</p>
+          <h1 className="text-4xl font-black text-brand-dark tracking-tight">{title}</h1>
+        </motion.div>
+        
+        <div className="mt-8 flex flex-wrap gap-3 border-b border-brand-dark/5 pb-8">
           {([
             ["/host/bookings", undefined, "Wszystkie"],
             ["/host/bookings/pending", "pending", "Oczekujące"],
@@ -72,98 +80,136 @@ export function HostBookingsClient({
               key={href}
               href={href}
               className={cn(
-                "rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition-colors",
+                "relative rounded-xl px-6 py-2.5 text-sm font-bold transition-all duration-300",
                 statusFilter === sf
-                  ? "ring-brand bg-brand-muted text-brand-dark"
-                  : "ring-black/[.04] text-text-secondary hover:ring-brand/20 hover:shadow-elevated"
+                  ? "bg-brand text-white shadow-lg shadow-brand/20 ring-1 ring-brand/10"
+                  : "bg-white text-brand-dark/60 hover:text-brand-dark hover:bg-brand-surface/40 hover:shadow-sm ring-1 ring-black/[.03]"
               )}
             >
               {label}
+              {statusFilter === sf && (
+                <motion.div layoutId="filter-pill-bookings" className="absolute inset-0 rounded-xl bg-brand -z-10" />
+              )}
             </Link>
           ))}
         </div>
       </div>
 
       {err && (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{err}</p>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border-l-4 border-red-500 bg-red-50 p-6 shadow-sm mb-8"
+        >
+          <p className="font-bold text-red-800">Błąd: {err}</p>
+        </motion.div>
       )}
 
       {bookings === null ? (
-        <div className="flex justify-center py-16">
-          <LoadingSpinner className="h-10 w-10 text-brand" />
+        <div className="flex flex-col items-center justify-center py-24 gap-4">
+          <LoadingSpinner className="h-12 w-12 text-brand" />
+          <p className="text-brand-dark/40 font-bold animate-pulse">Ładowanie rezerwacji...</p>
         </div>
       ) : bookings.length === 0 ? (
-        <div className="rounded-2xl bg-brand-surface/50 ring-1 ring-brand/5 py-16 text-center">
-          <span className="text-4xl">📋</span>
-          <p className="mt-3 text-lg font-bold text-brand-dark">Brak rezerwacji</p>
-          <p className="mt-1 text-sm text-text-muted">
-            {statusFilter ? "Brak rezerwacji o podanym statusie." : "Gdy goście dokonają rezerwacji, pojawią się tutaj."}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="rounded-[40px] bg-white border-2 border-dashed border-brand/20 py-24 text-center shadow-[0_20px_50px_rgba(22,163,74,0.03)]"
+        >
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-brand-surface text-4xl mb-6">📋</div>
+          <p className="text-2xl font-black text-brand-dark">Cisza przed burzą?</p>
+          <p className="mt-2 text-text-secondary max-w-sm mx-auto">
+            {statusFilter ? "Brak rezerwacji o wybranym statusie." : "Jeszcze nie masz żadnych rezerwacji. Upewnij się, że Twoje ceny są konkurencyjne!"}
           </p>
-        </div>
+        </motion.div>
       ) : (
-        <div className="space-y-3">
-          {bookings.map((b) => {
-            const st = STATUS_LABELS[b.status] ?? { label: b.status, cls: "bg-gray-100 text-gray-600" };
-            const nights = countNights(b.check_in, b.check_out);
-            const initials = `${b.guest.first_name?.[0] ?? ""}${b.guest.last_name?.[0] ?? ""}`.toUpperCase() || "?";
+        <div className="space-y-4">
+          <AnimatePresence mode="popLayout">
+            {bookings.map((b, idx) => {
+              const st = STATUS_LABELS[b.status] ?? { label: b.status, cls: "bg-gray-100 text-gray-600" };
+              const nights = countNights(b.check_in, b.check_out);
+              const initials = `${b.guest.first_name?.[0] ?? ""}${b.guest.last_name?.[0] ?? ""}`.toUpperCase() || "?";
 
-            return (
-              <div
-                key={b.id}
-                className={`${CARD} flex flex-col gap-4 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated sm:flex-row sm:items-center`}
-              >
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-muted text-sm font-bold text-brand-dark">
-                  {initials}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-bold text-brand-dark">
-                      {b.guest.first_name} {b.guest.last_name}
-                    </span>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${st.cls}`}>{st.label}</span>
-                  </div>
-                  <p className="mt-1 text-xs text-text-muted">
-                    <Link href={`/listing/${b.listing.slug}`} className="font-semibold text-brand-dark hover:underline">
-                      {b.listing.title}
-                    </Link>
-                    {" · "}
-                    {formatDate(b.check_in)} – {formatDate(b.check_out)} · {nights} {nights === 1 ? "noc" : "nocy"}
-                  </p>
-                  <p className="mt-0.5 text-xs text-text-muted">
-                    👥 {b.guests_count} gości · <span className="font-bold text-brand-dark">{b.final_amount} {b.currency}</span>
-                      {b.special_requests && (
-                        <span className="ml-2 italic">&bdquo;{b.special_requests.slice(0, 80)}{b.special_requests.length > 80 ? "…" : ""}&rdquo;</span>
+              return (
+                <motion.div
+                  layout
+                  key={b.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0, transition: { delay: idx * 0.05 } }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className={cn(CARD, "group p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] hover:ring-brand/10 sm:flex-row sm:items-center flex flex-col gap-6")}
+                >
+                  <div className="flex items-center gap-5 flex-1">
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-brand-muted text-lg font-black text-brand-dark ring-4 ring-brand/5 group-hover:scale-105 transition-transform duration-500">
+                      {b.guest.avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={b.guest.avatar_url} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="flex h-full w-full items-center justify-center">{initials}</span>
                       )}
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-wrap gap-2">
-                  {b.status === "pending" && (
-                    <>
-                      <button
-                        type="button"
-                        className="rounded-lg ring-1 ring-black/[.06] px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
-                        onClick={() => { if (confirm("Odrzucić rezerwację?")) void patchStatus(b.id, "rejected"); }}
+                    </div>
+                    
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-lg font-black text-brand-dark tracking-tight">
+                          {b.guest.first_name} {b.guest.last_name}
+                        </span>
+                        <span className={cn("rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider", st.cls)}>{st.label}</span>
+                      </div>
+                      <p className="mt-1.5 text-sm font-medium text-text-muted flex flex-wrap items-center gap-x-3">
+                        <Link href={`/listing/${b.listing.slug}`} className="font-bold text-brand hover:underline">
+                          {b.listing.title}
+                        </Link>
+                        <span className="opacity-30">|</span>
+                        <span className="flex items-center gap-1.5">📅 {formatDate(b.check_in)} – {formatDate(b.check_out)}</span>
+                        <span className="opacity-30">|</span>
+                        <span>{nights} {nights === 1 ? "noc" : "nocy"}</span>
+                      </p>
+                      <div className="mt-2 flex flex-wrap items-center gap-4 text-xs">
+                        <span className="flex items-center gap-1.5 font-bold text-brand-dark">👥 {b.guests_count} gości</span>
+                        <span className="h-1.5 w-1.5 rounded-full bg-brand/20" />
+                        <span className="text-sm font-black text-brand">{b.final_amount} {b.currency}</span>
+                        {b.special_requests && (
+                          <div className="w-full mt-2 rounded-xl bg-gray-50 px-4 py-2.5 text-[13px] italic text-text-muted border-l-2 border-brand/20">
+                            &bdquo;{b.special_requests}&rdquo;
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+                    {b.status === "pending" && (
+                      <>
+                        <button
+                          type="button"
+                          className="h-11 px-5 rounded-xl bg-red-50 text-sm font-black text-red-500 transition-all hover:bg-red-500 hover:text-white hover:shadow-lg hover:shadow-red-200 active:scale-95"
+                          onClick={() => { if (confirm("Odrzucić rezerwację?")) void patchStatus(b.id, "rejected"); }}
+                        >
+                          Odrzuć
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-primary h-11 px-6 text-sm font-black rounded-xl shadow-brand-lg"
+                          onClick={() => void patchStatus(b.id, "confirmed")}
+                        >
+                          Akceptuj
+                        </button>
+                      </>
+                    )}
+                    {b.conversation_id && (
+                      <Link 
+                        href={`/host/messages?conv=${encodeURIComponent(b.conversation_id)}`} 
+                        className="flex h-11 items-center gap-2 rounded-xl bg-white border border-black/[0.05] px-5 text-sm font-black text-brand-dark transition-all hover:bg-brand-surface hover:text-brand hover:shadow-md active:scale-95"
                       >
-                        Odrzuć
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-primary px-3 py-1.5 text-xs"
-                        onClick={() => void patchStatus(b.id, "confirmed")}
-                      >
-                        Akceptuj
-                      </button>
-                    </>
-                  )}
-                  {b.conversation_id && (
-                    <Link href={`/host/messages?conv=${encodeURIComponent(b.conversation_id)}`} className="rounded-lg ring-1 ring-black/[.06] px-3 py-1.5 text-xs font-medium hover:bg-brand-surface/60">
-                      💬 Czat
-                    </Link>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                        💬 Wiadomość
+                      </Link>
+                    )}
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
       )}
     </div>

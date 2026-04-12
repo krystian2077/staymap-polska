@@ -19,11 +19,26 @@ async function proxy(req: NextRequest, segments: string[]) {
   if (auth) headers.set("Authorization", auth);
 
   const method = req.method;
-  let body: string | undefined;
+  let body: BodyInit | undefined;
   if (method !== "GET" && method !== "HEAD") {
-    body = await req.text();
     const ct = req.headers.get("content-type");
-    if (ct) headers.set("Content-Type", ct);
+    if (ct) {
+      headers.set("Content-Type", ct);
+      
+      // Czytamy body tylko jeśli jest Content-Type (dla POST/PATCH/PUT)
+      // DELETE zazwyczaj nie ma body i próba czytania może powodować błędy na niektórych systemach
+      try {
+        body = await req.arrayBuffer();
+      } catch (e) {
+        console.warn("[BFF] Could not read request body:", e);
+      }
+    } else if (method !== "DELETE") {
+      // Jeśli to nie DELETE i nie ma CT, ale jest body? (rzadkie)
+      try {
+        const buf = await req.arrayBuffer();
+        if (buf.byteLength > 0) body = buf;
+      } catch (e) {}
+    }
   }
 
   let res: Response;
@@ -58,6 +73,10 @@ async function proxy(req: NextRequest, segments: string[]) {
 
   if (method === "HEAD") {
     return new NextResponse(null, { status: res.status });
+  }
+
+  if (res.status === 204) {
+    return new NextResponse(null, { status: 204 });
   }
 
   const text = await res.text();

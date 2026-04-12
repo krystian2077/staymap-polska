@@ -3,8 +3,12 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { publicMediaUrl } from "@/lib/mediaUrl";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { cn } from "@/lib/utils";
+
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "react-hot-toast";
 
 type ListingRow = {
   id: string;
@@ -22,139 +26,269 @@ type ListingRow = {
   location?: { city?: string; region?: string } | null;
 };
 
-const CARD = "rounded-2xl bg-white shadow-card ring-1 ring-black/[.04]";
-
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   draft: { label: "Szkic", cls: "bg-gray-100 text-gray-700" },
-  pending: { label: "W moderacji", cls: "bg-amber-100 text-amber-800" },
+  pending: { label: "Aktywna", cls: "bg-emerald-100 text-emerald-800" },
   approved: { label: "Aktywna", cls: "bg-emerald-100 text-emerald-800" },
   rejected: { label: "Odrzucona", cls: "bg-red-100 text-red-800" },
   archived: { label: "Zarchiwizowana", cls: "bg-gray-100 text-gray-500" },
 };
 
-type StatusFilter = "all" | "draft" | "pending" | "approved" | "rejected" | "archived";
+type StatusFilter = "all" | "draft" | "approved" | "rejected" | "archived";
 
 export default function HostListingsPage() {
   const [listings, setListings] = useState<ListingRow[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [filter, setFilter] = useState<StatusFilter>("all");
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+
+  const fetchListings = async () => {
+    try {
+      const res = await api.get<{ data: ListingRow[] }>("/api/v1/host/listings/");
+      const normalized = (res.data ?? []).map((row) => ({
+        ...row,
+        // Historyczne rekordy pending traktujemy jako opublikowane.
+        status: row.status === "pending" ? "approved" : row.status,
+      }));
+      setListings(normalized);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Błąd ładowania ofert.");
+    }
+  };
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await api.get<{ data: ListingRow[] }>("/api/v1/host/listings/");
-        if (!cancelled) setListings(res.data ?? []);
-      } catch (e) {
-        if (!cancelled) setErr(e instanceof Error ? e.message : "Błąd ładowania ofert.");
-      }
-    })();
-    return () => { cancelled = true; };
+    fetchListings();
   }, []);
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm("Czy na pewno chcesz usunąć tę ofertę? Ta operacja jest nieodwracalna.")) return;
+    
+    setIsDeleting(id);
+    try {
+      await api.delete(`/api/v1/host/listings/${id}/`);
+      toast.success("Oferta została usunięta");
+      await fetchListings();
+    } catch (e: unknown) {
+      console.error("Delete error:", e);
+      // APIClient rzuca Error, gdzie message to treść błędu z API (jeśli dostępna)
+      const msg = e instanceof Error ? e.message : "Nie udało się usunąć oferty";
+      toast.error(msg);
+    } finally {
+      setIsDeleting(null);
+    }
+  };
 
   const filtered = listings?.filter((l) => filter === "all" || l.status === filter) ?? null;
   const counts = listings ? {
     all: listings.length,
     approved: listings.filter((l) => l.status === "approved").length,
-    pending: listings.filter((l) => l.status === "pending").length,
     draft: listings.filter((l) => l.status === "draft").length,
   } : null;
 
   return (
-    <div className="p-6 lg:p-8">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-[11px] font-extrabold uppercase tracking-[.15em] text-brand">Oferty</p>
-          <h1 className="mt-1 text-[22px] font-extrabold text-brand-dark">Moje oferty</h1>
-          <p className="text-sm text-text-secondary">
-            Zarządzaj swoimi ofertami noclegowymi.
+    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
+      <div className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <p className="text-[12px] font-extrabold uppercase tracking-[.2em] text-brand mb-1">Moje portfolio</p>
+          <h1 className="text-4xl font-extrabold text-brand-dark tracking-tight">Twoje oferty</h1>
+          <p className="mt-2 text-text-secondary max-w-lg">
+            Zarządzaj swoimi nieruchomościami, aktualizuj ceny i dostępność, aby przyciągnąć więcej gości.
           </p>
-        </div>
-        <Link href="/host/new-listing" className="btn-primary shrink-0 px-5 py-2.5">
-          + Dodaj ofertę
-        </Link>
+        </motion.div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+        >
+          <Link href="/host/new-listing" className="group relative flex items-center gap-2 overflow-hidden rounded-2xl bg-brand-dark px-8 py-4 font-bold text-white shadow-xl transition-all duration-300 hover:-translate-y-1 hover:bg-brand hover:shadow-2xl active:scale-95">
+            <span className="relative z-10 flex items-center gap-2 text-lg">
+              <span className="text-2xl leading-none">＋</span>
+              Dodaj nową ofertę
+            </span>
+            <div className="absolute inset-0 z-0 bg-gradient-to-r from-brand to-emerald-500 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+          </Link>
+        </motion.div>
       </div>
 
-      {counts && listings && listings.length > 0 && (
-        <div className="mb-5 flex flex-wrap gap-2">
-          {([
-            ["all", `Wszystkie (${counts.all})`],
-            ["approved", `Aktywne (${counts.approved})`],
-            ["pending", `W moderacji (${counts.pending})`],
-            ["draft", `Szkice (${counts.draft})`],
-          ] as const).map(([val, label]) => (
-            <button
-              key={val}
-              type="button"
-              onClick={() => setFilter(val)}
-              className={cn(
-                "rounded-full px-3 py-1.5 text-xs font-semibold ring-1 transition-colors",
-                filter === val
-                  ? "ring-brand bg-brand-muted text-brand-dark"
-                  : "ring-black/[.04] text-text-secondary hover:ring-brand/20 hover:shadow-elevated"
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
+      <div className="mb-8 flex flex-col gap-6 border-b border-brand-dark/5 pb-8">
+        {counts && listings && listings.length > 0 && (
+          <div className="flex flex-wrap gap-3">
+            {([
+              ["all", "Wszystkie", counts.all],
+              ["approved", "Aktywne", counts.approved],
+              ["draft", "Szkice", counts.draft],
+            ] as const).map(([val, label, count]) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => setFilter(val)}
+                className={cn(
+                  "relative rounded-xl px-5 py-2.5 text-sm font-bold transition-all duration-300 active:scale-95",
+                  filter === val
+                    ? "bg-brand text-white shadow-lg shadow-brand/20 ring-1 ring-brand/10"
+                    : "bg-white text-brand-dark/60 hover:text-brand-dark hover:bg-brand-surface/40 hover:shadow-sm ring-1 ring-black/[.03]"
+                )}
+              >
+                {label}
+                <span className={cn(
+                  "ml-2.5 rounded-full px-2 py-0.5 text-[11px] font-extrabold",
+                  filter === val ? "bg-white/20 text-white" : "bg-brand-surface text-brand"
+                )}>
+                  {count}
+                </span>
+                {filter === val && (
+                  <motion.div layoutId="filter-pill" className="absolute inset-0 rounded-xl bg-brand -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
 
       {err && (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{err}</p>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border-l-4 border-red-500 bg-red-50 p-6 shadow-sm mb-8"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">⚠️</span>
+            <div>
+              <p className="font-bold text-red-800">Wystąpił błąd</p>
+              <p className="text-sm text-red-600">{err}</p>
+            </div>
+          </div>
+        </motion.div>
       )}
 
       {filtered === null ? (
-        <div className="flex justify-center py-16">
-          <LoadingSpinner className="h-10 w-10 text-brand" />
+        <div className="flex flex-col items-center justify-center py-24 gap-4">
+          <LoadingSpinner className="h-12 w-12 text-brand" />
+          <p className="text-brand-dark/40 font-bold animate-pulse">Ładowanie Twoich skarbów...</p>
         </div>
       ) : filtered.length === 0 ? (
-        <div className="rounded-2xl bg-brand-surface/50 ring-1 ring-brand/5 py-16 text-center">
-          <span className="text-4xl">🏠</span>
-          <p className="mt-3 text-lg font-bold text-brand-dark">Brak ofert</p>
-          <p className="mt-1 text-sm text-text-muted">
-            {filter !== "all" ? "Brak ofert o tym statusie." : "Stwórz swoją pierwszą ofertę, aby zacząć przyjmować rezerwacje."}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="rounded-3xl bg-white border-2 border-dashed border-brand/20 py-24 text-center shadow-[0_20px_50px_rgba(22,163,74,0.03)]"
+        >
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-brand-surface text-4xl mb-6">🏠</div>
+          <p className="text-2xl font-black text-brand-dark">Jeszcze nic tu nie ma</p>
+          <p className="mt-2 text-text-secondary max-w-sm mx-auto">
+            {filter !== "all" ? "Brak ofert o wybranym statusie." : "Wygląda na to, że nie masz jeszcze żadnych ofert. Czas to zmienić!"}
           </p>
           {filter === "all" && (
-            <Link href="/host/new-listing" className="btn-primary mt-6 inline-flex">Dodaj pierwszą ofertę</Link>
+            <Link href="/host/new-listing" className="btn-primary mt-8 inline-flex px-8 py-4 text-base rounded-2xl">Dodaj pierwszą ofertę</Link>
           )}
-        </div>
+        </motion.div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((listing) => {
-            const st = STATUS_LABELS[listing.status] ?? { label: listing.status, cls: "bg-gray-100 text-gray-600" };
-            return (
-              <div
-                key={listing.id}
-                className={`${CARD} flex flex-col gap-4 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated sm:flex-row sm:items-center`}
-              >
-                {listing.cover_image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={listing.cover_image} alt="" className="h-20 w-28 shrink-0 rounded-xl object-cover" />
-                ) : (
-                  <div className="flex h-20 w-28 shrink-0 items-center justify-center rounded-xl bg-gray-100 text-2xl text-gray-300">🏠</div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Link href={`/listing/${listing.slug}`} className="text-sm font-bold text-brand-dark hover:text-brand hover:underline">
-                      {listing.title}
-                    </Link>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${st.cls}`}>{st.label}</span>
+        <div className="grid grid-cols-1 gap-6">
+          <AnimatePresence mode="popLayout">
+            {filtered.map((listing, idx) => {
+              const st = STATUS_LABELS[listing.status] ?? { label: listing.status, cls: "bg-gray-100 text-gray-600" };
+              const coverSrc = publicMediaUrl(listing.cover_image);
+              return (
+                <motion.div
+                  layout
+                  key={listing.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0, transition: { delay: idx * 0.05 } }}
+                  exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
+                  className="group relative flex flex-col gap-6 overflow-hidden rounded-[32px] bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-black/[0.02] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] hover:ring-brand/10 sm:flex-row sm:items-center"
+                >
+                  <div className="relative h-32 w-full shrink-0 overflow-hidden rounded-2xl sm:h-28 sm:w-40">
+                    {coverSrc ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img 
+                        src={coverSrc}
+                        alt=""
+                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-gray-50 text-3xl">🏠</div>
+                    )}
+                    <div className="absolute left-2 top-2">
+                      <span className={cn("rounded-lg px-2.5 py-1 text-[10px] font-black uppercase tracking-wider shadow-sm", st.cls)}>
+                        {st.label}
+                      </span>
+                    </div>
                   </div>
-                  <p className="mt-1 text-xs text-text-muted">
-                    {listing.base_price} {listing.currency} / noc
-                    {listing.max_guests > 0 && ` · max ${listing.max_guests} gości`}
-                    {listing.average_rating != null && ` · ${listing.average_rating.toFixed(2)} ★ (${listing.review_count})`}
-                    {listing.location?.city && ` · ${listing.location.city}`}
-                  </p>
-                </div>
-                <div className="flex shrink-0 gap-2">
-                  <Link href={`/host/calendar`} className="rounded-lg ring-1 ring-black/[.06] px-3 py-1.5 text-xs font-medium text-brand-dark hover:bg-brand-surface/60">📅</Link>
-                  <Link href={`/listing/${listing.slug}`} className="btn-secondary px-3 py-1.5 text-xs">Podgląd</Link>
-                </div>
-              </div>
-            );
-          })}
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                        <Link href={`/listing/${listing.slug}`} className="text-lg font-black text-brand-dark transition-colors hover:text-brand">
+                          {listing.title}
+                        </Link>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-muted">
+                          <div className="flex items-center gap-1.5 font-bold text-brand">
+                            <span className="text-lg">💰</span>
+                            {listing.base_price} {listing.currency} <span className="text-[11px] font-medium text-text-muted uppercase">/ noc</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-lg">👥</span>
+                            {listing.max_guests > 0 ? `${listing.max_guests} gości` : "Nieokreślono"}
+                          </div>
+                          {listing.average_rating != null && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-brand">★</span>
+                              <span className="font-bold text-brand-dark">{Number(listing.average_rating).toFixed(2)}</span>
+                              <span className="text-xs">({listing.review_count} opinii)</span>
+                            </div>
+                          )}
+                          {listing.location?.city && (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-lg">📍</span>
+                              {listing.location.city}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Link
+                          href={`/host/new-listing?listingId=${listing.id}`}
+                          className="flex h-11 items-center gap-2 rounded-xl border border-black/[0.05] px-5 text-sm font-bold text-brand-dark transition-all hover:bg-white hover:shadow-md active:scale-95"
+                        >
+                          Edytuj
+                        </Link>
+                        <Link
+                          href={`/host/calendar`} 
+                          title="Kalendarz"
+                          className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-surface text-brand transition-all hover:bg-brand hover:text-white hover:shadow-lg hover:shadow-brand/20 active:scale-90"
+                        >
+                          📅
+                        </Link>
+                        <Link 
+                          href={`/listing/${listing.slug}`} 
+                          className="flex h-11 items-center gap-2 rounded-xl border border-black/[0.05] px-5 text-sm font-bold text-brand-dark transition-all hover:bg-white hover:shadow-md active:scale-95"
+                        >
+                          Podgląd
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(listing.id)}
+                          disabled={isDeleting === listing.id}
+                          className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-50 text-red-500 transition-all hover:bg-red-500 hover:text-white hover:shadow-lg hover:shadow-red-200 active:scale-90 disabled:opacity-50"
+                          title="Usuń ofertę"
+                        >
+                          {isDeleting === listing.id ? (
+                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                          ) : (
+                            "🗑️"
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Decorative background element */}
+                  <div className="absolute -right-4 -top-4 -z-10 h-24 w-24 rounded-full bg-brand/5 blur-2xl transition-all duration-500 group-hover:scale-150 group-hover:bg-brand/10" />
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
         </div>
       )}
     </div>

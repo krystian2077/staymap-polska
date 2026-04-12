@@ -9,9 +9,11 @@ import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { DayPicker, type DateRange } from "react-day-picker";
 import { api } from "@/lib/api/client";
+import { getAccessToken } from "@/lib/authStorage";
 import { buildSearchQueryString, normalizedAiParamsToState } from "@/lib/searchQuery";
 import { LOCATION_TAG_KEYS } from "@/lib/locationTags";
 import { useSearchStore, type SearchParamsState } from "@/lib/store/searchStore";
+import type { AISession } from "@/types/ai";
 import { cn } from "@/lib/utils";
 import { TRAVEL_MODE_ITEMS } from "./TravelModeSelector";
 
@@ -30,6 +32,36 @@ interface SuggestedDest {
   filter_key?: string;
   listing_type?: string;
 }
+
+const FALLBACK_SUGGESTED_DESTS: SuggestedDest[] = [
+  {
+    name: "Mazury",
+    region: "Warmińsko-mazurskie",
+    lat: 53.8,
+    lng: 21.6,
+    icon: "lake",
+    description: "Jeziora i cisza blisko natury",
+    type: "keyword",
+  },
+  {
+    name: "Zakopane",
+    region: "Małopolskie",
+    lat: 49.2992,
+    lng: 19.9496,
+    icon: "mountain",
+    description: "Górskie domki i widoki",
+    type: "city",
+  },
+  {
+    name: "Bieszczady",
+    region: "Podkarpackie",
+    lat: 49.2,
+    lng: 22.3,
+    icon: "forest",
+    description: "Spokojne miejsca z dala od tłumów",
+    type: "keyword",
+  },
+];
 
 const SuggestionIcon = ({ type }: { type: string }) => {
   if (type === "nearby") {
@@ -99,8 +131,9 @@ export function HeroSearchBar({ variant }: HeroSearchBarProps) {
       try {
         const res = await api.get<{ data: SuggestedDest[] }>("/api/v1/search/suggested-destinations/");
         setSuggestedDests(res.data);
-      } catch (err) {
-        console.error("Failed to fetch suggested destinations", err);
+      } catch {
+        // Fallback keeps the UX stable when suggestions endpoint is temporarily unavailable.
+        setSuggestedDests(FALLBACK_SUGGESTED_DESTS);
       } finally {
         setIsLoadingSuggested(false);
       }
@@ -156,9 +189,45 @@ export function HeroSearchBar({ variant }: HeroSearchBarProps) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        setParams({ lat: latitude, lng: longitude, location: "W pobliżu" });
+        const update: any = { 
+          lat: latitude, 
+          lng: longitude, 
+          radius_km: 300, // Zwiększamy promień do 300km dla lepszej skuteczności
+          location: "W pobliżu",
+          bbox_south: undefined,
+          bbox_west: undefined,
+          bbox_north: undefined,
+          bbox_east: undefined,
+          listing_types: undefined,
+          amenities: undefined,
+          is_pet_friendly: undefined,
+          travel_mode: undefined,
+          min_price: undefined,
+          max_price: undefined,
+        };
+        for (const tag of LOCATION_TAG_KEYS) {
+          update[tag] = undefined;
+        }
+        setParams(update);
         setLocInput("W pobliżu");
         setOpenTab(null);
+        
+        // Budujemy nextParams jawnie
+        const nextParams: any = {
+          ...update,
+          date_from: params.date_from,
+          date_to: params.date_to,
+          guests: params.guests,
+          adults: params.adults,
+          children: params.children,
+          infants: params.infants,
+          pets: params.pets,
+        };
+
+        // Jeśli jesteśmy na podstronie search, od razu nawigujemy
+        if (window.location.pathname.includes("/search")) {
+          router.replace(`/search?${buildSearchQueryString(nextParams)}`);
+        }
       },
       () => {
         toast.error("Nie udało się pobrać lokalizacji.");
@@ -429,27 +498,36 @@ export function HeroSearchBar({ variant }: HeroSearchBarProps) {
     if (aiBusy) return;
     const text = aiPrompt.trim();
     if (!text) { toast.error("Wpisz opis wyjazdu."); return; }
-    const token = typeof window !== "undefined" ? localStorage.getItem("access") : null;
+    const token = typeof window !== "undefined" ? getAccessToken() : null;
     if (!token) { toast.error("Zaloguj się, aby użyć wyszukiwania AI."); return; }
     setAiBusy(true);
     try {
-      const start = await api.post<{ data: { session_id: string; status: string } }>(
+      const start = await api.post<{ data: AISession & { interpretation?: { normalized_params?: Record<string, unknown> } | null } }>(
         "/api/v1/ai/search/", { prompt: text }
       );
       const sid = start.data.session_id;
+      const toSearchState = (session: (AISession & { interpretation?: { normalized_params?: Record<string, unknown> } | null }) | null | undefined) => {
+        const fromSession = session?.search_params;
+        const fromLegacy = session?.interpretation?.normalized_params;
+        const fromFilters = session?.filters
+          ? {
+              location: session.filters.location,
+              travel_mode: session.filters.travel_mode,
+              max_price: session.filters.max_price,
+              guests: session.filters.max_guests ?? session.filters.min_guests,
+            }
+          : {};
+        const raw = (fromSession && Object.keys(fromSession).length ? fromSession : fromLegacy) ?? fromFilters;
+        return normalizedAiParamsToState((raw ?? {}) as Record<string, unknown>);
+      };
       for (let i = 0; i < 40; i++) {
         const detail = await api.get<{
-          data: {
-            status: string;
-            error_message?: string | null;
-            interpretation?: { normalized_params?: Record<string, unknown> } | null;
-          };
+          data: AISession & { interpretation?: { normalized_params?: Record<string, unknown> } | null };
         }>(`/api/v1/ai/search/${sid}/`);
         const st = detail.data.status;
         if (st === "failed") { toast.error(detail.data.error_message || "AI nie zinterpretowało zapytania."); return; }
         if (st === "complete") {
-          const raw = detail.data.interpretation?.normalized_params ?? {};
-          const merged = normalizedAiParamsToState(raw);
+          const merged = toSearchState(detail.data);
           setParams(merged);
           router.push(`/search?${buildSearchQueryString(merged)}`);
           toast.success("Przekierowuję do wyników…");
@@ -1195,69 +1273,91 @@ export function HeroSearchBar({ variant }: HeroSearchBarProps) {
   // ── STRIP VARIANT — premium centered pill bar ─────────────────────────────
   return (
     <Dialog.Root open={openTab !== null} onOpenChange={(v) => !v && setOpenTab(null)}>
-      <div className="flex items-center rounded-full border border-gray-200 bg-white shadow-[0_1px_10px_rgba(0,0,0,.07),0_0_0_1px_rgba(0,0,0,.04)]">
+      <motion.div
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="flex h-[72px] items-center rounded-[32px] border border-brand/20 bg-white px-3 py-2.5 shadow-[0_16px_48px_rgba(0,0,0,0.3)] transition-all hover:border-brand/40 group"
+      >
         {/* Location */}
         <button
           type="button"
           onClick={() => setOpenTab("location")}
           className={cn(
-            "flex min-w-[130px] max-w-[210px] items-center gap-1.5 rounded-full px-3.5 py-2 transition-colors",
-            "hover:bg-gray-50",
-            openTab === "location" && "bg-brand-surface/30"
+            "flex min-w-[200px] max-w-[340px] items-center gap-3.5 rounded-[22px] px-6 py-3 transition-all",
+            "hover:bg-gray-50 active:scale-[0.98]",
+            openTab === "location" ? "bg-brand-surface shadow-inner text-brand-dark" : "text-brand-dark/90"
           )}
         >
-          <svg className="h-3.5 w-3.5 shrink-0 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <span className={cn("truncate text-[13px] font-medium", locInput ? "text-text" : "text-text-muted/60")}>
-            {locInput || "Lokalizacja…"}
-          </span>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-surface text-brand group-hover:bg-brand group-hover:text-white transition-all duration-300 shadow-sm">
+            <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <div className="flex flex-col items-start overflow-hidden text-left">
+            <span className="text-[10px] font-black uppercase tracking-wider text-brand-dark/40">Gdzie</span>
+            <span className={cn("truncate text-[15px] font-black tracking-tight", locInput ? "text-brand-dark" : "text-brand-dark/20")}>
+              {locInput || "Wybierz cel"}
+            </span>
+          </div>
         </button>
 
-        <span className="h-5 w-px shrink-0 bg-gray-200" aria-hidden />
+        <span className="h-8 w-px shrink-0 bg-brand/10 mx-1.5" aria-hidden />
 
         {/* Dates */}
         <button
           type="button"
           onClick={() => setOpenTab("dates")}
           className={cn(
-            "shrink-0 whitespace-nowrap px-3.5 py-2 text-[13px] font-semibold transition-colors",
-            hasDateRange ? "text-brand-dark" : "text-text-secondary hover:text-text",
-            openTab === "dates" && "bg-brand-surface/30"
+            "flex min-w-[130px] shrink-0 whitespace-nowrap px-6 py-3 text-left rounded-[22px] transition-all active:scale-[0.98]",
+            hasDateRange ? "text-brand-dark bg-brand-surface" : "text-brand-dark/90 hover:bg-gray-50",
+            openTab === "dates" && "bg-brand-surface shadow-inner text-brand-dark"
           )}
         >
-          {dateLabel}
+          <div className="flex flex-col items-start">
+            <span className="text-[10px] font-black uppercase tracking-wider text-brand-dark/40">Kiedy</span>
+            <span className="text-[15px] font-black tracking-tight">{dateLabel}</span>
+          </div>
         </button>
 
-        <span className="h-5 w-px shrink-0 bg-gray-200" aria-hidden />
+        <span className="h-8 w-px shrink-0 bg-brand/10 mx-1.5" aria-hidden />
 
         {/* Guests */}
         <button
           type="button"
           onClick={() => setOpenTab("guests")}
           className={cn(
-            "shrink-0 whitespace-nowrap px-3.5 py-2 text-[13px] font-semibold text-text-secondary transition-colors hover:text-text",
-            openTab === "guests" && "bg-brand-surface/30"
+            "flex min-w-[110px] shrink-0 whitespace-nowrap px-6 py-3 text-left rounded-[22px] transition-all active:scale-[0.98]",
+            guests > 0 ? "text-brand-dark/90 hover:bg-gray-50" : "text-brand-dark/60 hover:bg-gray-50",
+            openTab === "guests" && "bg-brand-surface shadow-inner text-brand-dark"
           )}
         >
-          {guests === 0 ? "Goście" : `${guests} ${guests === 1 ? "gość" : "gości"}`}
+          <div className="flex flex-col items-start">
+            <span className="text-[10px] font-black uppercase tracking-wider text-brand-dark/40">Goście</span>
+            <span className="text-[15px] font-black tracking-tight">
+              {guests === 0 ? "Ilu gości?" : `${guests} ${guests === 1 ? "osoba" : "osób"}`}
+            </span>
+          </div>
         </button>
 
-        <span className="h-5 w-px shrink-0 bg-gray-200" aria-hidden />
+        <span className="h-8 w-px shrink-0 bg-brand/10 mx-1.5" aria-hidden />
 
         {/* Travel mode */}
         <button
           type="button"
           onClick={() => setOpenTab("mode")}
           className={cn(
-            "shrink-0 whitespace-nowrap px-3.5 py-2 text-[13px] font-semibold transition-colors",
-            currentMode ? "text-brand-dark" : "text-text-secondary hover:text-text",
-            openTab === "mode" && "bg-brand-surface/30"
+            "flex min-w-[110px] shrink-0 whitespace-nowrap px-6 py-3 text-left rounded-[22px] transition-all active:scale-[0.98]",
+            currentMode ? "text-brand-dark bg-brand-surface shadow-sm" : "text-brand-dark/60 hover:bg-gray-50",
+            openTab === "mode" && "bg-brand-surface shadow-inner text-brand-dark"
           )}
         >
-          {modeLabel}
+          <div className="flex flex-col items-start">
+            <span className="text-[10px] font-black uppercase tracking-wider text-brand-dark/40">Tryb</span>
+            <span className="text-[15px] font-black tracking-tight">{modeLabel}</span>
+          </div>
         </button>
-      </div>
+      </motion.div>
       {modalContent}
     </Dialog.Root>
   );

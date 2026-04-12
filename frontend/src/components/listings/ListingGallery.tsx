@@ -37,38 +37,38 @@ export function ListingGallery({
   const url = (im: ListingImageT) => publicMediaUrl(im.display_url || im.url);
 
   return (
-    <div className="relative mb-8 overflow-hidden rounded-[22px] shadow-lg ring-1 ring-black/[0.06]">
-      <div className="grid grid-cols-1 gap-1.5 md:grid-cols-[2fr_1fr_1fr] md:grid-rows-[220px_220px]">
-        <div className="relative row-span-1 min-h-[240px] md:row-span-2 md:min-h-0">
+    <div className="relative mb-0 overflow-hidden rounded-[22px] shadow-lg ring-1 ring-black/[0.06] group/gallery">
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-[2fr_1fr_1fr] md:grid-rows-[240px_240px]">
+        <div className="relative row-span-1 min-h-[260px] overflow-hidden md:row-span-2 md:min-h-0">
           {main && url(main) ? (
             <Image
               src={url(main)!}
               alt={main.alt_text || ""}
               fill
-              className="object-cover"
+              className="object-cover transition-transform duration-700 hover:scale-110"
               sizes="(max-width: 768px) 100vw, 66vw"
               priority
               unoptimized
             />
           ) : (
-            <div className="flex h-full min-h-[240px] items-center justify-center bg-gradient-to-br from-brand to-brand-dark text-8xl md:min-h-0">
+            <div className="flex h-full min-h-[260px] items-center justify-center bg-gradient-to-br from-brand to-brand-dark text-8xl md:min-h-0">
               {typeIcon}
             </div>
           )}
         </div>
         {side.map((im) => (
-          <div key={im.id} className="relative hidden min-h-0 md:block">
+          <div key={im.id} className="relative hidden min-h-0 overflow-hidden md:block">
             {url(im) ? (
               <Image
                 src={url(im)!}
                 alt={im.alt_text || ""}
                 fill
-                className="object-cover"
+                className="object-cover transition-transform duration-700 hover:scale-110"
                 sizes="(max-width: 768px) 0vw, 17vw"
                 unoptimized
               />
             ) : (
-              <div className="flex h-full items-center justify-center bg-brand-muted text-4xl">
+              <div className="flex h-full items-center justify-center bg-brand-muted text-4xl transition-transform hover:scale-110">
                 {typeIcon}
               </div>
             )}
@@ -79,9 +79,12 @@ export function ListingGallery({
         <button
           type="button"
           onClick={() => setModal(true)}
-          className="absolute bottom-3.5 right-3.5 rounded-lg border border-gray-200 bg-white/95 px-3.5 py-1.5 text-xs font-bold text-gray-800 shadow-sm transition-colors hover:border-brand hover:text-brand"
+          className="absolute bottom-4 right-4 flex items-center gap-2 rounded-xl border border-gray-200 bg-white/95 px-4 py-2 text-sm font-black text-brand-dark shadow-xl transition-all hover:bg-brand hover:text-white hover:border-brand"
         >
-          Pokaż wszystkie ({ordered.length})
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+          </svg>
+          Pokaż wszystkie zdjęcia ({ordered.length})
         </button>
       )}
 

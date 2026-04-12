@@ -7,12 +7,29 @@ import toast from "react-hot-toast";
 
 import { useConversationSocket } from "@/hooks/useConversationSocket";
 import { api } from "@/lib/api";
+import { getAccessToken } from "@/lib/authStorage";
 import { mapApiConversation, mapApiMessage } from "@/lib/utils/hostMap";
 import { useMessagingStore } from "@/lib/store/messagingStore";
 import type { Message } from "@/types/listing";
 import { cn } from "@/lib/utils";
 import { format, isToday, isYesterday } from "date-fns";
 import { pl } from "date-fns/locale";
+
+function fullName(first?: string, last?: string): string {
+  const name = `${first ?? ""} ${last ?? ""}`.trim();
+  return name || "Gość";
+}
+
+function convoSubtitle(
+  listingTitle?: string,
+  lastMessage?: string,
+  fallback = "Gość"
+): string {
+  const title = (listingTitle ?? "").trim();
+  const msg = (lastMessage ?? "").trim();
+  const parts = [fallback, title ? `oferta ${title}` : null, msg || null].filter(Boolean);
+  return parts.join(" · ");
+}
 
 export default function HostMessagesPage() {
   const searchParams = useSearchParams();
@@ -43,7 +60,7 @@ export default function HostMessagesPage() {
   const activeMessages = activeConvId ? messages[activeConvId] ?? [] : [];
 
   useEffect(() => {
-    setToken(typeof window !== "undefined" ? localStorage.getItem("access") : null);
+    setToken(typeof window !== "undefined" ? getAccessToken() : null);
   }, []);
 
   useEffect(() => {
@@ -117,9 +134,10 @@ export default function HostMessagesPage() {
     const q = query.trim().toLowerCase();
     if (!q) return conversations;
     return conversations.filter(
-      (c) =>
-        c.guest.first_name.toLowerCase().includes(q) ||
-        c.listing.title.toLowerCase().includes(q)
+      (c) => {
+        const guestName = fullName(c.guest.first_name, c.guest.last_name).toLowerCase();
+        return guestName.includes(q) || c.listing.title.toLowerCase().includes(q);
+      }
     );
   }, [conversations, query]);
 
@@ -145,35 +163,36 @@ export default function HostMessagesPage() {
     setInput("");
     sendTyping(false);
     try {
-      if (wsStatus === "open") {
-        wsSend(text);
-      } else {
-        await sendViaRest(activeConvId, text);
-        void loadMessages(activeConvId);
-      }
+      await sendViaRest(activeConvId, text);
+      void loadMessages(activeConvId);
     } catch {
-      toast.error("Nie wysłano wiadomości.");
+      const sentByWs = wsStatus === "open" ? wsSend(text) : false;
+      if (!sentByWs) {
+        toast.error("Nie wysłano wiadomości.");
+      }
     }
   };
 
   return (
-    <div
-      className="grid h-[calc(100vh-108px)] max-h-[calc(100dvh-108px)] w-full overflow-hidden border-t border-brand-dark/[.06] md:grid-cols-[300px_1fr]"
-    >
-      <div className="flex max-h-full flex-col border-brand-dark/[.06] md:border-r">
-        <div className="border-b border-brand-dark/[.06] px-4 py-3.5">
+    <section className="mx-auto w-full max-w-[1240px] px-3 py-3 md:px-5 md:py-4">
+      <div
+        className="grid h-[calc(100vh-132px)] max-h-[calc(100dvh-132px)] w-full overflow-hidden rounded-[28px] border border-brand-dark/[.08] bg-white shadow-[0_24px_60px_-38px_rgba(15,23,42,0.45)] md:grid-cols-[300px_1fr]"
+      >
+      <div className="flex max-h-full flex-col border-brand-dark/[.06] bg-gradient-to-b from-[#f8fbfa] to-white md:border-r">
+        <div className="border-b border-brand-dark/[.06] bg-white/90 px-4 py-4 backdrop-blur">
           <div className="flex items-center gap-2">
-            <h1 className="text-base font-extrabold text-brand-dark">Wiadomości</h1>
+            <h1 className="text-base font-black tracking-tight text-brand-dark">Wiadomości</h1>
             {unreadTotal > 0 ? (
-              <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white">
+              <span className="rounded-full bg-brand px-2 py-0.5 text-[10px] font-bold text-white shadow-sm">
                 {unreadTotal}
               </span>
             ) : null}
           </div>
+          <p className="mt-1 text-[11px] font-medium text-text-muted">Rozmowy z gośćmi StayMap</p>
         </div>
         <div className="border-b border-brand-dark/[.06] px-3 py-2.5">
           <input
-            className="input text-sm"
+            className="input rounded-xl text-sm"
             placeholder="Szukaj konwersacji..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -189,8 +208,12 @@ export default function HostMessagesPage() {
                   markReadStore(c.id);
                 }}
                 className={cn(
-                  "flex w-full gap-2.5 border-b border-brand-dark/[.06] px-3.5 py-3 text-left transition-colors",
-                  activeConvId === c.id ? "bg-brand-surface" : "hover:bg-brand-surface/60"
+                  "m-2 flex w-[calc(100%-1rem)] gap-3 rounded-2xl border px-3.5 py-3 text-left transition-all duration-200",
+                  activeConvId === c.id
+                    ? "border-brand/30 bg-white shadow-[0_8px_24px_-16px_rgba(22,163,74,0.5)]"
+                    : c.unread_count > 0
+                      ? "border-brand/20 bg-brand-surface/50 shadow-[0_8px_22px_-18px_rgba(22,163,74,0.45)] hover:border-brand/30"
+                      : "border-transparent hover:border-brand-dark/[.08] hover:bg-white"
                 )}
               >
                 <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-brand-muted text-xs font-bold text-brand-dark">
@@ -198,7 +221,7 @@ export default function HostMessagesPage() {
                     <Image src={c.guest.avatar_url} alt="" width={40} height={40} className="object-cover" unoptimized />
                   ) : (
                     <span className="flex h-full w-full items-center justify-center">
-                      {(c.guest.first_name[0] ?? "?").toUpperCase()}
+                      {(fullName(c.guest.first_name, c.guest.last_name)[0] ?? "?").toUpperCase()}
                     </span>
                   )}
                   {onlineUsers[c.guest.id] ? (
@@ -206,10 +229,18 @@ export default function HostMessagesPage() {
                   ) : null}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-bold text-brand-dark">{c.guest.first_name}</p>
-                  <p className="truncate text-[11px] text-text-muted">
-                    {c.last_message?.content ?? "—"}
+                  <p className="text-[13px] font-extrabold text-brand-dark">
+                    {fullName(c.guest.first_name, c.guest.last_name)}
                   </p>
+                  <p className="mt-0.5 truncate text-[11px] text-text-muted">
+                    {convoSubtitle(c.listing.title, c.last_message?.content, "Gość")}
+                  </p>
+                  {c.unread_count > 0 ? (
+                    <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-brand px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-white">
+                      <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                      Nowa wiadomość
+                    </p>
+                  ) : null}
                 </div>
                 <div className="shrink-0 text-right text-[10px] text-text-muted">
                   {c.unread_count > 0 ? (
@@ -224,10 +255,10 @@ export default function HostMessagesPage() {
         </ul>
       </div>
 
-      <div className="flex min-h-0 flex-col bg-[#f7f9f8]">
+      <div className="flex min-h-0 flex-col bg-gradient-to-b from-[#f6faf8] via-[#f8fafc] to-[#f8fbff]">
         {activeConv ? (
           <>
-            <div className="flex items-center gap-3 border-b border-brand-dark/[.06] bg-white px-4 py-3.5">
+            <div className="flex items-center gap-3 border-b border-brand-dark/[.06] bg-white/92 px-5 py-4 backdrop-blur">
               <div className="h-9 w-9 overflow-hidden rounded-full bg-brand-muted">
                 {activeConv.guest.avatar_url ? (
                   <Image
@@ -240,20 +271,27 @@ export default function HostMessagesPage() {
                   />
                 ) : (
                   <span className="flex h-full w-full items-center justify-center text-xs font-bold">
-                    {activeConv.guest.first_name[0]}
+                    {(fullName(activeConv.guest.first_name, activeConv.guest.last_name)[0] ?? "?").toUpperCase()}
                   </span>
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold">{activeConv.guest.first_name}</p>
-                <p className="truncate text-[11px] text-text-muted">
-                  📅 {activeConv.related_booking?.check_in ?? "—"} –{" "}
-                  {activeConv.related_booking?.check_out ?? "—"} · {activeConv.listing.title}
+                <p className="text-sm font-extrabold text-brand-dark">
+                  {fullName(activeConv.guest.first_name, activeConv.guest.last_name)}
+                </p>
+                <p className="truncate text-[11px] font-medium text-text-muted">
+                  {convoSubtitle(
+                    activeConv.listing.title,
+                    activeConv.last_message?.content,
+                    "Gość"
+                  )}
                 </p>
               </div>
-              <span className="text-[11px] text-brand">
-                {onlineUsers[activeConv.guest.id] ? "● Online teraz" : ""}
-              </span>
+              {onlineUsers[activeConv.guest.id] ? (
+                <span className="rounded-full bg-brand/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-brand">
+                  ● Online teraz
+                </span>
+              ) : null}
             </div>
 
             <div className="flex flex-1 flex-col gap-2.5 overflow-y-auto px-4 py-4">
@@ -281,9 +319,9 @@ export default function HostMessagesPage() {
                     >
                       <div
                         className={cn(
-                          "max-w-[78%] rounded-2xl px-3.5 py-2 text-[13px]",
+                          "max-w-[74%] rounded-2xl px-3.5 py-2.5 text-[13px] shadow-sm",
                           m.sender_id === meId
-                            ? "rounded-br-sm bg-brand-dark text-white"
+                            ? "rounded-br-sm bg-gradient-to-br from-brand-dark to-[#0f5f2e] text-white"
                             : "rounded-bl-sm bg-white text-text ring-1 ring-black/[.04]"
                         )}
                       >
@@ -325,15 +363,18 @@ export default function HostMessagesPage() {
           </>
         ) : (
           <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-            <span className="mb-4 text-[44px]">💬</span>
-            <p className="text-base font-bold text-brand-dark">Wybierz rozmowę z listy</p>
-            <p className="mt-2 text-sm text-text-muted">
+            <div className="rounded-3xl border border-brand-dark/[.06] bg-white px-8 py-10 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.45)]">
+              <span className="mb-4 block text-[44px]">💬</span>
+              <p className="text-base font-extrabold text-brand-dark">Wybierz rozmowę z listy</p>
+              <p className="mt-2 text-sm text-text-muted">
               Lub napisz pierwszy do gościa z panelu rezerwacji
-            </p>
+              </p>
+            </div>
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </section>
   );
 }
 
@@ -347,9 +388,9 @@ function ChatInput({
   onSend: () => void;
 }) {
   return (
-    <div className="flex items-end gap-2.5 border-t border-brand-dark/[.06] bg-white px-4 py-3">
+    <div className="flex items-end gap-2.5 border-t border-brand-dark/[.06] bg-white/95 px-4 py-3 backdrop-blur">
       <textarea
-        className="input max-h-[100px] min-h-[44px] flex-1 resize-none border-[1.5px] text-[13px] focus:border-brand"
+        className="input max-h-[100px] min-h-[46px] flex-1 resize-none rounded-xl border-[1.5px] text-[13px] shadow-sm focus:border-brand"
         rows={2}
         value={value}
         onChange={(e) => onChange(e.target.value)}
@@ -364,7 +405,7 @@ function ChatInput({
       <button
         type="button"
         disabled={!value.trim()}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-brand text-white transition hover:bg-brand-700 hover:-translate-y-px disabled:opacity-40"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-[#15803d] text-white shadow-sm transition hover:-translate-y-px hover:from-[#15803d] hover:to-[#166534] disabled:opacity-40"
         onClick={onSend}
         aria-label="Wyślij"
       >

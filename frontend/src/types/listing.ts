@@ -39,7 +39,6 @@ export interface DestinationScore {
   nature: number;
   quiet: number;
   family: number;
-  wellness: number;
   workation: number;
   accessibility: number;
   calculated_at: string;
@@ -62,7 +61,6 @@ export interface POIItem {
 export interface NearbyPlaces {
   restaurant: POIItem[];
   outdoor: POIItem[];
-  wellness: POIItem[];
   shop: POIItem[];
   transport: POIItem[];
 }
@@ -76,7 +74,6 @@ export interface AreaSummary {
     restaurants: number;
     trails: number;
     ski_lifts: number;
-    wellness: number;
     shops: number;
   };
   tags: string[];
@@ -177,6 +174,8 @@ export interface Listing {
   images: ListingImage[];
   amenities: Amenity[];
   max_guests: number;
+  guests_included: number;
+  extra_guest_fee: number;
   bedrooms: number;
   beds: number;
   bathrooms: number;

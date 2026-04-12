@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
+import { setAuthTokens } from "@/lib/authStorage";
 import { api } from "@/lib/api";
 import { useAuthStore } from "@/lib/store/authStore";
 
@@ -58,9 +59,7 @@ export default function RegisterPage() {
         "/api/v1/auth/login/",
         { email: data.email, password: data.password }
       );
-      localStorage.setItem("access", tokens.access);
-      localStorage.setItem("refresh", tokens.refresh);
-      document.cookie = `access_token=${tokens.access}; path=/; max-age=${60 * 60}; SameSite=Lax`;
+      setAuthTokens(tokens.access, tokens.refresh);
       const me = await api.get<{
         data: {
           id: string;

@@ -25,6 +25,14 @@ class BaseModel(models.Model):
         self.deleted_at = timezone.now()
         self.save(update_fields=["deleted_at", "updated_at"])
 
+    def delete(self, *args, **kwargs):
+        """Nadpisujemy standardowe delete() dla soft-delete (chyba że force=True)."""
+        force = kwargs.pop("force", False)
+        if force:
+            return super().delete(*args, **kwargs)
+        self.soft_delete()
+        return 1, {self._meta.label: 1}
+
 
 class AuditLog(models.Model):
     """Rejestr zdarzeń do rozliczeń i debugowania (bez soft delete)."""

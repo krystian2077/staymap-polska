@@ -15,9 +15,11 @@ import {
 } from "date-fns";
 import { pl } from "date-fns/locale";
 import { useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { useJsonGet } from "@/lib/hooks/useJsonGet";
 import type { PriceCalendarDay, PricingRule } from "@/types/listing";
+import { cn } from "@/lib/utils";
 
 type CalendarApi = {
   data?: {
@@ -35,15 +37,12 @@ type Props = {
 
 const WEEKDAYS = ["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"];
 
-function padPrice(p: number | null | undefined): string {
-  if (p == null) return "—";
-  return `${Math.round(p)}`;
-}
 
 export function PriceCalendar({ listingSlug, basePrice, pricingRules }: Props) {
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
   const [rangeStart, setRangeStart] = useState<string | null>(null);
   const [rangeEnd, setRangeEnd] = useState<string | null>(null);
+  const [direction, setDirection] = useState(0);
 
   const { data, isLoading } = useJsonGet<CalendarApi>(
     listingSlug
@@ -61,9 +60,8 @@ export function PriceCalendar({ listingSlug, basePrice, pricingRules }: Props) {
 
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
-  const gridStart = monthStart;
-  const offset = (gridStart.getDay() + 6) % 7;
-  const firstCell = new Date(gridStart);
+  const offset = (monthStart.getDay() + 6) % 7;
+  const firstCell = new Date(monthStart);
   firstCell.setDate(firstCell.getDate() - offset);
   const lastCell = new Date(monthEnd);
   const trailing = 6 - ((lastCell.getDay() + 6) % 7);
@@ -71,11 +69,14 @@ export function PriceCalendar({ listingSlug, basePrice, pricingRules }: Props) {
 
   const cells = eachDayOfInterval({ start: firstCell, end: lastCell });
 
-  function dayKey(d: Date): string {
-    return format(d, "yyyy-MM-dd");
-  }
+  const dayKey = (d: Date) => format(d, "yyyy-MM-dd");
 
-  function pickDay(iso: string, available: boolean) {
+  const changeMonth = (delta: number) => {
+    setDirection(delta);
+    setCursor((c) => addMonths(c, delta));
+  };
+
+  const pickDay = (iso: string, available: boolean) => {
     if (!available) return;
     if (!rangeStart || (rangeStart && rangeEnd)) {
       setRangeStart(iso);
@@ -86,61 +87,59 @@ export function PriceCalendar({ listingSlug, basePrice, pricingRules }: Props) {
       if (iso < rangeStart) {
         setRangeEnd(rangeStart);
         setRangeStart(iso);
-      } else if (iso === rangeStart) {
+      } else if (iso > rangeStart) {
         setRangeEnd(iso);
       } else {
-        setRangeEnd(iso);
+        // iso === rangeStart: reset
+        setRangeStart(null);
       }
     }
-  }
+  };
 
-  /** check-in → check-out (dzień wyjazdu); nocy = różnica dni kalendarzowych */
   const nights = useMemo(() => {
     if (!rangeStart || !rangeEnd) return 0;
-    const a = parseISO(rangeStart);
-    const b = parseISO(rangeEnd);
-    if (b <= a) return 0;
-    return differenceInCalendarDays(b, a);
+    return differenceInCalendarDays(parseISO(rangeEnd), parseISO(rangeStart));
   }, [rangeStart, rangeEnd]);
 
   const breakdown = useMemo(() => {
     if (!rangeStart || !rangeEnd || nights < 1) return null;
     const start = parseISO(rangeStart);
     const end = parseISO(rangeEnd);
-    if (end <= start) return null;
-    const stayDays = eachDayOfInterval({ start, end: addDaysSafe(end, -1) });
+    const stayDays = eachDayOfInterval({
+      start,
+      end: new Date(end.getTime() - 86400000),
+    });
     let subtotal = 0;
     let maxSeason = 1;
     let holidayMult = 1;
     let anyHoliday = false;
+
     for (const d of stayDays) {
       const k = format(d, "yyyy-MM-dd");
       const cell = prices[k];
-      const p =
-        cell?.price != null
-          ? cell.price
-          : basePrice * (cell?.seasonal_multiplier ?? 1);
+      const p = cell?.price ?? basePrice * (cell?.seasonal_multiplier ?? 1);
       subtotal += p;
       const sm = cell?.seasonal_multiplier ?? 1;
-      if (sm > maxSeason) maxSeason = sm;
+      maxSeason = Math.max(maxSeason, sm);
       if (cell?.is_holiday) {
         anyHoliday = true;
         holidayMult = Math.max(holidayMult, sm);
       }
     }
+
     const longStay = rules.find((r) => r.type === "long_stay");
-    let discountPct = 0;
-    if (longStay?.min_nights != null && nights >= longStay.min_nights) {
-      discountPct = longStay.discount_percent ?? 0;
-    }
-    const afterDiscount = subtotal * (1 - discountPct / 100);
+    const discountPct =
+      longStay?.min_nights && nights >= longStay.min_nights
+        ? longStay.discount_percent ?? 0
+        : 0;
+
     return {
       subtotal,
       maxSeason,
       holidayMult: anyHoliday ? holidayMult : 1,
       anyHoliday,
       discountPct,
-      total: afterDiscount,
+      total: subtotal * (1 - discountPct / 100),
     };
   }, [rangeStart, rangeEnd, nights, prices, basePrice, rules]);
 
@@ -150,231 +149,208 @@ export function PriceCalendar({ listingSlug, basePrice, pricingRules }: Props) {
       return isSameMonth(d, cursor) && v.price != null && !v.is_booked;
     });
     if (!inMonth.length) return null;
-    let min = inMonth[0];
-    let max = inMonth[0];
-    for (const e of inMonth) {
-      if ((e[1].price ?? 0) < (min[1].price ?? 0)) min = e;
-      if ((e[1].price ?? 0) > (max[1].price ?? 0)) max = e;
-    }
-    const long = rules.find((r) => r.type === "long_stay");
-    return { min, max, long };
+    const sorted = [...inMonth].sort((a, b) => (a[1].price ?? 0) - (b[1].price ?? 0));
+    return {
+      min: sorted[0],
+      max: sorted[sorted.length - 1],
+      long: rules.find((r) => r.type === "long_stay"),
+    };
   }, [prices, cursor, rules]);
 
   return (
-    <section className="mb-10">
-      <h2 className="sec-h mb-2">Kalendarz cen</h2>
-      <p className="mb-5 text-sm leading-relaxed text-[#6b7280]">
-        Ceny zmieniają się zależnie od sezonu, polskich świąt i reguł cenowych
-        gospodarza.
-      </p>
+    <section className="mb-12 rounded-[2.5rem] bg-white p-8 shadow-sm ring-1 ring-black/[0.03] sm:p-10">
+      <div className="mb-8">
+        <h2 className="text-3xl font-black tracking-tight text-brand-dark">Kalendarz cen</h2>
+        <p className="mt-2 text-[16px] text-gray-500">
+          Ceny zmieniają się zależnie od sezonu, polskich świąt i reguł cenowych gospodarza.
+        </p>
+      </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[1fr_300px]">
-        <div className="overflow-hidden rounded-[14px] border-[1.5px] border-[#e5e7eb] bg-white">
-          <div className="flex items-center justify-between border-b border-[#e5e7eb] px-[18px] py-3.5">
+      <div className="flex flex-col gap-10">
+        <div className="relative overflow-hidden rounded-[2.5rem] border border-black/[0.06] bg-gray-50/20 p-2 shadow-inner">
+          <div className="flex items-center justify-between px-8 py-6 bg-white rounded-[2rem] shadow-sm mb-2 border border-black/[0.03]">
             <button
               type="button"
-              aria-label="Poprzedni miesiąc"
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-sm hover:bg-gray-50"
-              onClick={() => setCursor((c) => addMonths(c, -1))}
+              className="group flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 transition-all hover:bg-brand-dark hover:text-white hover:scale-105 active:scale-95 shadow-sm"
+              onClick={() => changeMonth(-1)}
             >
-              ‹
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+              </svg>
             </button>
-            <span className="text-sm font-bold text-[#111827]">
+            <div className="text-xl font-black tracking-tight text-brand-dark uppercase">
               {format(cursor, "LLLL yyyy", { locale: pl })}
-            </span>
+            </div>
             <button
               type="button"
-              aria-label="Następny miesiąc"
-              className="flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 text-sm hover:bg-gray-50"
-              onClick={() => setCursor((c) => addMonths(c, 1))}
+              className="group flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 transition-all hover:bg-brand-dark hover:text-white hover:scale-105 active:scale-95 shadow-sm"
+              onClick={() => changeMonth(1)}
             >
-              ›
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+              </svg>
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-y-1 px-2 pb-2 pt-3">
-            {WEEKDAYS.map((w) => (
-              <div
-                key={w}
-                className="pb-1 text-center text-[10px] font-semibold uppercase tracking-[0.04em] text-gray-400"
+          <div className="relative min-h-[400px]">
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.div
+                key={cursor.toString()}
+                custom={direction}
+                initial={{ opacity: 0, x: direction * 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: direction * -20 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="grid grid-cols-7 gap-2 p-4"
               >
-                {w}
-              </div>
-            ))}
-            {cells.map((d) => {
-              const k = dayKey(d);
-              const cell = prices[k];
-              const inMonth = isSameMonth(d, cursor);
-              const isPast = isBefore(d, today) && !isSameDay(d, today);
-              const mult = cell?.seasonal_multiplier ?? 1;
-              const unavailable =
-                Boolean(cell?.is_booked) || cell?.price === null;
-              const price = unavailable
-                ? null
-                : cell?.price != null
-                  ? cell.price
-                  : basePrice * mult;
-              const highSeason = mult >= 1.3 || Boolean(cell?.is_holiday);
-              const midSeason = mult > 1 && mult < 1.3;
-              const isWeekend = d.getDay() === 0 || d.getDay() === 6;
-              const isToday = isSameDay(d, today);
-              const inRange =
-                rangeStart &&
-                rangeEnd &&
-                k >= rangeStart &&
-                k <= rangeEnd &&
-                inMonth;
-              const isSel =
-                k === rangeStart || k === rangeEnd || (inRange && inMonth);
+                {WEEKDAYS.map((w) => (
+                  <div key={w} className="pb-5 text-center text-[12px] font-black uppercase tracking-widest text-gray-400">
+                    {w}
+                  </div>
+                ))}
+                {cells.map((d) => {
+                  const k = dayKey(d);
+                  const cell = prices[k];
+                  const inMonth = isSameMonth(d, cursor);
+                  const isPast = isBefore(d, today) && !isSameDay(d, today);
+                  const mult = cell?.seasonal_multiplier ?? 1;
+                  const unavailable = Boolean(cell?.is_booked) || cell?.price === null;
+                  const price = unavailable ? null : cell?.price ?? basePrice * mult;
+                  const highSeason = mult >= 1.3 || Boolean(cell?.is_holiday);
+                  const midSeason = mult > 1 && mult < 1.3;
+                  const isToday = isSameDay(d, today);
+                  const isSel = k === rangeStart || k === rangeEnd || (rangeStart && rangeEnd && k > rangeStart && k < rangeEnd && inMonth);
+                  const isEdge = k === rangeStart || k === rangeEnd;
 
-              let priceColor = "#16a34a";
-              if (highSeason) priceColor = "#ef4444";
-              else if (midSeason) priceColor = "#f59e0b";
+                  if (!inMonth) return <div key={k} className="h-20" />;
 
-              if (!inMonth) {
-                return <div key={k} className="min-h-[52px]" />;
-              }
-
-              return (
-                <div key={k} className="px-1 py-1 text-center">
-                  <button
-                    type="button"
-                    disabled={Boolean(isPast || unavailable || isLoading)}
-                    onClick={() => pickDay(k, !isPast && !unavailable && !isLoading)}
-                    className={`relative w-full rounded-md px-1 py-1 transition-colors ${
-                      isPast || unavailable
-                        ? "cursor-not-allowed"
-                        : "cursor-pointer hover:bg-[#f0fdf4]"
-                    } ${isWeekend && !isSel ? "bg-[#f9fafb]" : ""} ${
-                      unavailable ? "bg-[#f9fafb]" : ""
-                    } ${isSel ? "rounded-lg bg-[#0a2e1a] text-white hover:bg-[#0a2e1a]" : ""}`}
-                  >
-                    {highSeason && !unavailable && (
-                      <span
-                        className="absolute left-1 right-1 top-0 block h-[3px] rounded-full bg-[#ef4444]"
-                        aria-hidden
-                      />
-                    )}
-                    <span
-                      className={`block text-[13px] font-medium ${
-                        isToday && !isSel ? "rounded-md border-[1.5px] border-brand font-bold text-brand" : ""
-                      } ${unavailable ? "text-[#9ca3af] line-through" : ""} ${
-                        isPast ? "opacity-35" : ""
-                      } ${isSel ? "text-white" : ""}`}
-                    >
-                      {format(d, "d")}
-                    </span>
-                    {!unavailable && price != null && (
-                      <span
-                        className="mt-0.5 block text-[9px] font-bold"
-                        style={{ color: isSel ? "#fff" : priceColor }}
+                  return (
+                    <div key={k} className="p-0.5">
+                      <button
+                        type="button"
+                        disabled={!!(isPast || unavailable || isLoading)}
+                        onClick={() => pickDay(k, !isPast && !unavailable && !isLoading)}
+                        className={cn(
+                          "relative flex h-20 w-full flex-col items-center justify-center rounded-2xl transition-all group/day",
+                          isPast || unavailable ? "cursor-not-allowed" : "hover:bg-brand/5 hover:scale-[1.02]",
+                          isSel ? "bg-brand-dark text-white hover:bg-brand-dark shadow-lg scale-[1.02]" : "bg-white",
+                          isToday && !isSel && "ring-2 ring-brand ring-inset",
+                          unavailable && "bg-gray-100/50 opacity-60"
+                        )}
                       >
-                        {padPrice(price)} zł
-                      </span>
-                    )}
-                  </button>
-                </div>
-              );
-            })}
+                        <span className={cn("text-[16px] font-black transition-colors", isSel ? "text-white" : "text-brand-dark group-hover/day:text-brand")}>
+                          {format(d, "d")}
+                        </span>
+                        {!unavailable && price != null && (
+                          <span className={cn("text-[11px] font-bold mt-1", 
+                            isSel ? "text-white/80" : 
+                            highSeason ? "text-red-500" : 
+                            midSeason ? "text-amber-500" : "text-brand")}>
+                            {Math.round(price)} zł
+                          </span>
+                        )}
+                        {highSeason && !unavailable && !isSel && (
+                          <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 shadow-sm border-2 border-white" />
+                        )}
+                        {isEdge && isSel && (
+                           <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-brand-light flex items-center justify-center shadow-md">
+                              <div className="h-1.5 w-1.5 rounded-full bg-brand-dark" />
+                           </div>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </motion.div>
+            </AnimatePresence>
           </div>
 
-          <div className="flex flex-wrap gap-3.5 border-t border-[#e5e7eb] bg-[#f9fafb] px-4 py-2.5 text-[11px] text-[#6b7280]">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-[#ef4444]" /> Wysoki sezon
+          <div className="mt-2 flex flex-wrap gap-6 px-8 py-5 bg-white/50 border-t border-black/[0.03] text-[13px] font-bold text-gray-500">
+            <span className="flex items-center gap-2.5">
+              <span className="h-3 w-3 rounded-full bg-red-500 shadow-sm" /> Sezon wysoki
             </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-[#f59e0b]" /> Długi weekend / święto
+            <span className="flex items-center gap-2.5">
+              <span className="h-3 w-3 rounded-full bg-amber-500 shadow-sm" /> Weekend / Święto
             </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-[#16a34a]" /> Niska cena
+            <span className="flex items-center gap-2.5">
+              <span className="h-3 w-3 rounded-full bg-brand shadow-sm" /> Cena standardowa
             </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-[#9ca3af]" /> Niedostępny
+            <span className="flex items-center gap-2.5">
+              <span className="h-3 w-3 rounded-full bg-gray-300 shadow-sm" /> Termin zajęty
             </span>
           </div>
         </div>
 
-        <div className="space-y-3.5">
-          <div className="overflow-hidden rounded-[14px] border-[1.5px] border-[#e5e7eb] bg-white">
-            <div className="border-b border-[#bbf7d0] bg-[#f0fdf4] px-[18px] py-3.5">
-              <p className="text-[13px] font-bold text-[#0a2e1a]">Wybrany zakres</p>
-              {rangeStart && rangeEnd ? (
-                <p className="text-[11px] text-[#9ca3af]">
-                  {rangeStart} – {rangeEnd} · {nights} {nights === 1 ? "noc" : "nocy"}
-                </p>
-              ) : (
-                <p className="text-[11px] text-[#9ca3af]">Wybierz daty na kalendarzu</p>
-              )}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Selected Range Card */}
+          <div className="rounded-[2.5rem] bg-white border border-black/[0.06] p-8 shadow-sm ring-1 ring-black/[0.02] flex flex-col">
+            <div className="mb-6 flex items-center gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand shadow-inner">
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider text-brand-dark">Wybrany zakres</h3>
+                {rangeStart && rangeEnd ? (
+                  <p className="text-[13px] font-bold text-gray-400">{rangeStart} — {rangeEnd}</p>
+                ) : (
+                  <p className="text-[13px] font-bold text-gray-400">Wybierz daty</p>
+                )}
+              </div>
             </div>
-            <div className="px-4 py-4 text-[13px]">
+
+            <div className="space-y-4 flex-grow">
               {breakdown ? (
                 <>
-                  <div className="flex justify-between border-b border-[#e5e7eb] py-2">
-                    <span>
-                      Nocleg × {nights} {nights === 1 ? "noc" : "nocy"} (szac.)
-                    </span>
-                    <span>{Math.round(breakdown.subtotal)} zł</span>
+                  <div className="flex justify-between text-[15px]">
+                    <span className="text-gray-500 font-medium">{nights} {nights === 1 ? "noc" : "nocy"}</span>
+                    <span className="font-bold text-brand-dark">{Math.round(breakdown.subtotal)} zł</span>
                   </div>
                   {breakdown.maxSeason > 1 && (
-                    <div className="flex justify-between border-b border-[#e5e7eb] py-2">
-                      <span>Mnożnik sezonowy</span>
-                      <span className="font-bold text-[#f59e0b]">
-                        ×{breakdown.maxSeason.toFixed(2)}
-                      </span>
-                    </div>
-                  )}
-                  {breakdown.anyHoliday && (
-                    <div className="flex justify-between border-b border-[#e5e7eb] py-2">
-                      <span>Święto PL</span>
-                      <span className="font-bold text-[#ef4444]">
-                        ×{breakdown.holidayMult.toFixed(2)}
-                      </span>
+                    <div className="flex justify-between text-[15px]">
+                      <span className="text-gray-500 font-medium">Mnożnik sezonowy</span>
+                      <span className="font-bold text-amber-500">×{breakdown.maxSeason.toFixed(2)}</span>
                     </div>
                   )}
                   {breakdown.discountPct > 0 && (
-                    <div className="flex justify-between border-b border-[#e5e7eb] py-2">
-                      <span>Rabat za długi pobyt</span>
-                      <span className="font-bold text-brand">
-                        −{breakdown.discountPct}%
-                      </span>
+                    <div className="flex justify-between text-[15px]">
+                      <span className="text-gray-500 font-medium">Rabat {breakdown.discountPct}%</span>
+                      <span className="font-bold text-brand">−{Math.round(breakdown.subtotal * breakdown.discountPct / 100)} zł</span>
                     </div>
                   )}
-                  <div className="flex justify-between py-2 font-extrabold text-[#0a2e1a]">
-                    <span>Łącznie zakwaterowanie</span>
-                    <span>{Math.round(breakdown.total)} zł</span>
+                  <div className="pt-5 mt-5 border-t border-black/[0.06] flex justify-between items-end">
+                    <span className="text-[14px] font-black uppercase tracking-wider text-brand-dark">Suma</span>
+                    <span className="text-3xl font-black text-brand-dark leading-none">{Math.round(breakdown.total)} zł</span>
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-[#9ca3af]">Wybierz zakres dat.</p>
+                <div className="flex flex-col items-center justify-center py-4 text-center">
+                  <p className="text-[14px] text-gray-400 font-medium italic">Kliknij dwa dni na kalendarzu, aby zobaczyć wycenę pobytu.</p>
+                </div>
               )}
             </div>
           </div>
 
-          <div className="rounded-[14px] border border-[#e5e7eb] p-4">
-            <p className="mb-3 text-[13px] font-bold text-[#111827]">Reguły cenowe</p>
+          {/* Pricing Rules */}
+          <div className="rounded-[2.5rem] bg-gray-50/50 border border-black/[0.04] p-8 flex flex-col">
+            <h3 className="mb-6 text-sm font-black uppercase tracking-wider text-brand-dark">Reguły cenowe</h3>
             {rules.length === 0 ? (
-              <p className="text-xs text-[#6b7280]">Brak dodatkowych reguł.</p>
+              <p className="text-[14px] text-gray-400 font-medium">Brak dodatkowych reguł.</p>
             ) : (
-              <ul className="space-y-2.5">
+              <ul className="space-y-4 flex-grow">
                 {rules.map((rule, i) => (
-                  <li key={`${rule.name}-${i}`} className="flex items-center gap-2.5 text-[12px]">
-                    <span
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{
-                        background:
-                          rule.type === "seasonal"
-                            ? "#ef4444"
-                            : rule.type === "holiday"
-                              ? "#f59e0b"
-                              : "#16a34a",
-                      }}
-                    />
-                    <span className="font-semibold text-[#111827]">{rule.name}</span>
-                    <span className="text-[#6b7280]">
-                      {rule.multiplier != null ? `${rule.multiplier}×` : ""}
-                      {rule.discount_percent != null
-                        ? `−${rule.discount_percent}%`
-                        : ""}
+                  <li key={`${rule.name}-${i}`} className="flex items-center justify-between text-[14px]">
+                    <div className="flex items-center gap-3">
+                      <div className={cn("h-2.5 w-2.5 rounded-full shadow-sm", 
+                        rule.type === "seasonal" ? "bg-red-500" : 
+                        rule.type === "holiday" ? "bg-amber-500" : "bg-brand")} 
+                      />
+                      <span className="font-bold text-brand-dark">{rule.name}</span>
+                    </div>
+                    <span className="font-black text-gray-400 bg-white px-2 py-0.5 rounded-lg border border-black/[0.03]">
+                      {rule.multiplier ? `${rule.multiplier}×` : ""}
+                      {rule.discount_percent ? `−${rule.discount_percent}%` : ""}
                     </span>
                   </li>
                 ))}
@@ -382,46 +358,41 @@ export function PriceCalendar({ listingSlug, basePrice, pricingRules }: Props) {
             )}
           </div>
 
-          <div className="rounded-xl border border-[#bbf7d0] bg-[#f0fdf4] p-4">
-            <p className="mb-2 text-[13px] font-bold text-[#0a2e1a]">💡 Wskazówka cenowa</p>
-            <div className="space-y-2 text-[13px] leading-relaxed text-[#6b7280]">
+          {/* Price Tip */}
+          <div className="rounded-[2.5rem] bg-brand-dark p-8 text-white shadow-xl relative overflow-hidden group flex flex-col">
+            <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/5 blur-3xl group-hover:bg-white/10 transition-all duration-700" />
+            <div className="absolute -left-10 -bottom-10 h-32 w-32 rounded-full bg-brand-light/5 blur-3xl" />
+            
+            <h3 className="mb-6 text-sm font-black uppercase tracking-wider text-white/60">Wskazówka cenowa</h3>
+            <div className="relative z-10 space-y-4 flex-grow">
               {tips?.min && (
-                <p>
-                  Najtańszy dzień w tym miesiącu:{" "}
-                  <span className="font-semibold text-[#111827]">{tips.min[0]}</span> od{" "}
-                  <span className="font-semibold text-brand">
-                    {padPrice(tips.min[1].price)} zł
-                  </span>
-                  .
-                </p>
+                <div className="flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/10">
+                  <span className="text-white/70 font-medium">Najtaniej</span>
+                  <span className="font-black text-brand-light text-lg">{Math.round(tips.min[1].price ?? 0)} zł</span>
+                </div>
               )}
               {tips?.max && (
-                <p>
-                  Najdroższy:{" "}
-                  <span className="font-semibold text-[#111827]">{tips.max[0]}</span>{" "}
-                  <span className="font-semibold text-[#ef4444]">
-                    {padPrice(tips.max[1].price)} zł
-                  </span>
-                  .
-                </p>
+                <div className="flex justify-between items-center bg-white/5 p-3 rounded-2xl border border-white/10">
+                  <span className="text-white/70 font-medium">Najdrożej</span>
+                  <span className="font-black text-red-300 text-lg">{Math.round(tips.max[1].price ?? 0)} zł</span>
+                </div>
               )}
-              {tips?.long?.min_nights != null && tips.long.discount_percent != null ? (
-                <p>
-                  Zostań {tips.long.min_nights}+ nocy i zaoszczędź{" "}
-                  {tips.long.discount_percent}%.
-                </p>
-              ) : null}
-              {!tips && <p>Brak wystarczających danych cenowych w tym miesiącu.</p>}
+              {tips?.long && (
+                <div className="mt-4 p-4 bg-brand-light/10 rounded-2xl border border-brand-light/20 text-[13px] font-bold leading-relaxed text-brand-light">
+                  <div className="flex items-center gap-2 mb-1">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    <span>SUPER OFERTA</span>
+                  </div>
+                  Zostań {tips.long.min_nights}+ nocy i zaoszczędź {tips.long.discount_percent}% na całym pobycie!
+                </div>
+              )}
+              {!tips && <p className="text-white/60 text-sm font-medium italic">Brak danych w tym miesiącu.</p>}
             </div>
           </div>
         </div>
       </div>
     </section>
   );
-}
-
-function addDaysSafe(d: Date, n: number): Date {
-  const x = new Date(d);
-  x.setDate(x.getDate() + n);
-  return x;
 }

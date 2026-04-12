@@ -1,8 +1,10 @@
 from datetime import date
+import logging
 
 from django.db import transaction
 from django.db.models import Avg, Prefetch
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -11,9 +13,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.bookings.models import BlockedDate, Booking
+from apps.bookings.models import BlockedDate, Booking, BookingStatusHistory
 from apps.bookings.serializers import BookingDetailSerializer
 from apps.bookings.services import BookingService
+from apps.common.models import AuditLog
 from apps.common.permissions import IsHost
 from apps.common.throttles import UploadThrottle
 from apps.listings.models import Listing, ListingImage
@@ -26,6 +29,7 @@ from apps.listings.serializers import (
     ListingWriteSerializer,
 )
 from apps.listings.services import ListingService
+from apps.messaging.models import Message
 
 from .models import HostProfile
 from .serializers import HostOnboardingSerializer
@@ -99,8 +103,49 @@ class HostListingViewSet(viewsets.ModelViewSet):
             return ListingDetailSerializer
         return ListingListSerializer
 
+    def _auto_publish_pending(self, listing_ids):
+        ids = [str(x) for x in listing_ids if x]
+        if not ids:
+            return
+        Listing.objects.filter(id__in=ids, status=Listing.Status.PENDING).update(
+            status=Listing.Status.APPROVED,
+            updated_at=timezone.now(),
+        )
+
     def perform_destroy(self, instance):
         ListingService.soft_delete_listing(instance)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        try:
+            with transaction.atomic():
+                self.perform_destroy(instance)
+                AuditLog.objects.create(
+                    actor=request.user,
+                    action="listing.soft_delete",
+                    object_type="Listing",
+                    object_id=str(instance.id),
+                    metadata={
+                        "title": instance.title,
+                        "slug": instance.slug,
+                        "status": instance.status,
+                        "host_id": str(instance.host_id)
+                    }
+                )
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.exception(f"Error deleting listing {instance.id}: {str(e)}")
+            return Response(
+                {
+                    "error": {
+                        "code": "DELETE_FAILED",
+                        "message": f"Nie udało się usunąć oferty: {str(e)}",
+                        "status": 500
+                    }
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -111,10 +156,14 @@ class HostListingViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
+        self._auto_publish_pending([instance.id])
+        instance.refresh_from_db()
         serializer = ListingDetailSerializer(instance, context={"request": request})
         return Response({"data": serializer.data, "meta": {}}, status=200)
 
     def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        self._auto_publish_pending(queryset.values_list("id", flat=True))
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
         return Response({"data": serializer.data, "meta": {}}, status=200)
@@ -137,10 +186,31 @@ class HostListingViewSet(viewsets.ModelViewSet):
     )
     def images(self, request, pk=None):
         listing = self.get_object()
-        ser = ListingImageUploadSerializer(data=request.data)
+        ser = ListingImageUploadSerializer(data=request.data, context={"request": request})
         ser.is_valid(raise_exception=True)
         payload = ser.add_to_listing(listing, request)
         return Response({"data": payload, "meta": {}}, status=201)
+
+    @action(
+        detail=True,
+        methods=["delete"],
+        url_path=r"images/(?P<image_id>\d+)",
+    )
+    def delete_image(self, request, pk=None, image_id=None):
+        listing = self.get_object()
+        image = get_object_or_404(ListingImage, id=image_id, listing=listing)
+        
+        with transaction.atomic():
+            was_cover = image.is_cover
+            image.delete()  # Soft delete because it inherits from BaseModel
+            
+            if was_cover:
+                new_cover = ListingImage.objects.filter(listing=listing).order_by("sort_order", "id").first()
+                if new_cover:
+                    new_cover.is_cover = True
+                    new_cover.save(update_fields=["is_cover", "updated_at"])
+
+        return Response(status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["post"], url_path="submit-for-review")
     def submit_for_review(self, request, pk=None):
@@ -150,14 +220,42 @@ class HostListingViewSet(viewsets.ModelViewSet):
                 {
                     "error": {
                         "code": "INVALID_STATUS",
-                        "message": "Tylko szkic można wysłać do moderacji.",
+                        "message": "Tylko szkic można opublikować.",
                         "field": None,
                         "status": 400,
                     }
                 },
                 status=400,
             )
-        listing.status = Listing.Status.PENDING
+
+        errors: dict[str, str] = {}
+        host_name = f"{request.user.first_name or ''} {request.user.last_name or ''}".strip()
+        if not host_name:
+            errors["host_name"] = "Wyświetlana nazwa hosta jest wymagana."
+        if len((listing.title or "").strip()) < 5:
+            errors["title"] = "Tytuł oferty musi mieć co najmniej 5 znaków."
+        if len((listing.description or "").strip()) < 20:
+            errors["description"] = "Opis oferty musi mieć co najmniej 20 znaków."
+        if listing.images.count() < 1:
+            errors["images"] = "Dodaj co najmniej 1 zdjęcie oferty."
+        amenities = listing.amenities if isinstance(listing.amenities, list) else []
+        if len(amenities) < 1:
+            errors["amenities"] = "Dodaj co najmniej 1 udogodnienie."
+        if errors:
+            return Response(
+                {
+                    "error": {
+                        "code": "VALIDATION_ERROR",
+                        "message": "Uzupełnij wymagane pola przed publikacją oferty.",
+                        "field": None,
+                        "details": errors,
+                        "status": 400,
+                    }
+                },
+                status=400,
+            )
+
+        listing.status = Listing.Status.APPROVED
         listing.moderation_comment = ""
         listing.save(update_fields=["status", "moderation_comment", "updated_at"])
         out = ListingListSerializer(listing, context={"request": request})
@@ -223,6 +321,96 @@ class HostBookingListView(APIView):
         if page_size and page_size.isdigit():
             qs = qs[: int(page_size)]
         data = BookingDetailSerializer(qs, many=True, context={"request": request}).data
+        return Response({"data": data, "meta": {"count": len(data)}}, status=200)
+
+
+class HostNotificationsListView(APIView):
+    permission_classes = [IsAuthenticated, IsHost]
+
+    def get(self, request):
+        limit_raw = request.query_params.get("limit")
+        try:
+            limit = int(limit_raw or 100)
+        except (TypeError, ValueError):
+            limit = 100
+        limit = max(1, min(limit, 300))
+
+        feed: list[dict] = []
+
+        guest_messages = (
+            Message.objects.filter(
+                deleted_at__isnull=True,
+                conversation__listing__host__user=request.user,
+            )
+            .exclude(sender=request.user)
+            .select_related("conversation", "conversation__listing")
+            .order_by("-created_at")[: limit * 3]
+        )
+        for msg in guest_messages:
+            body = (msg.body or "").strip()
+            feed.append(
+                {
+                    "id": f"message:{msg.id}",
+                    "type": "message.new",
+                    "title": "Nowa wiadomosc",
+                    "body": body[:120] + ("..." if len(body) > 120 else ""),
+                    "link": f"/host/messages?conv={msg.conversation_id}",
+                    "created_at": msg.created_at,
+                    "is_read": msg.read_at is not None,
+                }
+            )
+
+        pending_bookings = (
+            Booking.objects.filter(
+                deleted_at__isnull=True,
+                listing__host__user=request.user,
+                status=Booking.Status.PENDING,
+            )
+            .select_related("listing")
+            .order_by("-created_at")[: limit]
+        )
+        for booking in pending_bookings:
+            feed.append(
+                {
+                    "id": f"booking.new:{booking.id}",
+                    "type": "booking.new",
+                    "title": "Nowa prosba o rezerwacje",
+                    "body": f"{booking.listing.title} wymaga decyzji hosta.",
+                    "link": "/host/bookings/pending",
+                    "created_at": booking.created_at,
+                    "is_read": True,
+                }
+            )
+
+        status_changes = (
+            BookingStatusHistory.objects.filter(
+                deleted_at__isnull=True,
+                booking__listing__host__user=request.user,
+                new_status__in=["cancelled", "confirmed", "rejected"],
+            )
+            .select_related("booking", "booking__listing")
+            .order_by("-created_at")[: limit * 2]
+        )
+        status_labels = {
+            "cancelled": "Rezerwacja anulowana",
+            "confirmed": "Rezerwacja potwierdzona",
+            "rejected": "Rezerwacja odrzucona",
+        }
+        for row in status_changes:
+            feed.append(
+                {
+                    "id": f"booking.status:{row.id}",
+                    "type": f"booking.{row.new_status}",
+                    "title": status_labels.get(row.new_status, "Zmiana statusu rezerwacji"),
+                    "body": f"{row.booking.listing.title} · status: {row.new_status}",
+                    "link": "/host/bookings",
+                    "created_at": row.created_at,
+                    "is_read": True,
+                }
+            )
+
+        feed.sort(key=lambda x: x["created_at"], reverse=True)
+        data = feed[:limit]
         return Response({"data": data, "meta": {"count": len(data)}}, status=200)
 
 

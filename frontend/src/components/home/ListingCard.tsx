@@ -18,6 +18,15 @@ export function ListingCard({ listing, badge = "Polecane", badgeColor = "#16a34a
   const [liked, setLiked] = useState(false);
   const cover = publicMediaUrl(listing.cover_image);
 
+  const cacheListing = () => {
+    if (typeof window === "undefined" || !listing?.slug) return;
+    try {
+      localStorage.setItem(`listing-cache:${listing.slug}`, JSON.stringify(listing));
+    } catch {
+      // noop
+    }
+  };
+
   const location = useMemo(() => {
     const city = listing.location?.city || "";
     const region = listing.location?.region || "";
@@ -37,6 +46,7 @@ export function ListingCard({ listing, badge = "Polecane", badgeColor = "#16a34a
       href={`/listing/${listing.slug}`}
       className="group block overflow-hidden rounded-[22px] border border-[#e4ebe7] bg-white shadow-[0_10px_30px_-24px_rgba(10,15,13,.3)] transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-[7px] hover:border-[#bbf7d0] hover:shadow-[0_26px_70px_-24px_rgba(10,15,13,.35)]"
       style={{ animation: `fadeUp .65s ${index * 0.08}s cubic-bezier(.16,1,.3,1) both` }}
+      onClick={cacheListing}
     >
       <div className="relative flex h-[224px] items-center justify-center overflow-hidden" style={{ background: "linear-gradient(145deg,#dff8e9,#bcefd4)" }}>
         {cover ? (

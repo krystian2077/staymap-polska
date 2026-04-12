@@ -1,9 +1,11 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { api } from "@/lib/api";
+import { getAccessToken } from "@/lib/authStorage";
 import { stubListingFromSearch } from "@/lib/listingAdapters";
 import { publicMediaUrl } from "@/lib/mediaUrl";
 import { useCompareStore } from "@/lib/store/compareStore";
@@ -58,10 +60,19 @@ export function ListingCard({
   const priceOk = !Number.isNaN(priceNum);
   const coverSrc = publicMediaUrl(listing.cover_image);
 
+  const cacheListing = () => {
+    if (typeof window === "undefined" || !listing?.slug) return;
+    try {
+      localStorage.setItem(`listing-cache:${listing.slug}`, JSON.stringify(listing));
+    } catch {
+      // noop
+    }
+  };
+
   async function heartClick(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    const token = typeof window !== "undefined" ? localStorage.getItem("access") : null;
+    const token = typeof window !== "undefined" ? getAccessToken() : null;
     if (!token) {
       toast.error("Zaloguj się, aby dodać do listy życzeń.");
       return;
@@ -87,7 +98,7 @@ export function ListingCard({
     e.preventDefault();
     e.stopPropagation();
     if (inCompare) {
-      const token = typeof window !== "undefined" ? localStorage.getItem("access") : null;
+      const token = typeof window !== "undefined" ? getAccessToken() : null;
       await removeCompare(listing.id, token ?? undefined);
       toast.success("Usunięto z porównania");
       return;
@@ -96,7 +107,7 @@ export function ListingCard({
       toast.error("Możesz porównać maksymalnie 3 oferty.");
       return;
     }
-    const token = typeof window !== "undefined" ? localStorage.getItem("access") : null;
+    const token = typeof window !== "undefined" ? getAccessToken() : null;
     setRipple(true);
     setTimeout(() => setRipple(false), 450);
     await addCompare(stubListingFromSearch(listing), token ?? undefined);
@@ -107,13 +118,13 @@ export function ListingCard({
     return (
       <div
         className={cn(
-          "group relative mb-2 flex cursor-pointer gap-3 rounded-[14px] border-[1.5px] bg-white p-3",
-          "transition-all duration-200",
+          "group relative mb-0.5 flex cursor-pointer gap-4 rounded-[20px] border-[1.5px] bg-white p-3.5",
+          "transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
           selected
-            ? "border-brand bg-brand-surface shadow-[0_0_0_3px_rgba(22,163,74,.15)]"
+            ? "border-brand bg-brand-surface shadow-[0_8px_24px_rgba(22,163,74,0.12)] z-[2] scale-[1.02]"
             : highlighted
-              ? "border-brand/60 bg-brand-surface/70 shadow-sm"
-              : "border-gray-100 hover:border-brand hover:bg-brand-surface hover:shadow-sm",
+              ? "border-brand/40 bg-brand-surface/50 shadow-md z-[1]"
+              : "border-gray-100/80 hover:border-brand/30 hover:bg-gray-50/50 hover:shadow-lg",
         )}
         onMouseEnter={() => onHover?.(true)}
         onMouseLeave={() => onHover?.(false)}
@@ -124,63 +135,88 @@ export function ListingCard({
       >
         {/* Selection indicator */}
         {selected && (
-          <span className="absolute left-0 top-1/2 h-8 w-1 -translate-y-1/2 rounded-r-full bg-brand" />
+          <motion.span
+            layoutId="active-indicator"
+            className="absolute left-0 top-1/2 h-10 w-1.5 -translate-y-1/2 rounded-r-full bg-brand shadow-[0_0_12px_rgba(22,163,74,0.4)]"
+          />
         )}
         <Link
           href={`/listing/${listing.slug}`}
-          className="relative h-[86px] w-[86px] shrink-0 overflow-hidden rounded-[10px] bg-brand-surface"
-          onClick={(e) => e.stopPropagation()}
+          className="relative h-[92px] w-[92px] shrink-0 overflow-hidden rounded-[16px] bg-brand-surface/20 shadow-inner"
+          onClick={(e) => {
+            e.stopPropagation();
+            cacheListing();
+          }}
         >
           {coverSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={coverSrc}
               alt=""
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-2xl">{emoji}</div>
+            <div className="flex h-full items-center justify-center text-3xl bg-brand-surface/30">{emoji}</div>
           )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
           {availabilityBadge ? (
             <span
-              className="absolute bottom-1 left-1 right-1 truncate rounded px-1.5 py-0.5 text-center text-[10px] font-bold text-white shadow-sm"
-              style={{ background: "rgba(10,46,26,.85)" }}
+              className="absolute bottom-1.5 left-1.5 right-1.5 truncate rounded-lg px-2 py-0.5 text-center text-[9px] font-bold text-white shadow-sm backdrop-blur-md"
+              style={{ background: "rgba(10,46,26,0.75)" }}
             >
               {availabilityBadge}
             </span>
           ) : null}
         </Link>
-        <div className="min-w-0 flex-1">
-          <Link
-            href={`/listing/${listing.slug}`}
-            className="mb-0.5 line-clamp-2 block text-[13px] font-bold leading-snug text-text hover:text-brand-dark"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {listing.title}
-          </Link>
-          <p className="mb-1.5 flex items-center gap-1 text-[11px] text-text-muted">
-            <span aria-hidden>📍</span>
-            {locLine}
-            {listing.distance_km != null && (
-              <span className="ml-1 text-[10px] text-text-muted">· {listing.distance_km} km</span>
-            )}
-          </p>
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[14px] font-extrabold text-text">
-              {priceOk ? priceNum.toFixed(0) : listing.base_price}{" "}
-              <span className="text-[11px] font-normal text-text-muted">zł / noc</span>
-            </span>
+        <div className="min-w-0 flex-1 flex flex-col justify-between">
+          <div>
+            <Link
+              href={`/listing/${listing.slug}`}
+              className="mb-1 line-clamp-1 block text-[15px] font-extrabold leading-snug text-text transition-colors group-hover:text-brand-dark"
+              onClick={(e) => {
+                e.stopPropagation();
+                cacheListing();
+              }}
+            >
+              {listing.title}
+            </Link>
+            <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-text-muted">
+              <span className="text-brand/70" aria-hidden>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+              </span>
+              {locLine}
+              {listing.distance_km != null && (
+                <span className="ml-0.5 px-1.5 py-0.5 rounded-md bg-brand-surface/60 text-[10px] text-brand-dark/80">
+                  {listing.distance_km} km
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-col">
+              <span className="text-[11px] font-medium text-text-muted leading-none mb-0.5">od</span>
+              <span className="text-[16px] font-black text-text tracking-tight">
+                {priceOk ? priceNum.toFixed(0) : listing.base_price}{" "}
+                <span className="text-[12px] font-bold text-text-muted/70">zł</span>
+              </span>
+            </div>
             <Link
               href={`/listing/${listing.slug}`}
               className={cn(
-                "rounded-lg px-3 py-1.5 text-[11px] font-bold transition-all duration-150",
+                "rounded-xl px-4 py-2 text-[12px] font-bold transition-all duration-300",
                 selected
-                  ? "bg-brand text-white shadow-[0_2px_8px_rgba(22,163,74,.3)]"
-                  : "bg-brand-surface text-brand-dark hover:bg-brand hover:text-white",
+                  ? "bg-brand text-white shadow-[0_4px_12px_rgba(22,163,74,0.3)]"
+                  : "bg-brand-surface text-brand-dark hover:bg-brand hover:text-white hover:shadow-md active:scale-95",
               )}
-              onClick={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  cacheListing();
+                }}
             >
-              Zobacz →
+              Szczegóły
             </Link>
           </div>
         </div>
@@ -197,6 +233,7 @@ export function ListingCard({
       )}
       onMouseEnter={() => onHover?.(true)}
       onMouseLeave={() => onHover?.(false)}
+      onClick={cacheListing}
     >
       {ripple ? (
         <span

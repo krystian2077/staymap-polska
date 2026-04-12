@@ -429,19 +429,19 @@ body {
   display: inline-flex;
   align-items: center;
   white-space: nowrap;
-  background: #1e293b;
-  color: #fff;
-  padding: 5px 10px;
-  border-radius: 10px;
-  font-size: 11.5px;
-  font-weight: 800;
-  line-height: 1.2;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #ffffff;
+  padding: 7px 14px;
+  border-radius: 9999px;
+  font-size: 13.5px;
+  font-weight: 900;
+  line-height: 1;
   letter-spacing: -0.01em;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.28), 0 1px 4px rgba(0, 0, 0, 0.18);
-  transition:
-    background 0.18s ease,
-    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.18s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.15);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   cursor: pointer;
   transform-origin: bottom center;
   user-select: none;
@@ -450,48 +450,80 @@ body {
 .smap-pin::after {
   content: "";
   position: absolute;
-  bottom: -5px;
+  bottom: -7px;
   left: 50%;
   transform: translateX(-50%);
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 5px solid #1e293b;
-  transition: border-top-color 0.18s ease;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 8px solid rgba(15, 23, 42, 0.94);
+  transition: border-top-color 0.4s ease;
+}
+
+/* Tooltip arrow border effect */
+.smap-pin::before {
+  content: "";
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 9px solid rgba(255, 255, 255, 0.15);
+  z-index: -1;
 }
 
 .smap-pin:hover,
 .smap-pin.is-hovered {
-  background: #2563eb;
-  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.45), 0 2px 8px rgba(0, 0, 0, 0.14);
-  transform: translateY(-2px) scale(1.06);
+  background: #16a34a;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 12px 28px rgba(22, 163, 74, 0.45), 0 4px 10px rgba(0, 0, 0, 0.2);
+  transform: translateY(-8px) scale(1.15);
   z-index: 9999 !important;
 }
 .smap-pin:hover::after,
 .smap-pin.is-hovered::after {
-  border-top-color: #2563eb;
+  border-top-color: #16a34a;
+}
+.smap-pin:hover::before,
+.smap-pin.is-hovered::before {
+  border-top-color: rgba(255, 255, 255, 0.4);
 }
 
 .smap-pin.is-selected {
-  background: #dc2626;
-  box-shadow: 0 8px 24px rgba(220, 38, 38, 0.5), 0 2px 8px rgba(0, 0, 0, 0.16);
-  transform: translateY(-3px) scale(1.1);
+  background: #16a34a;
+  color: #ffffff;
+  border-color: #ffffff;
+  box-shadow: 0 14px 36px rgba(22, 163, 74, 0.55), 0 8px 16px rgba(0, 0, 0, 0.25);
+  transform: translateY(-12px) scale(1.3);
   z-index: 10000 !important;
 }
 .smap-pin.is-selected::after {
-  border-top-color: #dc2626;
+  border-top-color: #16a34a;
+}
+.smap-pin.is-selected::before {
+  border-top-color: #ffffff;
 }
 
+.marker-cluster div {
+  background: #0f172a !important;
+  color: #fff !important;
+  font-weight: 900 !important;
+  font-size: 13px !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3) !important;
+}
 .marker-cluster-small,
 .marker-cluster-medium,
 .marker-cluster-large {
-  background: rgba(30, 41, 59, 0.18) !important;
+  background: rgba(15, 23, 42, 0.15) !important;
+  transition: all 0.3s ease;
 }
-.marker-cluster-small div,
-.marker-cluster-medium div,
-.marker-cluster-large div {
-  background: #1e293b !important;
-  color: #fff !important;
-  font-weight: 800 !important;
+.marker-cluster:hover {
+  background: rgba(15, 23, 42, 0.25) !important;
+}
+.marker-cluster:hover div {
+  background: #16a34a !important;
+  transform: scale(1.1);
 }
 
 .leaflet-cluster-anim .leaflet-marker-icon,
@@ -602,6 +634,174 @@ body {
 
 .animate-ai-slide-up {
   animation: ai-slide-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+ @keyframes chat-msg-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes chat-user-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) translateX(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateX(0) scale(1);
+  }
+}
+
+@keyframes chat-assistant-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) translateX(-18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateX(0) scale(1);
+  }
+}
+
+@keyframes chat-typing-shell {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes chat-typing-text {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes chat-chip-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes chat-send-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(17, 24, 39, 0.25);
+  }
+  45% {
+    transform: scale(0.98);
+    box-shadow: 0 0 0 6px rgba(17, 24, 39, 0.12);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(17, 24, 39, 0);
+  }
+}
+
+@keyframes chat-ai-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes offer-card-in {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes chat-avatar-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.8) translateY(3px);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.05) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-chat-msg-in {
+  animation: chat-msg-fade 0.22s ease both;
+}
+
+.animate-chat-user-in {
+  animation: chat-user-in 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-chat-assistant-in {
+  animation: chat-assistant-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-chat-typing-shell {
+  animation: chat-typing-shell 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-chat-typing-text {
+  animation: chat-typing-text 1.1s ease-in-out infinite;
+}
+
+.animate-chat-chip-in {
+  animation: chat-chip-in 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-chat-send-pulse {
+  animation: chat-send-pulse 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.animate-chat-ai-reveal {
+  animation: chat-ai-reveal 0.42s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-offer-card-in {
+  animation: offer-card-in 0.52s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-chat-avatar-pop {
+  animation: chat-avatar-pop 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .lm-rail {

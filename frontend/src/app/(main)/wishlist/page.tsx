@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { formatDate } from "@/lib/utils/dates";
 import { apiUrl } from "@/lib/api";
+import { getAccessToken } from "@/lib/authStorage";
 import { topTravelModeFromListing } from "@/lib/destinationMode";
 import { publicMediaUrl } from "@/lib/mediaUrl";
 import { buildSearchURL } from "@/lib/searchUrl";
@@ -13,9 +14,11 @@ import { MODE_EMOJI, TRAVEL_MODE_LABELS } from "@/lib/travelModes";
 import { cn } from "@/lib/utils";
 import type { Listing } from "@/types/listing";
 import type { SavedSearch, WishlistItem } from "@/types/ai";
+import { motion, AnimatePresence } from "framer-motion";
+import * as Dialog from "@radix-ui/react-dialog";
 
 async function fetchJson<T>(path: string): Promise<T> {
-  const token = typeof window !== "undefined" ? localStorage.getItem("access") : null;
+  const token = typeof window !== "undefined" ? getAccessToken() : null;
   if (!token) throw new Error("no auth");
   const res = await fetch(apiUrl(path), {
     headers: { Authorization: `Bearer ${token}` },
@@ -37,10 +40,14 @@ function WishlistCard({
   item,
   onRemove,
   removing,
+  isSelected,
+  onToggleSelect,
 }: {
   item: WishlistItem;
   onRemove: (listingId: string) => void;
   removing: boolean;
+  isSelected: boolean;
+  onToggleSelect: (id: string) => void;
 }) {
   const router = useRouter();
   const listing = item.listing as Listing;
@@ -52,10 +59,15 @@ function WishlistCard({
   const icon = listing.listing_type?.icon ?? "🏠";
 
   return (
-    <div
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9 }}
       className={cn(
-        "cursor-pointer overflow-hidden rounded-[14px] border border-gray-200 bg-white shadow-card transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-1 hover:border-brand-border hover:shadow-hover",
-        removing && "pointer-events-none scale-90 opacity-0"
+        "group relative cursor-pointer overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-sm transition-all duration-500 hover:border-brand-border/50 hover:shadow-xl hover:shadow-brand/5",
+        removing && "pointer-events-none scale-95 opacity-50",
+        isSelected && "ring-2 ring-brand ring-offset-2"
       )}
       onClick={() => router.push(`/listing/${listing.slug}`)}
       role="button"
@@ -64,26 +76,34 @@ function WishlistCard({
         if (e.key === "Enter") router.push(`/listing/${listing.slug}`);
       }}
     >
-      <div className="relative h-[170px] overflow-hidden bg-brand-surface">
+      <div className="relative aspect-[4/3] overflow-hidden bg-brand-surface">
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt="" className="h-full w-full object-cover" />
+          <img
+            src={src}
+            alt=""
+            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+          />
         ) : (
-          <div className="flex h-full items-center justify-center bg-gradient-to-br from-brand-surface to-brand-muted text-4xl">
+          <div className="flex h-full items-center justify-center bg-gradient-to-br from-brand-surface to-brand-muted text-5xl">
             {icon}
           </div>
         )}
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
         <span
           className={cn(
-            "absolute left-2.5 top-2.5 rounded-lg px-2 py-0.5 text-[10px] font-bold",
+            "absolute left-4 top-4 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wider shadow-lg backdrop-blur-md",
             typeBadgeClass(typeName)
           )}
         >
           {typeName}
         </span>
+
         <button
           type="button"
-          className="absolute right-2.5 top-2.5 flex h-[30px] w-[30px] items-center justify-center rounded-full border border-black/[0.07] bg-white/93 text-sm text-rose-600 transition-transform hover:scale-110 hover:bg-rose-50"
+          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-lg text-rose-600 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-white active:scale-95"
           aria-label="Usuń z ulubionych"
           onClick={(e) => {
             e.stopPropagation();
@@ -92,33 +112,236 @@ function WishlistCard({
         >
           ♥
         </button>
-        <span className="absolute bottom-2 left-2.5 rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-semibold text-white">
-          Dodano {formatDate(item.created_at)}
+
+        <button
+          type="button"
+          className={cn(
+            "absolute bottom-4 right-4 flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black shadow-lg backdrop-blur-md transition-all active:scale-95",
+            isSelected
+              ? "bg-brand text-white"
+              : "bg-white/90 text-brand-dark hover:bg-white"
+          )}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect(listing.id);
+          }}
+        >
+          {isSelected ? "✓ Wybrano" : "+ Porównaj"}
+        </button>
+
+        <span className="absolute bottom-4 left-4 text-[10px] font-bold text-white/90 drop-shadow-md">
+          {formatDate(item.created_at)}
         </span>
       </div>
-      <div className="px-3.5 py-3">
-        <h3 className="mb-1 line-clamp-2 text-[13px] font-bold leading-snug text-text">{listing.title}</h3>
-        <p className="mb-2 flex items-center gap-1 text-[11px] text-text-muted">
-          <span aria-hidden>📍</span>
+
+      <div className="p-5">
+        <div className="mb-2 flex items-start justify-between gap-2">
+          <h3 className="line-clamp-2 text-base font-black leading-tight text-brand-dark group-hover:text-brand transition-colors">
+            {listing.title}
+          </h3>
+          {listing.average_rating != null && (
+            <div className="flex shrink-0 items-center gap-1 rounded-lg bg-brand-surface px-2 py-1 text-xs font-black text-brand-dark">
+              ⭐ {Number(listing.average_rating).toFixed(1)}
+            </div>
+          )}
+        </div>
+        
+        <p className="mb-4 flex items-center gap-1.5 text-[13px] font-medium text-text-muted">
+          <span className="text-sm">📍</span>
           {city}, {region}
         </p>
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-extrabold text-text">
-            {listing.base_price} {listing.currency} / noc
-          </span>
+
+        <div className="flex items-center justify-between border-t border-gray-50 pt-4">
+          <div>
+            <span className="block text-[11px] font-black uppercase tracking-widest text-text-muted">Cena za noc</span>
+            <span className="text-lg font-black text-brand-dark">
+              {listing.base_price} {listing.currency}
+            </span>
+          </div>
           <button
             type="button"
-            className="shrink-0 rounded-md bg-brand px-3 py-1 text-[11px] font-bold text-white hover:bg-brand-700"
+            className="rounded-full bg-brand-dark px-6 py-2.5 text-xs font-black text-white transition-all hover:bg-brand hover:shadow-lg hover:shadow-brand/20 active:scale-95"
             onClick={(e) => {
               e.stopPropagation();
               router.push(`/listing/${listing.slug}`);
             }}
           >
-            Rezerwuj
+            Szczegóły
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
+  );
+}
+
+function ComparisonDialog({
+  listings,
+  open,
+  onOpenChange,
+}: {
+  listings: Listing[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  if (listings.length === 0) return null;
+
+  const features = [
+    { label: "Cena za noc", getValue: (l: Listing) => `${l.base_price} ${l.currency}` },
+    { label: "Ocena", getValue: (l: Listing) => l.average_rating != null ? `⭐ ${Number(l.average_rating).toFixed(1)} (${l.review_count})` : "Brak ocen" },
+    { label: "Typ", getValue: (l: Listing) => l.listing_type?.name || "Obiekt 🏠" },
+    { label: "Lokalizacja", getValue: (l: Listing) => l.location?.city || "Polska" },
+    { label: "Goście", getValue: (l: Listing) => `Max ${l.max_guests || 2} os.` },
+    { label: "Pokoje / Łóżka", getValue: (l: Listing) => `${l.bedrooms || 1} syp. / ${l.beds || 1} łóżek` },
+    { label: "Łazienki", getValue: (l: Listing) => `${l.bathrooms || 1} łaz.` },
+    { label: "Klimat", getValue: (l: Listing) => {
+      if (!l.destination_score_cache) return "Uniwersalny";
+      const scores = [
+        { key: 'romantic', label: 'Romantyczny' },
+        { key: 'outdoor', label: 'Aktywny' },
+        { key: 'nature', label: 'Natura' },
+        { key: 'quiet', label: 'Spokojny' },
+        { key: 'family', label: 'Rodzinny' },
+        { key: 'wellness', label: 'Relaks' },
+        { key: 'workation', label: 'Praca zdalna' }
+      ];
+      
+      const top = scores
+        .map(s => ({ label: s.label, score: (l.destination_score_cache as any)?.[s.key] ?? 0 }))
+        .filter(s => s.score >= 8)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 2);
+
+      return top.length > 0 ? (
+        <div className="flex flex-wrap gap-1">
+          {top.map(t => (
+            <span key={t.label} className="rounded-full bg-brand-surface px-2 py-0.5 text-[10px] font-bold text-brand-dark border border-brand/10">
+              {t.label}
+            </span>
+          ))}
+        </div>
+      ) : "Zrównoważony";
+    }},
+    { label: "Atuty", getValue: (l: Listing) => {
+      const pluses = [];
+      if (Number(l.average_rating) >= 4.8) pluses.push("Wybitna ocena 🏆");
+      else if (Number(l.average_rating) >= 4.5) pluses.push("Świetna ocena ⭐");
+      
+      if (l.is_pet_friendly) pluses.push("Przyjazny zwierzętom 🐾");
+      if (l.review_count > 20) pluses.push("Bardzo popularna 🔥");
+      else if (l.review_count > 5) pluses.push("Sprawdzona oferta ✅");
+      
+      if (l.booking_mode === "instant") pluses.push("Natychmiastowa rezerwacja ⚡");
+      if (!l.cleaning_fee || l.cleaning_fee === 0) pluses.push("Brak opłaty za sprzątanie ✨");
+      
+      if (l.amenities?.some(a => a.name.toLowerCase().includes("wifi"))) pluses.push("Szybkie WiFi 📶");
+      if (l.amenities?.some(a => a.name.toLowerCase().includes("parking"))) pluses.push("Parking 🚗");
+      if (l.amenities?.some(a => a.name.toLowerCase().includes("klimatyzacja"))) pluses.push("Klimatyzacja ❄️");
+      
+      return (
+        <div className="flex flex-wrap gap-1">
+          {pluses.length > 0 ? pluses.map(p => (
+            <span key={p} className="rounded bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-700 border border-green-100">
+              {p}
+            </span>
+          )) : <span className="text-gray-400">---</span>}
+        </div>
+      );
+    }},
+    { label: "Udogodnienia", getValue: (l: Listing) => (
+      <div className="flex flex-wrap gap-1">
+        {l.amenities && l.amenities.length > 0 ? (
+          <>
+            {l.amenities.slice(0, 10).map(a => (
+              <span key={a.id} className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">
+                {a.name}
+              </span>
+            ))}
+            {l.amenities.length > 10 && <span className="text-[10px] text-gray-400 font-bold">+{l.amenities.length - 10}</span>}
+          </>
+        ) : (
+          <span className="text-gray-400 italic">Podstawowe</span>
+        )}
+      </div>
+    )},
+    { label: "Okolica", getValue: (l: Listing) => (
+      <p className="line-clamp-3 text-[11px] leading-relaxed text-text-muted italic">
+        {l.area_summary || "Brak szczegółowego opisu okolicy."}
+      </p>
+    )}
+  ];
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm animate-in fade-in duration-300" />
+        <Dialog.Content className="fixed left-1/2 top-[12vh] z-[101] flex max-h-[78vh] w-[95vw] max-w-7xl -translate-x-1/2 flex-col rounded-[32px] bg-white p-0 shadow-2xl animate-in zoom-in-95 duration-300 focus:outline-none overflow-hidden border border-gray-100">
+          <div className="flex items-center justify-between border-b border-gray-100 px-8 py-6">
+            <div>
+              <Dialog.Title className="text-2xl font-black text-brand-dark">Porównaj oferty</Dialog.Title>
+              <Dialog.Description className="text-sm font-medium text-text-muted">
+                Porównujesz {listings.length} wybrane miejsca
+              </Dialog.Description>
+            </div>
+            <Dialog.Close className="rounded-full bg-gray-100 p-2 text-gray-500 hover:bg-gray-200 transition-colors">
+              ✕
+            </Dialog.Close>
+          </div>
+
+          <div className="flex-1 overflow-auto px-8 py-6">
+            <div className="grid" style={{ gridTemplateColumns: `140px repeat(${listings.length}, minmax(200px, 1fr))` }}>
+              {/* Header: Images & Titles */}
+              <div className="sticky left-0 bg-white" />
+              {listings.map(l => (
+                <div key={l.id} className="px-4 pb-6 border-l border-gray-50 first:border-l-0">
+                  <div className="relative aspect-video mb-4 overflow-hidden rounded-2xl bg-brand-surface shadow-inner group">
+                    {(() => {
+                      const img = l.images?.find(i => i.is_cover)?.display_url ?? l.images?.[0]?.display_url;
+                      const src = publicMediaUrl(img);
+                      if (src) {
+                        return (
+                          <img 
+                            src={src} 
+                            alt="" 
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+                        );
+                      }
+                      return (
+                        <div className="flex h-full items-center justify-center text-4xl">
+                          {l.listing_type?.icon ?? "🏠"}
+                        </div>
+                      );
+                    })()}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+                  </div>
+                  <h4 className="line-clamp-2 text-[13px] font-black leading-tight text-brand-dark min-h-[2.5rem]">{l.title}</h4>
+                </div>
+              ))}
+
+              {/* Rows */}
+              {features.map((f, idx) => (
+                <div key={f.label} className={cn("contents group", idx % 2 === 0 ? "bg-white" : "bg-gray-50/50")}>
+                  <div className={cn("sticky left-0 flex items-center border-t border-gray-100 py-4 text-xs font-black uppercase tracking-wider text-text-muted", idx % 2 === 0 ? "bg-white" : "bg-gray-50")}>
+                    {f.label}
+                  </div>
+                  {listings.map(l => (
+                    <div key={l.id} className="flex items-center border-t border-gray-100 px-4 py-4 text-sm font-bold text-brand-dark">
+                      {f.getValue(l)}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="border-t border-gray-100 bg-gray-50 px-8 py-6 text-center">
+            <Dialog.Close className="btn-primary rounded-full px-12">
+              Zamknij porównanie
+            </Dialog.Close>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
@@ -158,12 +381,14 @@ export default function WishlistPage() {
   const [filterMode, setFilterMode] = useState<string>("all");
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [localItems, setLocalItems] = useState<WishlistItem[] | null>(null);
+  const [selectedCompareIds, setSelectedCompareIds] = useState<string[]>([]);
+  const [isCompareOpen, setIsCompareOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const token = mounted && typeof window !== "undefined" ? localStorage.getItem("access") : null;
+  const token = mounted && typeof window !== "undefined" ? getAccessToken() : null;
 
   const [wishPayload, setWishPayload] = useState<{ data: WishlistItem[] } | null>(null);
   const [savedPayload, setSavedPayload] = useState<{ data: SavedSearch[] } | null>(null);
@@ -237,10 +462,11 @@ export default function WishlistPage() {
       const prev = items;
       setLocalItems(prev.filter((i) => (i.listing as Listing).id !== listingId));
       setRemovingId(listingId);
+      setSelectedCompareIds(prev => prev.filter(id => id !== listingId));
       try {
         const res = await fetch(apiUrl(`/api/v1/wishlist/${listingId}/`), {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${localStorage.getItem("access") ?? ""}` },
+          headers: { Authorization: `Bearer ${getAccessToken() ?? ""}` },
         });
         if (!res.ok) throw new Error("delete failed");
         toast.success("Usunięto z ulubionych");
@@ -254,6 +480,23 @@ export default function WishlistPage() {
     },
     [items, loadWish]
   );
+
+  const toggleSelectCompare = useCallback((id: string) => {
+    setSelectedCompareIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 4) {
+        toast.error("Możesz porównać maksymalnie 4 oferty");
+        return prev;
+      }
+      return [...prev, id];
+    });
+  }, []);
+
+  const selectedListings = useMemo(() => {
+    return items
+      .filter((it) => selectedCompareIds.includes((it.listing as Listing).id))
+      .map((it) => it.listing as Listing);
+  }, [items, selectedCompareIds]);
 
   const toggleNotify = useCallback(
     async (s: SavedSearch) => {
@@ -269,7 +512,7 @@ export default function WishlistPage() {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("access") ?? ""}`,
+            Authorization: `Bearer ${getAccessToken() ?? ""}`,
           },
           body: JSON.stringify({ notify_new_listings: next }),
         });
@@ -289,7 +532,7 @@ export default function WishlistPage() {
       try {
         const res = await fetch(apiUrl(`/api/v1/saved-searches/${id}/`), {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${localStorage.getItem("access") ?? ""}` },
+          headers: { Authorization: `Bearer ${getAccessToken() ?? ""}` },
         });
         if (!res.ok) throw new Error("delete failed");
         toast.success("Usunięto");
@@ -304,18 +547,21 @@ export default function WishlistPage() {
 
   if (!mounted) {
     return (
-      <div className="mx-auto max-w-[1200px] px-8 py-10">
-        <p className="text-text-muted">Ładowanie…</p>
+      <div className="mx-auto max-w-[1200px] px-8 py-20 text-center">
+        <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-brand border-t-transparent" />
+        <p className="mt-4 font-bold text-brand-dark">Przygotowujemy Twoje ulubione…</p>
       </div>
     );
   }
 
   if (!token) {
     return (
-      <div className="mx-auto max-w-lg px-8 py-20 text-center">
-        <p className="text-lg font-bold text-text">Zaloguj się, aby zobaczyć ulubione.</p>
-        <Link href="/login?next=/wishlist" className="mt-4 inline-block font-bold text-brand hover:underline">
-          Przejdź do logowania
+      <div className="mx-auto max-w-lg px-8 py-32 text-center">
+        <div className="mb-6 text-6xl">🔒</div>
+        <h1 className="text-3xl font-black text-brand-dark">Twoja lista czeka</h1>
+        <p className="mt-4 text-lg font-medium text-text-muted">Zaloguj się, aby zobaczyć i zarządzać swoimi zapisanymi ofertami.</p>
+        <Link href="/login?next=/wishlist" className="btn-primary mt-8 inline-flex px-10">
+          Zaloguj się teraz
         </Link>
       </div>
     );
@@ -324,152 +570,220 @@ export default function WishlistPage() {
   const saved = savedPayload?.data ?? [];
 
   return (
-    <div className="mx-auto max-w-[1200px] px-7 py-8 sm:px-8">
-      <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-[22px] font-extrabold text-brand-dark">Moje ulubione</h1>
-          <p className="text-sm text-text-muted">
-            {items.length} zapisanych ofert · sortuj i filtruj
-          </p>
-        </div>
-        <button type="button" className="btn-secondary text-sm" onClick={() => console.log("kolekcja — wkrótce")}>
-          📋 Stwórz kolekcję
-        </button>
-      </header>
-
-      <div className="mb-5 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <button
-          type="button"
-          onClick={() => setFilterMode("all")}
-          className={cn("mode-chip shrink-0 px-3 py-2 text-xs", filterMode === "all" && "on")}
-        >
-          Wszystkie ({items.length})
-        </button>
-        {Array.from(modes.entries()).map(([mode, n]) => (
-          <button
-            key={mode}
-            type="button"
-            onClick={() => setFilterMode(mode)}
-            className={cn("mode-chip shrink-0 px-3 py-2 text-xs", filterMode === mode && "on")}
-          >
-            {MODE_EMOJI[mode] ?? "✨"} {TRAVEL_MODE_LABELS[mode] ?? mode} ({n})
-          </button>
-        ))}
-      </div>
-
-      {wishLoading && items.length === 0 ? (
-        <p className="text-text-muted">Ładowanie…</p>
-      ) : filteredItems.length === 0 ? (
-        <div className="py-20 text-center">
-          <div className="animate-float-heart text-[56px] leading-none" aria-hidden>
-            💔
+    <div className="min-h-screen bg-[#fafbfc] pb-20">
+      <div className="mx-auto max-w-[1400px] px-6 py-12 sm:px-10 lg:py-16">
+        <header className="mb-10 flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-brand"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+              Twoja kolekcja
+            </motion.div>
+            <h1 className="text-[clamp(32px,5vw,48px)] font-black leading-tight tracking-tight text-brand-dark">
+              Moje <span className="bg-gradient-to-r from-brand to-rose-500 bg-clip-text text-transparent">Ulubione</span>
+            </h1>
+            <p className="mt-3 text-lg font-medium text-text-muted">
+              {items.length} zapisanych ofert gotowych do odkrycia.
+            </p>
           </div>
-          <h2 className="mt-4 text-2xl font-extrabold text-brand-dark">Brak ulubionych</h2>
-          <p className="mx-auto mt-2 max-w-md text-text-muted">
-            Przeglądaj oferty i klikaj ♡ żeby zapisywać ulubione miejsca
-          </p>
-          <Link href="/search" className="btn-primary mt-6 inline-flex">
-            Znajdź nocleg
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredItems.map((it) => (
-            <WishlistCard
-              key={it.id}
-              item={it}
-              onRemove={handleRemove}
-              removing={removingId === (it.listing as Listing).id}
-            />
+          <div className="flex gap-3">
+            <button type="button" className="btn-secondary flex items-center gap-2 rounded-full border-gray-200 bg-white px-6 font-black text-brand-dark shadow-sm hover:border-brand-border" onClick={() => toast.success("Kolekcje będą dostępne już wkrótce!")}>
+              📋 Stwórz kolekcję
+            </button>
+          </div>
+        </header>
+
+        <div className="mb-10 flex gap-2 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <button
+            type="button"
+            onClick={() => setFilterMode("all")}
+            className={cn(
+              "shrink-0 rounded-full px-6 py-3 text-sm font-black transition-all",
+              filterMode === "all" 
+                ? "bg-brand-dark text-white shadow-lg shadow-brand-dark/20" 
+                : "bg-white text-text-muted hover:bg-brand-surface hover:text-brand"
+            )}
+          >
+            Wszystkie ({items.length})
+          </button>
+          {Array.from(modes.entries()).map(([mode, n]) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => setFilterMode(mode)}
+              className={cn(
+                "flex shrink-0 items-center gap-2 rounded-full px-6 py-3 text-sm font-black transition-all",
+                filterMode === mode 
+                  ? "bg-brand-dark text-white shadow-lg shadow-brand-dark/20" 
+                  : "bg-white text-text-muted hover:bg-brand-surface hover:text-brand"
+              )}
+            >
+              <span>{MODE_EMOJI[mode] ?? "✨"}</span>
+              <span>{TRAVEL_MODE_LABELS[mode] ?? mode}</span>
+              <span className="opacity-50">({n})</span>
+            </button>
           ))}
         </div>
-      )}
 
-      <div className="my-8 border-t border-gray-200" />
-
-      <header className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-extrabold text-brand-dark">Zapisane wyszukiwania</h2>
-        <Link href="/search" className="text-sm font-bold text-brand hover:underline">
-          + Nowe wyszukiwanie
-        </Link>
-      </header>
-
-      <div className="space-y-2.5">
-        {saved.length === 0 ? (
-          <p className="text-sm text-text-muted">Brak zapisanych wyszukiwań.</p>
-        ) : (
-          saved.map((s) => (
-            <div
-              key={s.id}
-              role="button"
-              tabIndex={0}
-              className="mb-2.5 flex cursor-pointer flex-wrap items-center gap-3 rounded-xl border border-gray-200 px-4 py-3.5 transition-all duration-150 hover:border-brand hover:bg-brand-surface"
-              onClick={() => router.push(buildSearchURL(s.query_payload))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") router.push(buildSearchURL(s.query_payload));
-              }}
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-brand-surface text-lg">
-                🔍
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="mb-1 text-sm font-bold text-gray-900">{s.name}</p>
-                <div className="flex flex-wrap gap-2 text-xs text-text-muted">
-                  {s.query_payload.location ? <span>📍 {s.query_payload.location}</span> : null}
-                  {s.query_payload.travel_mode ? (
-                    <span>
-                      {MODE_EMOJI[s.query_payload.travel_mode] ?? ""}{" "}
-                      {TRAVEL_MODE_LABELS[s.query_payload.travel_mode] ?? s.query_payload.travel_mode}
-                    </span>
-                  ) : null}
-                  {s.query_payload.date_from && s.query_payload.date_to ? (
-                    <span>
-                      📅 {formatDate(s.query_payload.date_from)} – {formatDate(s.query_payload.date_to)}
-                    </span>
-                  ) : null}
-                  {s.query_payload.max_price != null ? <span>💰 do {s.query_payload.max_price} zł</span> : null}
-                  {s.query_payload.near_mountains ? <span>⛰️ Góry</span> : null}
-                  {s.query_payload.near_lake ? <span>🏊 Jezioro</span> : null}
-                </div>
-              </div>
-              <div className="flex shrink-0 flex-wrap items-center gap-2">
-                <div className="flex flex-col items-center text-center text-[11px] text-text-muted">
-                  <span
-                    className={cn(
-                      "text-sm font-extrabold",
-                      s.new_listings_count > 0 ? "text-brand" : "text-text-muted"
-                    )}
-                  >
-                    {s.new_listings_count > 0 ? s.new_listings_count : "Brak"}
-                  </span>
-                  <span>nowych</span>
-                </div>
-                <NotifyToggle on={s.notify_new_listings} onToggle={() => void toggleNotify(s)} />
-                <button
-                  type="button"
-                  className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500 hover:border-brand"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    router.push(buildSearchURL(s.query_payload));
-                  }}
-                >
-                  Szukaj
-                </button>
-                <button
-                  type="button"
-                  className="rounded-lg px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    void deleteSaved(s.id);
-                  }}
-                >
-                  Usuń
-                </button>
-              </div>
+        {wishLoading && items.length === 0 ? (
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="h-80 animate-pulse rounded-[32px] bg-gray-100" />
+            ))}
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="rounded-[40px] bg-white px-8 py-24 text-center shadow-sm border border-gray-100"
+          >
+            <div className="animate-bounce text-7xl mb-8" aria-hidden>
+              ❤️
             </div>
-          ))
+            <h2 className="text-3xl font-black text-brand-dark">Lista jest pusta</h2>
+            <p className="mx-auto mt-4 max-w-md text-lg font-medium text-text-muted">
+              Nie masz jeszcze żadnych zapisanych ofert. Przeglądaj noclegi i znajdź coś wyjątkowego!
+            </p>
+            <Link href="/search" className="btn-primary mt-10 inline-flex px-12 rounded-full py-4 text-base">
+              Znajdź inspirację
+            </Link>
+          </motion.div>
+        ) : (
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <AnimatePresence mode="popLayout">
+              {filteredItems.map((it) => (
+                <WishlistCard
+                  key={it.id}
+                  item={it}
+                  onRemove={handleRemove}
+                  removing={removingId === (it.listing as Listing).id}
+                  isSelected={selectedCompareIds.includes((it.listing as Listing).id)}
+                  onToggleSelect={toggleSelectCompare}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
         )}
+
+        <div className="my-20 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+
+        <div className="rounded-[40px] bg-white p-8 lg:p-12 shadow-sm border border-gray-100">
+          <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-black text-brand-dark">Zapisane wyszukiwania</h2>
+              <p className="text-sm font-medium text-text-muted">Wracaj do ulubionych filtrów jednym kliknięciem.</p>
+            </div>
+            <Link href="/search" className="btn-secondary rounded-full px-6 text-sm font-black">
+              + Nowe wyszukiwanie
+            </Link>
+          </header>
+
+          <div className="space-y-4">
+            {saved.length === 0 ? (
+              <div className="rounded-3xl border-2 border-dashed border-gray-100 py-12 text-center">
+                <p className="font-bold text-text-muted">Brak zapisanych wyszukiwań.</p>
+              </div>
+            ) : (
+              saved.map((s) => (
+                <motion.div
+                  key={s.id}
+                  whileHover={{ x: 5 }}
+                  className="group flex cursor-pointer flex-wrap items-center gap-4 rounded-3xl border border-gray-100 bg-white p-5 transition-all hover:border-brand-border hover:shadow-md"
+                  onClick={() => router.push(buildSearchURL(s.query_payload))}
+                >
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-surface text-2xl group-hover:bg-brand group-hover:text-white transition-colors">
+                    🔍
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-lg font-black text-brand-dark">{s.name}</p>
+                    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[13px] font-medium text-text-muted">
+                      {s.query_payload.location ? <span className="flex items-center gap-1">📍 {s.query_payload.location}</span> : null}
+                      {s.query_payload.travel_mode ? (
+                        <span className="flex items-center gap-1">
+                          {MODE_EMOJI[s.query_payload.travel_mode] ?? ""}{" "}
+                          {TRAVEL_MODE_LABELS[s.query_payload.travel_mode] ?? s.query_payload.travel_mode}
+                        </span>
+                      ) : null}
+                      {s.query_payload.max_price != null ? <span className="flex items-center gap-1">💰 do {s.query_payload.max_price} zł</span> : null}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap items-center gap-4">
+                    {s.new_listings_count > 0 && (
+                      <div className="rounded-full bg-brand px-4 py-1.5 text-xs font-black text-white">
+                        {s.new_listings_count} nowe oferty
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 border-l border-gray-100 pl-4">
+                      <NotifyToggle on={s.notify_new_listings} onToggle={() => void toggleNotify(s)} />
+                      <button
+                        type="button"
+                        className="rounded-full h-10 w-10 flex items-center justify-center bg-gray-50 text-red-500 hover:bg-red-50 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void deleteSaved(s.id);
+                        }}
+                        title="Usuń"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Floating Compare Bar */}
+      <AnimatePresence>
+        {selectedCompareIds.length > 0 && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-6 rounded-full border border-white/20 bg-brand-dark/90 px-8 py-4 shadow-2xl backdrop-blur-xl"
+          >
+            <div className="hidden sm:block">
+              <p className="text-sm font-black text-white">Wybrano: {selectedCompareIds.length} / 4</p>
+              <p className="text-[10px] font-bold text-white/60">Wybierz do 4 ofert by je porównać</p>
+            </div>
+            <div className="flex -space-x-3">
+              {selectedListings.map(l => (
+                <div key={l.id} className="h-10 w-10 overflow-hidden rounded-full border-2 border-brand-dark bg-gray-200">
+                  <img src={publicMediaUrl(l.images?.find(i => i.is_cover)?.display_url ?? l.images?.[0]?.display_url) ?? undefined} alt="" className="h-full w-full object-cover" />
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="text-xs font-black text-white/70 hover:text-white transition-colors"
+                onClick={() => setSelectedCompareIds([])}
+              >
+                Wyczyść
+              </button>
+              <button
+                type="button"
+                className="btn-primary rounded-full px-8 py-2.5 text-sm font-black disabled:opacity-50"
+                disabled={selectedCompareIds.length < 2}
+                onClick={() => setIsCompareOpen(true)}
+              >
+                Porównaj {selectedCompareIds.length >= 2 ? "" : "(wybierz min. 2)"}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <ComparisonDialog 
+        open={isCompareOpen} 
+        onOpenChange={setIsCompareOpen} 
+        listings={selectedListings} 
+      />
     </div>
   );
 }

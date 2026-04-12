@@ -1,7 +1,8 @@
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
-from django.db.models import Q
+from django.db.models import Count, Q, Sum
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -21,10 +22,15 @@ from .ws_notify import notify_new_message
 
 
 def _conversation_qs(user):
+    unread_filter = (
+        Q(messages__deleted_at__isnull=True, messages__read_at__isnull=True)
+        & ~Q(messages__sender=user)
+    )
     return (
         Conversation.objects.filter(deleted_at__isnull=True)
         .filter(Q(listing__host__user=user) | Q(guest=user))
-        .select_related("listing", "listing__host", "listing__host__user")
+        .select_related("listing", "listing__host", "listing__host__user", "guest")
+        .annotate(unread_count=Count("messages", filter=unread_filter))
     )
 
 
@@ -59,6 +65,11 @@ class ConversationMessageListCreateView(APIView):
     def get(self, request, conversation_id):
         conv = get_object_or_404(_conversation_qs(request.user), pk=conversation_id)
         assert_conversation_member(conv, request.user)
+        Message.objects.filter(
+            conversation=conv,
+            deleted_at__isnull=True,
+            read_at__isnull=True,
+        ).exclude(sender=request.user).update(read_at=timezone.now())
         msgs = (
             Message.objects.filter(conversation=conv, deleted_at__isnull=True)
             .order_by("created_at")
@@ -93,6 +104,7 @@ class ConversationMessageListCreateView(APIView):
                 conversation_id=str(conv.pk),
                 preview=body_text,
                 recipient_is_host=True,
+                message_id=str(msg.id),
             )
         elif uid == host_uid and guest_uid:
             notify_new_message(
@@ -100,6 +112,24 @@ class ConversationMessageListCreateView(APIView):
                 conversation_id=str(conv.pk),
                 preview=body_text,
                 recipient_is_host=False,
+                message_id=str(msg.id),
             )
         out = MessageSerializer(msg)
         return Response({"data": out.data, "meta": {}}, status=status.HTTP_201_CREATED)
+
+
+class ConversationSummaryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        totals = _conversation_qs(request.user).aggregate(unread_total=Sum("unread_count"))
+        return Response(
+            {
+                "data": {
+                    "unread_total": int(totals.get("unread_total") or 0),
+                },
+                "meta": {},
+            },
+            status=200,
+        )
+

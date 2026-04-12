@@ -4,7 +4,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import { clearAuthTokens, getAccessToken } from "@/lib/authStorage";
 import { useAuthStore } from "@/lib/store/authStore";
+import { useMessagingStore } from "@/lib/store/messagingStore";
 import { cn } from "@/lib/utils";
 
 type NavItem = { label: string; href: string; ai?: boolean };
@@ -14,7 +16,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Discovery", href: "/discovery" },
   { label: "Ulubione", href: "/wishlist" },
   { label: "Zostań gospodarzem", href: "/host" },
-  { label: "✨ AI Search", href: "/ai", ai: true },
+  { label: "✨ StayMap AI", href: "/ai", ai: true },
 ];
 
 function isActive(pathname: string, href: string): boolean {
@@ -28,6 +30,8 @@ export function Navbar() {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   const logout = useAuthStore((s) => s.logout);
+  const unreadTotal = useMessagingStore((s) => s.unreadTotal);
+  const setUnreadTotal = useMessagingStore((s) => s.setUnreadTotal);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -46,7 +50,7 @@ export function Navbar() {
   useEffect(() => {
     if (!mounted) return;
     let cancelled = false;
-    const token = typeof window !== "undefined" ? localStorage.getItem("access") : null;
+    const token = typeof window !== "undefined" ? getAccessToken() : null;
     if (!token) {
       setUser(null);
       return;
@@ -67,7 +71,12 @@ export function Navbar() {
         }>("/api/v1/auth/me/");
         if (!cancelled) setUser(res.data);
       } catch {
-        if (!cancelled) setUser(null);
+        if (!cancelled) {
+          setUser(null);
+          if (typeof window !== "undefined") {
+            clearAuthTokens();
+          }
+        }
       }
     })();
 
@@ -75,6 +84,32 @@ export function Navbar() {
       cancelled = true;
     };
   }, [mounted, setUser]);
+
+  useEffect(() => {
+    if (!mounted || !user) {
+      setUnreadTotal(0);
+      return;
+    }
+
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const res = await api.get<{ data: { unread_total: number } }>("/api/v1/conversations/summary/");
+        if (cancelled) return;
+        const unread = Number(res.data?.unread_total ?? 0);
+        setUnreadTotal(unread);
+      } catch {
+        if (!cancelled) setUnreadTotal(0);
+      }
+    };
+
+    void tick();
+    const id = setInterval(tick, 30_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [mounted, user, setUnreadTotal]);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -120,7 +155,16 @@ export function Navbar() {
 
   const authReady = mounted;
 
-   const linkClass = (href: string, ai?: boolean) =>
+  const navItems = useMemo(() => {
+    return NAV_ITEMS.map((item) => {
+      if (item.href === "/host" && user?.is_host) {
+        return { ...item, label: "Panel Gospodarza", href: "/host/dashboard" };
+      }
+      return item;
+    });
+  }, [user]);
+
+  const linkClass = (href: string, ai?: boolean) =>
      cn(
        "group relative flex items-center h-full px-5 text-[16px] font-bold tracking-[-0.3px] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
        ai
@@ -143,7 +187,7 @@ export function Navbar() {
          </Link>
 
          <nav className="hidden h-full items-center gap-[8px] md:flex lg:gap-[12px]" aria-label="Nawigacja główna">
-           {NAV_ITEMS.map((item) => (
+           {navItems.map((item) => (
              <Link key={item.href} href={item.href} className={linkClass(item.href, item.ai)}>
                {item.label}
                {!item.ai && (
@@ -213,12 +257,22 @@ export function Navbar() {
                    >
                      <span className="text-lg">❤️</span> Ulubione
                    </Link>
+                      {!user.is_host ? (
+                        <Link
+                          href="/messages"
+                          onClick={() => setUserDropdownOpen(false)}
+                          className="flex items-center gap-3.5 rounded-[16px] px-5 py-3.5 text-[15px] font-bold text-[#3d4f45] transition-all duration-200 hover:bg-[#f2f7f4] hover:text-[#0a0f0d] hover:-translate-x-1"
+                        >
+                          <span className="text-lg">💬</span> Wiadomości{unreadTotal > 0 ? ` (${unreadTotal})` : ""}
+                        </Link>
+                      ) : null}
                    <div className="my-2 h-px bg-[#e4ebe7]/60" />
                    <button
                      type="button"
                      onClick={() => {
                        setUserDropdownOpen(false);
                        logout();
+                        clearAuthTokens();
                        router.replace("/");
                        router.refresh();
                      }}
@@ -263,7 +317,7 @@ export function Navbar() {
          aria-hidden={!menuOpen}
        >
          <div className="flex flex-col gap-2">
-           {NAV_ITEMS.map((item) => (
+           {navItems.map((item) => (
              <Link
                key={item.href}
                href={item.href}
@@ -318,10 +372,20 @@ export function Navbar() {
                >
                  📅 Moje rezerwacje
                </Link>
+                {!user.is_host ? (
+                  <Link
+                    href="/messages"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-3.5 rounded-[14px] px-4 py-3.5 text-[15px] font-bold text-[#3d4f45] transition-all duration-200 hover:bg-white"
+                  >
+                    💬 Wiadomości{unreadTotal > 0 ? ` (${unreadTotal})` : ""}
+                  </Link>
+                ) : null}
                <button
                  type="button"
                  onClick={() => {
                    logout();
+                    clearAuthTokens();
                    router.replace("/");
                    router.refresh();
                    setMenuOpen(false);

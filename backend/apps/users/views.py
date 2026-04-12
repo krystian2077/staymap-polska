@@ -1,5 +1,6 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.contrib.auth import get_user_model
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, serializers
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -59,19 +60,42 @@ class MeView(generics.RetrieveUpdateAPIView):
         return Response({"data": serializer.data, "meta": {}})
 
     def update(self, request, *args, **kwargs):
-        partial = kwargs.pop("partial", False)
+        partial = kwargs.pop("partial", True)  # Zawsze partial dla profilu
         instance = self.get_object()
 
+        # 1. Obsługa awatara
         avatar = request.FILES.get("avatar")
         if avatar:
-            content = ImageService.validate_and_process(avatar)
-            prof, _ = UserProfile.objects.get_or_create(user=instance)
-            prof.avatar.save(content.name, content, save=True)
+            try:
+                content = ImageService.validate_and_process(avatar)
+                prof, _ = UserProfile.objects.get_or_create(user=instance)
+                if prof.avatar:
+                    prof.avatar.delete(save=False)
+                prof.avatar.save(content.name, content, save=True)
+            except DjangoValidationError as e:
+                raise serializers.ValidationError({"avatar": list(e.messages)})
+            except Exception as e:
+                print(f"Error processing avatar: {e}")
+                raise serializers.ValidationError({"avatar": ["Błąd przetwarzania pliku graficznego."]})
 
+        # 2. Obsługa bio (HostProfile) - niezależnie od awatara
+        bio = request.data.get("bio")
+        if bio and hasattr(instance, "host_profile"):
+            try:
+                hp = instance.host_profile
+                hp.bio = bio
+                hp.save(update_fields=["bio"])
+            except DjangoValidationError as e:
+                raise serializers.ValidationError({"bio": list(e.messages)})
+            except Exception as e:
+                print(f"Error updating host bio: {e}")
+
+        # 3. Reszta pól (User + UserProfile) przez serializer
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
+        # Odświeżamy i zwracamy
         instance = self.get_queryset().get(pk=instance.pk)
         out = self.get_serializer(instance)
         return Response({"data": out.data, "meta": {}})
