@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
@@ -35,9 +36,10 @@ def test_ai_search_happy_path(mock_llm, api_client, user_host):
             "travel_mode": "romantic",
             "guests": 2,
             "summary_pl": "Romantyczny wyjazd dla dwojga w Zakopanem.",
+            "ordering": "recommended",
         },
         120,
-        __import__("decimal").Decimal("0"),
+        Decimal("0"),
     )
     api_client.force_authenticate(user=user_host)
     res = api_client.post("/api/v1/ai/search/", {"prompt": "Zakopane romantycznie"}, format="json")
@@ -47,8 +49,10 @@ def test_ai_search_happy_path(mock_llm, api_client, user_host):
     assert detail.status_code == 200
     data = detail.json()["data"]
     assert data["status"] == "complete"
-    assert data["interpretation"]["summary_pl"]
-    assert "normalized_params" in data["interpretation"]
+    assert isinstance(data["assistant_reply"], str)
+    assert isinstance(data["follow_up_suggestions"], list)
+    assert isinstance(data["conversation"], list)
+    assert data["filters"]["travel_mode"] == "romantic"
 
 
 @pytest.mark.django_db
@@ -62,9 +66,10 @@ def test_ai_search_cannot_read_other_user_session(mock_llm, api_client, django_u
             "longitude": 18.6466,
             "radius_km": 40,
             "summary_pl": "Test",
+            "ordering": "recommended",
         },
         10,
-        __import__("decimal").Decimal("0"),
+        Decimal("0"),
     )
     u1 = django_user_model.objects.create_user(
         email="a1@test.pl",
@@ -92,3 +97,52 @@ def test_ai_search_validation_empty_prompt(api_client, user_host):
     with override_settings(OPENAI_API_KEY="sk-test"):
         res = api_client.post("/api/v1/ai/search/", {"prompt": "  "}, format="json")
     assert res.status_code == 400
+
+
+@pytest.mark.django_db
+@override_settings(OPENAI_API_KEY="sk-test-dummy")
+@patch("apps.ai_assistant.services.AISearchService._call_llm")
+def test_ai_search_follow_up_in_same_session(mock_llm, api_client, user_host):
+    mock_llm.side_effect = [
+        (
+            {
+                "location": "Mazury",
+                "travel_mode": "lake",
+                "summary_pl": "Wybieram dla Ciebie klimatyczne noclegi na Mazurach.",
+                "ordering": "recommended",
+            },
+            30,
+            Decimal("0"),
+        ),
+        (
+            {
+                "location": "Mazury",
+                "travel_mode": "lake",
+                "max_price": 500,
+                "summary_pl": "Zawężam wyniki do budżetu do 500 PLN za noc.",
+                "ordering": "price_asc",
+            },
+            35,
+            Decimal("0"),
+        ),
+    ]
+
+    api_client.force_authenticate(user=user_host)
+    first = api_client.post("/api/v1/ai/search/", {"prompt": "Mazury na weekend"}, format="json")
+    assert first.status_code == 201
+    sid = first.json()["data"]["session_id"]
+
+    second = api_client.post(
+        "/api/v1/ai/search/",
+        {"prompt": "Do 500 zł za noc", "session_id": sid},
+        format="json",
+    )
+    assert second.status_code == 201
+    assert second.json()["data"]["session_id"] == sid
+
+    detail = api_client.get(f"/api/v1/ai/search/{sid}/")
+    assert detail.status_code == 200
+    payload = detail.json()["data"]
+    assert payload["status"] == "complete"
+    assert len(payload["conversation"]) >= 3
+

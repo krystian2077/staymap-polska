@@ -204,6 +204,57 @@ function AIResultCard({ result, index }: { result: AIResult; index: number }) {
   );
 }
 
+function AIChatPanel({
+  session,
+  onUseSuggestion,
+}: {
+  session: AISession;
+  onUseSuggestion: (text: string) => void;
+}) {
+  const conversation = session.conversation ?? [];
+  return (
+    <section className="mx-7 mt-5 rounded-2xl border border-[#ddd6fe] bg-white p-4 shadow-sm">
+      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#7c3aed]">AI Concierge</p>
+      <div className="max-h-[260px] space-y-2 overflow-auto pr-1">
+        {conversation.map((m, idx) => (
+          <div
+            key={`${m.created_at}-${idx}`}
+            className={cn(
+              "max-w-[92%] rounded-xl px-3 py-2 text-sm",
+              m.role === "assistant"
+                ? "border border-[#ddd6fe] bg-[#f5f3ff] text-[#5b21b6]"
+                : "ml-auto border border-[#d1fae5] bg-[#ecfdf5] text-[#065f46]"
+            )}
+          >
+            {m.text}
+          </div>
+        ))}
+      </div>
+
+      {session.assistant_reply ? (
+        <div className="mt-3 rounded-xl border border-[#ddd6fe] bg-[#ede9fe] px-3 py-2 text-sm font-medium text-[#6d28d9]">
+          {session.assistant_reply}
+        </div>
+      ) : null}
+
+      {session.follow_up_suggestions?.length ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {session.follow_up_suggestions.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => onUseSuggestion(s)}
+              className="rounded-full border border-[#c4b5fd] bg-[#faf5ff] px-3 py-1.5 text-xs font-semibold text-[#6d28d9] transition hover:-translate-y-px"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export default function AiSearchPage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#0a2e1a]" />}>
@@ -226,7 +277,6 @@ function AiSearchContent() {
   const polling = useAIStore((s) => s.polling);
   const error = useAIStore((s) => s.error);
   const reset = useAIStore((s) => s.reset);
-  const rateLimitRemaining = useAIStore((s) => s.rateLimitRemaining);
   const results = useAIStore((s) => s.results);
   const filters = useAIStore((s) => s.filters);
   const startSearch = useAIStore((s) => s.startSearch);
@@ -247,9 +297,12 @@ function AiSearchContent() {
     if (p && mounted && !session && !loading && !polling && !error && searchStartedFor.current !== p) {
       searchStartedFor.current = p;
       setPrompt(p);
-      void submitSearch();
+      const token = typeof window !== "undefined" ? localStorage.getItem("access") : null;
+      if (token) {
+        void startSearch(p, token);
+      }
     }
-  }, [searchParams, mounted, session, loading, polling, error, setPrompt]);
+  }, [searchParams, mounted, session, loading, polling, error, setPrompt, startSearch]);
 
   useEffect(() => {
     if (!mounted || typeof window === "undefined") return;
@@ -269,21 +322,20 @@ function AiSearchContent() {
     resizeTa();
   }, [prompt, resizeTa]);
 
-  async function submitSearch() {
+  async function submitSearch(overridePrompt?: string, overrideSessionId?: string) {
     if (busy) return;
     const token = localStorage.getItem("access");
     if (!token) {
       router.push("/login?next=/ai");
       return;
     }
-    const p = prompt.trim();
+    const p = (overridePrompt ?? prompt).trim();
     if (!p) return;
-    await startSearch(p, token);
+    await startSearch(p, token, overrideSessionId ?? session?.session_id);
   }
 
   const busy = loading || polling;
   const complete = session?.status === "complete";
-  const rateWarn = rateLimitRemaining <= 2 && rateLimitRemaining > 0;
 
   if (!mounted) {
     return <div className="min-h-[40vh] bg-[#0a2e1a]" />;
@@ -324,7 +376,7 @@ function AiSearchContent() {
           }}
         >
           <StarIcon className="text-[#86efac]" />
-          Wyszukiwanie AI · Powered by GPT-4o
+          Wyszukiwanie AI · Premium concierge
         </div>
 
         <h1
@@ -432,9 +484,21 @@ function AiSearchContent() {
               <h2 className="text-base font-extrabold text-text">
                 {results.length} ofert dla Ciebie ✨
               </h2>
-              <p className="text-[13px] text-text-muted">Posortowane wg dopasowania AI</p>
+              <p className="text-[13px] text-text-muted">
+                Posortowane wg dopasowania AI{session?.model_used ? ` · model: ${session.model_used}` : ""}
+              </p>
             </div>
           </header>
+
+          {session ? (
+            <AIChatPanel
+              session={session}
+              onUseSuggestion={(text) => {
+                setPrompt(text);
+                void submitSearch(text, session.session_id);
+              }}
+            />
+          ) : null}
 
           <div className="mx-7 mb-5 mt-4 flex items-center gap-2.5 rounded-[10px] border border-[#ddd6fe] bg-[#ede9fe] px-3.5 py-2.5 text-[13px] font-medium text-[#7c3aed]">
             <span aria-hidden>💬</span>

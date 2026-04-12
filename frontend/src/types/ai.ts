@@ -3,6 +3,7 @@ import type { Listing, SearchQuerySchema, SimilarListing } from "./listing";
 export type AISessionStatus = "pending" | "processing" | "complete" | "failed";
 
 export interface AIFilterInterpretation {
+  summary_pl?: string;
   travel_mode: string | null;
   location: string | null;
   near_mountains: boolean;
@@ -37,8 +38,12 @@ export interface AISession {
   prompt: string;
   filters: AIFilterInterpretation | null;
   results: AIResult[];
+  assistant_reply?: string;
+  follow_up_suggestions?: string[];
+  conversation?: { role: "user" | "assistant"; text: string; created_at: string }[];
   tokens_used: number;
   cost_usd: number;
+  model_used?: string | null;
   created_at: string;
   expires_at: string;
 }

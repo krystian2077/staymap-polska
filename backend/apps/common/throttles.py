@@ -23,3 +23,8 @@ class ListingNearbyAnonThrottle(AnonRateThrottle):
 
 class ListingNearbyUserThrottle(UserRateThrottle):
     scope = "listing_nearby_user"
+
+
+class AISearchThrottle(UserRateThrottle):
+    scope = "ai_search"
+

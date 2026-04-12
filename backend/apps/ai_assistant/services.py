@@ -9,6 +9,7 @@ from uuid import UUID
 
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 from openai import OpenAI
 
 from apps.ai_assistant.interpretation import (
@@ -153,7 +154,11 @@ class AISearchService:
 
     @staticmethod
     def _call_llm(prompt: str) -> tuple[dict[str, Any], int, Decimal]:
-        model = getattr(settings, "OPENAI_MODEL", "gpt-4o-mini")
+        model = getattr(settings, "OPENAI_MODEL_CHEAP", "") or getattr(
+            settings,
+            "OPENAI_MODEL",
+            "gpt-4o-mini",
+        )
         max_tokens = getattr(settings, "OPENAI_MAX_TOKENS", 800)
         client = AISearchService._client()
         try:
@@ -189,8 +194,40 @@ class AISearchService:
         cost = _usage_cost_usd(getattr(resp, "usage", None))
         return parsed, tokens, cost
 
+    @staticmethod
+    def _build_contextual_prompt(
+        session: AiTravelSession,
+        current_prompt: str,
+        current_prompt_id,
+    ) -> str:
+        prev_prompts = (
+            AiTravelPrompt.objects.filter(session=session)
+            .exclude(pk=current_prompt_id)
+            .order_by("-created_at")[:2]
+        )
+        if not prev_prompts:
+            return current_prompt
+
+        lines = [
+            "Kontekst poprzednich wiadomości użytkownika (najpierw najnowsza):",
+        ]
+        for i, p in enumerate(prev_prompts, start=1):
+            lines.append(f"{i}. {p.raw_text[:300]}")
+            interp = AiFilterInterpretation.objects.filter(prompt=p).first()
+            if interp and isinstance(interp.normalized_params, dict) and interp.normalized_params:
+                lines.append(
+                    f"   poprzednie_parametry: {json.dumps(interp.normalized_params, ensure_ascii=False)}"
+                )
+
+        lines.append("Nowa wiadomość użytkownika:")
+        lines.append(current_prompt)
+        lines.append(
+            "Zinterpretuj nową wiadomość, uwzględniając kontekst i preferencje z historii."
+        )
+        return "\n".join(lines)
+
     @classmethod
-    def run_sync(cls, user, raw_prompt: str) -> AiTravelSession:
+    def run_sync(cls, user, raw_prompt: str, session_id=None) -> AiTravelSession:
         """
         Tworzy sesję, woła LLM, uruchamia SearchOrchestrator, zapisuje wyniki.
         Wywołanie synchroniczne (bez kolejki) — wystarczy na dev i małe obciążenie.
@@ -203,17 +240,36 @@ class AISearchService:
 
         cls._require_api_key()
 
-        with transaction.atomic():
-            session = AiTravelSession.objects.create(
-                user=user,
-                status=AiTravelSession.Status.PROCESSING,
-            )
-            prompt_row = AiTravelPrompt.objects.create(session=session, raw_text=text)
+        model_name = getattr(settings, "OPENAI_MODEL_CHEAP", "") or getattr(
+            settings,
+            "OPENAI_MODEL",
+            "gpt-4o-mini",
+        )
 
-        model_name = getattr(settings, "OPENAI_MODEL", "gpt-4o-mini")
+        with transaction.atomic():
+            if session_id:
+                session = (
+                    AiTravelSession.objects.select_for_update()
+                    .filter(pk=session_id, user=user)
+                    .first()
+                )
+                if not session:
+                    raise DRFValidationError("Nie znaleziono wskazanej sesji AI.")
+                if timezone.now() > session.expires_at:
+                    raise DRFValidationError("Sesja AI wygasła. Rozpocznij nowe wyszukiwanie.")
+                session.status = AiTravelSession.Status.PROCESSING
+                session.error_message = ""
+                session.save(update_fields=["status", "error_message", "updated_at"])
+            else:
+                session = AiTravelSession.objects.create(
+                    user=user,
+                    status=AiTravelSession.Status.PROCESSING,
+                )
+            prompt_row = AiTravelPrompt.objects.create(session=session, raw_text=text)
+        llm_prompt = cls._build_contextual_prompt(session, text, prompt_row.pk)
 
         try:
-            llm_payload, tokens, cost_part = cls._call_llm(text)
+            llm_payload, tokens, cost_part = cls._call_llm(llm_prompt)
         except AIServiceError as e:
             msg = e.detail if isinstance(e.detail, str) else str(e.detail)
             AiTravelSession.objects.filter(pk=session.pk).update(
@@ -237,8 +293,8 @@ class AISearchService:
                 s.status = AiTravelSession.Status.FAILED
                 s.error_message = msg
                 s.model_used = model_name[:80]
-                s.total_tokens_used = tokens
-                s.total_cost_usd = cost_part
+                s.total_tokens_used = int(s.total_tokens_used or 0) + int(tokens or 0)
+                s.total_cost_usd = (s.total_cost_usd or Decimal("0")) + (cost_part or Decimal("0"))
                 s.save()
             session.refresh_from_db()
             return session
@@ -253,8 +309,8 @@ class AISearchService:
                 s.status = AiTravelSession.Status.FAILED
                 s.error_message = "Błąd wyszukiwania po interpretacji AI."
                 s.model_used = model_name[:80]
-                s.total_tokens_used = tokens
-                s.total_cost_usd = cost_part
+                s.total_tokens_used = int(s.total_tokens_used or 0) + int(tokens or 0)
+                s.total_cost_usd = (s.total_cost_usd or Decimal("0")) + (cost_part or Decimal("0"))
                 s.save()
             session.refresh_from_db()
             return session
@@ -269,8 +325,8 @@ class AISearchService:
             s = AiTravelSession.objects.select_for_update().get(pk=session.pk)
             s.status = AiTravelSession.Status.COMPLETE
             s.model_used = model_name[:80]
-            s.total_tokens_used = tokens
-            s.total_cost_usd = cost_part
+            s.total_tokens_used = int(s.total_tokens_used or 0) + int(tokens or 0)
+            s.total_cost_usd = (s.total_cost_usd or Decimal("0")) + (cost_part or Decimal("0"))
             s.result_listing_ids = id_strings
             s.result_total_count = total
             s.error_message = ""

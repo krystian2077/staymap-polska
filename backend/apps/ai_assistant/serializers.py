@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 
 class AiSearchCreateSerializer(serializers.Serializer):
+    session_id = serializers.UUIDField(required=False)
     prompt = serializers.CharField(
         min_length=1,
         max_length=4000,

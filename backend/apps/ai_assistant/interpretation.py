@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from apps.search.schemas import (
     VALID_ORDERING,
@@ -9,6 +9,14 @@ from apps.search.schemas import (
     _parse_float,
     _parse_int,
 )
+
+
+def _parse_bool(v: Any) -> Optional[bool]:
+    if v is None or v == "":
+        return None
+    if isinstance(v, bool):
+        return v
+    return str(v).strip().lower() in ("1", "true", "yes", "on", "tak")
 
 
 def normalized_search_params_from_llm(llm: dict[str, Any]) -> tuple[dict[str, Any], list[str]]:
@@ -30,6 +38,8 @@ def normalized_search_params_from_llm(llm: dict[str, Any]) -> tuple[dict[str, An
             errors.append(f"Nieprawidłowy travel_mode: {mode}")
         else:
             params["travel_mode"] = mode
+            if mode == "pet":
+                params["is_pet_friendly"] = True
 
     guests = _parse_int(llm.get("guests"))
     if llm.get("guests") not in (None, ""):
@@ -109,6 +119,21 @@ def normalized_search_params_from_llm(llm: dict[str, Any]) -> tuple[dict[str, An
         errors.append(f"Nieprawidłowy ordering: {ordering}")
     else:
         params["ordering"] = ordering
+
+    for tag in ("near_mountains", "near_lake", "near_forest"):
+        bv = _parse_bool(llm.get(tag))
+        if bv is True:
+            params[tag] = True
+
+    quiet_min = _parse_int(llm.get("quiet_score_min"))
+    if llm.get("quiet_score_min") not in (None, ""):
+        if quiet_min is None:
+            errors.append("quiet_score_min musi być liczbą całkowitą")
+        elif not (0 <= quiet_min <= 10):
+            errors.append("quiet_score_min musi być między 0 a 10")
+        elif quiet_min >= 7:
+            # SearchOrchestrator wspiera filtr quiet_rural zamiast bezpośredniego score.
+            params["quiet_rural"] = True
 
     return params, errors
 

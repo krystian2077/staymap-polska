@@ -153,12 +153,14 @@ REST_FRAMEWORK = {
         "booking_create": "10/min",
         "listing_nearby": "18/hour",
         "listing_nearby_user": "60/hour",
+        "ai_search": "20/min",
     },
 }
 
 # OpenAI-compatible API (OpenAI, Groq, lokalny proxy itd.)
 OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
 OPENAI_BASE_URL = env("OPENAI_BASE_URL", default="")
+OPENAI_MODEL_CHEAP = env("OPENAI_MODEL_CHEAP", default="gpt-4o-mini")
 OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4o-mini")
 OPENAI_MAX_TOKENS = env.int("OPENAI_MAX_TOKENS", default=800)
 AI_SESSION_TTL_HOURS = env.int("AI_SESSION_TTL_HOURS", default=24)
