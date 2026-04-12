@@ -6,7 +6,19 @@ from celery.schedules import crontab
 
 env = environ.Env()
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
-environ.Env.read_env(BASE_DIR.parent.parent / ".env")
+
+try:
+    _env_paths = [
+        BASE_DIR.parent / ".env",
+        BASE_DIR / ".env",
+    ]
+    for _env_file in _env_paths:
+        if _env_file.exists():
+            environ.Env.read_env(str(_env_file))
+            break
+except Exception as e:
+    import sys
+    print(f"[Django] Warning: Could not load .env: {e}", file=sys.stderr)
 
 SECRET_KEY = env("SECRET_KEY", default="dev-only-change-me-in-production")
 DEBUG = env.bool("DEBUG", default=False)
@@ -158,7 +170,15 @@ REST_FRAMEWORK = {
 }
 
 # OpenAI-compatible API (OpenAI, Groq, lokalny proxy itd.)
-OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
+try:
+    OPENAI_API_KEY = env("OPENAI_API_KEY")
+except KeyError:
+    import sys
+    print(
+        "[Django] ERROR: OPENAI_API_KEY is required but not set in .env",
+        file=sys.stderr,
+    )
+    OPENAI_API_KEY = None
 OPENAI_BASE_URL = env("OPENAI_BASE_URL", default="")
 OPENAI_MODEL_CHEAP = env("OPENAI_MODEL_CHEAP", default="gpt-4o-mini")
 OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4o-mini")
