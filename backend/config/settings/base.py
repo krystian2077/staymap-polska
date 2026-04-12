@@ -170,15 +170,7 @@ REST_FRAMEWORK = {
 }
 
 # OpenAI-compatible API (OpenAI, Groq, lokalny proxy itd.)
-try:
-    OPENAI_API_KEY = env("OPENAI_API_KEY")
-except KeyError:
-    import sys
-    print(
-        "[Django] ERROR: OPENAI_API_KEY is required but not set in .env",
-        file=sys.stderr,
-    )
-    OPENAI_API_KEY = None
+OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
 OPENAI_BASE_URL = env("OPENAI_BASE_URL", default="")
 OPENAI_MODEL_CHEAP = env("OPENAI_MODEL_CHEAP", default="gpt-4o-mini")
 OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4o-mini")

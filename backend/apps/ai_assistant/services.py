@@ -138,14 +138,14 @@ def _usage_cost_usd(usage: Any) -> Decimal:
 class AISearchService:
     @staticmethod
     def _require_api_key() -> None:
-        key = (getattr(settings, "OPENAI_API_KEY", "") or "").strip()
+        key = getattr(settings, "OPENAI_API_KEY", None)
         if not key:
             raise AIServiceError("Brak skonfigurowanego klucza API modelu (OPENAI_API_KEY).")
 
     @staticmethod
     def _client() -> OpenAI:
         AISearchService._require_api_key()
-        key = (getattr(settings, "OPENAI_API_KEY", "") or "").strip()
+        key = getattr(settings, "OPENAI_API_KEY", None) or ""
         base = (getattr(settings, "OPENAI_BASE_URL", None) or "").strip()
         kwargs: dict[str, Any] = {"api_key": key}
         if base:
