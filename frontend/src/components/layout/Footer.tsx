@@ -11,6 +11,8 @@ const LEGAL_LINKS = [
 const PRODUCT_LINKS = [
   { label: "Wyszukaj noclegi", href: "/search" },
   { label: "Discovery", href: "/discovery" },
+  { label: "Ulubione", href: "/wishlist" },
+  { label: "Porównywarka ofert", href: "/compare" },
   { label: "AI Search", href: "/ai" },
   { label: "Zostań gospodarzem", href: "/host/onboarding" },
 ];

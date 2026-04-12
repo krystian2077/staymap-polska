@@ -270,7 +270,9 @@ export default async function HomePage() {
   return (
     <>
       <HeroSection />
-      <MarqueeTicker />
+      <div className="-mt-[7.5rem] mb-12 sm:-mt-[9.5rem] sm:mb-14">
+        <MarqueeTicker />
+      </div>
       <TravelModes />
       <AiSection />
       <FeaturedListings listings={listings} />

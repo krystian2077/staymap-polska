@@ -101,10 +101,12 @@ def parse_search_params(query_dict) -> tuple[dict[str, Any], list[str]]:
     if loc := (data.get("location") or "").strip():
         params["location"] = loc
 
-    lat = _parse_float(data.get("latitude"))
-    lng = _parse_float(data.get("longitude"))
-    has_lat = data.get("latitude") not in (None, "")
-    has_lng = data.get("longitude") not in (None, "")
+    lat_val = data.get("latitude") or data.get("lat")
+    lng_val = data.get("longitude") or data.get("lng")
+    lat = _parse_float(lat_val)
+    lng = _parse_float(lng_val)
+    has_lat = lat_val not in (None, "")
+    has_lng = lng_val not in (None, "")
     if has_lat or has_lng:
         if lat is None or lng is None:
             errors.append("Podaj jednocześnie poprawne latitude i longitude (liczby)")
@@ -206,7 +208,7 @@ def parse_search_params(query_dict) -> tuple[dict[str, Any], list[str]]:
 
     for tag in LOCATION_TAG_FIELD_NAMES:
         raw = data.get(tag)
-        if raw not in (None, "") and _truthy(raw):
+        if raw is not None and _truthy(raw):
             params[tag] = True
 
     # listing_types — lista slugów (np. domek, apartament)
@@ -234,6 +236,8 @@ def parse_search_params(query_dict) -> tuple[dict[str, Any], list[str]]:
         "location",
         "latitude",
         "longitude",
+        "lat",
+        "lng",
         "radius_km",
         "date_from",
         "date_to",
@@ -268,6 +272,8 @@ SAVED_SEARCH_PARAM_KEYS = frozenset(
         "location",
         "latitude",
         "longitude",
+        "lat",
+        "lng",
         "radius_km",
         "date_from",
         "date_to",

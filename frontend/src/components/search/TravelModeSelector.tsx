@@ -11,7 +11,6 @@ export const TRAVEL_MODE_ITEMS = [
   { id: "outdoor", emoji: "🏕️", label: "Outdoor", desc: "Góry, szlaki, rowery" },
   { id: "lake", emoji: "🏊", label: "Jezioro", desc: "Dostęp do wody, kajaki" },
   { id: "mountains", emoji: "⛰️", label: "Góry", desc: "Szczyty, narty, kominek" },
-  { id: "wellness", emoji: "🧖", label: "Wellness", desc: "Sauna, hot tub, masaż" },
 ] as const;
 
 type Props = {

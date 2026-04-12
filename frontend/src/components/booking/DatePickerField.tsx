@@ -6,8 +6,6 @@ import { pl } from "date-fns/locale";
 import { useEffect, useMemo, useState } from "react";
 import { DayPicker, type DateRange } from "react-day-picker";
 
-import "react-day-picker/style.css";
-
 import { toISODateString } from "@/lib/dates";
 import { formatDate } from "@/lib/utils/dates";
 
@@ -125,26 +123,31 @@ export function DatePickerField({
             }}
             disabled={[{ before: today }, { after: toLimit }, ...disabledDays]}
             classNames={{
-              months: "flex flex-col gap-4 md:flex-row md:gap-8",
+              months: "flex flex-col gap-6 md:flex-row",
               month: "space-y-3",
+              month_caption: "flex items-center justify-center relative h-9",
               caption_label: "text-sm font-bold text-brand-dark capitalize",
-              nav: "flex items-center gap-1",
+              nav: "flex items-center gap-1 absolute inset-x-0 top-0 justify-between",
               button_previous:
-                "h-7 w-7 rounded-md border border-gray-200 text-sm hover:border-brand hover:text-brand disabled:opacity-40",
+                "inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:border-brand hover:text-brand transition-colors disabled:opacity-40",
               button_next:
-                "h-7 w-7 rounded-md border border-gray-200 text-sm hover:border-brand hover:text-brand disabled:opacity-40",
-              weekdays: "flex gap-1 text-[11px] font-semibold text-gray-400",
-              weekday: "w-9 text-center",
-              week: "mt-1 flex gap-1",
-              day: "h-9 w-9 text-center text-sm",
+                "inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:border-brand hover:text-brand transition-colors disabled:opacity-40",
+              chevron: "h-3 w-3 fill-current",
+              weekdays: "flex",
+              weekday: "flex-1 text-center text-[11px] font-semibold text-gray-400 pb-1",
+              weeks: "space-y-0.5",
+              week: "flex",
+              day: "flex-1 flex items-center justify-center",
               day_button:
-                "mx-auto flex h-9 w-9 items-center justify-center rounded-lg font-medium text-gray-800 hover:bg-brand-surface",
-              selected: "bg-brand-dark text-white hover:bg-brand-dark hover:text-white rounded-lg",
-              range_start: "bg-brand-dark text-white rounded-l-lg rounded-r-none",
-              range_end: "bg-brand-dark text-white rounded-r-lg rounded-l-none",
-              range_middle: "bg-[#dcfce7] text-brand-dark rounded-none font-semibold",
-              today: "ring-[1.5px] ring-brand",
-              disabled: "text-red-200 line-through opacity-60 cursor-not-allowed",
+                "h-9 w-9 flex items-center justify-center rounded-full text-sm font-medium text-gray-800 hover:bg-brand-surface transition-colors duration-150",
+              selected: "!bg-brand-dark !text-white rounded-full",
+              range_start: "!bg-brand-dark !text-white rounded-full",
+              range_end: "!bg-brand-dark !text-white rounded-full",
+              range_middle: "!bg-[#dcfce7] !text-brand-dark [&>button]:rounded-none",
+              today: "font-bold [&>button]:ring-[1.5px] [&>button]:ring-brand",
+              disabled: "opacity-50 [&>button]:line-through [&>button]:cursor-not-allowed",
+              outside: "opacity-0 pointer-events-none",
+              hidden: "invisible",
             }}
           />
           <div className="mt-3 flex flex-wrap gap-3 text-[11px] text-gray-400">

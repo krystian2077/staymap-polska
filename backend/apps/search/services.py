@@ -97,7 +97,9 @@ class SearchOrchestrator:
         )
 
         qs = (
-            Listing.objects.filter(status=Listing.Status.APPROVED)
+            Listing.objects.filter(
+                status__in=[Listing.Status.APPROVED, Listing.Status.PENDING, Listing.Status.DRAFT]
+            )
             .select_related("location", "host__user")
             .defer("description")
         )
@@ -106,13 +108,55 @@ class SearchOrchestrator:
 
         point = cls._extract_point(params)
         has_point = point is not None
+        
+        location_raw = params.get("location", "").strip()
+        location = location_raw.lower()
+
+        # Słowa kluczowe kategorii (ignorują filtr tekstowy miasta, aktywują tagi)
+        # Dodajemy warianty bez polskich znaków dla tolerancyjnego rozpoznawania (np. "gory" -> "góry")
+        category_keywords = {
+            "góry", "gory", "jezioro", "jeziora", "lake", "morze", "bałtyk", "baltyk",
+            "plaża", "plaza", "las", "narty", "ski",
+            "domek", "domki", "apartament", "apartamenty", "chata", "chaty", "w pobliżu"
+        }
+        is_category_location = location in category_keywords
+
+        # Mapowanie słów kluczowych na filtry tagów (jeśli użytkownik wpisał słowo, ale nie wybrał kafelka)
+        if location in ("góry", "gory"):
+            params["near_mountains"] = True
+        elif location in ("jezioro", "jeziora", "lake"):
+            params["near_lake"] = True
+        elif location in ("morze", "bałtyk", "baltyk", "plaża", "plaza"):
+            params["near_sea"] = True
+        elif location == "las":
+            params["near_forest"] = True
+        elif location in ("narty", "ski"):
+            params["ski_slopes_nearby"] = True
+        elif location in ("domek", "domki"):
+            params["listing_types"] = ["domek"]
+        elif location in ("apartament", "apartamenty"):
+            params["listing_types"] = ["apartament"]
+        elif location in ("chata", "chaty"):
+            params["listing_types"] = ["chata"]
+
         if point:
-            radius_km = float(params.get("radius_km") or 50)
+            # Jeśli mamy tylko tagi lub typy obiektów, a nie konkretną nazwę miejsca, zwiększamy promień do ogólnopolskiego (1000km)
+            is_generic_search = (not params.get("location") or is_category_location) and (
+                any(params.get(tag) is True for tag in LOCATION_TAG_FIELD_NAMES) or 
+                params.get("listing_types") or 
+                params.get("travel_mode")
+            )
+
+            if is_generic_search:
+                radius_km = 1000.0
+            else:
+                radius_km = float(params.get("radius_km") or 50)
+
             qs = qs.filter(location__point__dwithin=(point, D(km=radius_km))).annotate(
                 distance=Distance("location__point", point)
             )
 
-        if location := params.get("location"):
+        if location and not is_category_location:
             loc_q = Q(location__city__icontains=location) | Q(
                 location__region__icontains=location
             ) | Q(title__icontains=location)
@@ -202,7 +246,8 @@ class SearchOrchestrator:
 
     @staticmethod
     def _extract_point(params: dict[str, Any]) -> Point | None:
-        lat, lng = params.get("latitude"), params.get("longitude")
+        lat = params.get("latitude") or params.get("lat")
+        lng = params.get("longitude") or params.get("lng")
         if lat is not None and lng is not None:
             return Point(float(lng), float(lat), srid=4326)
         return None

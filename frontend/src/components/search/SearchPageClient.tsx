@@ -449,9 +449,9 @@ export default function SearchPageClient() {
             <Dialog.Title className="text-lg font-extrabold text-brand-dark">
               Zapisz wyszukiwanie
             </Dialog.Title>
-            <p className="mt-1 text-sm text-text-muted">
+            <Dialog.Description className="mt-1 text-sm text-text-muted">
               Nadaj nazwę i opcjonalnie włącz powiadomienia.
-            </p>
+            </Dialog.Description>
             <label className="mt-5 block text-xs font-bold text-text-secondary">
               Nazwa wyszukiwania
               <input

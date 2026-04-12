@@ -5,8 +5,6 @@ import { pl } from "date-fns/locale";
 import { useEffect, useMemo, useState } from "react";
 import { DayPicker, type DateRange } from "react-day-picker";
 
-import "react-day-picker/style.css";
-
 import type { BusyRange } from "./calendarUtils";
 import { datesFromBlockedAndBusy } from "./calendarUtils";
 
@@ -49,26 +47,31 @@ export function DateRangePicker({
         onSelect={onRangeChange}
         disabled={[{ before: today }, { after: toLimit }, ...disabledDays]}
         classNames={{
-          months: "flex flex-col gap-4 sm:flex-row sm:gap-8",
+          months: "flex flex-col gap-6 sm:flex-row",
           month: "space-y-3",
+          month_caption: "flex items-center justify-center relative h-9",
           caption_label: "text-sm font-bold text-brand-dark capitalize",
-          nav: "flex items-center gap-1",
+          nav: "flex items-center gap-1 absolute inset-x-0 top-0 justify-between",
           button_previous:
-            "h-8 w-8 rounded-md border border-gray-200 text-sm hover:bg-brand-surface disabled:opacity-40",
+            "inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-brand-surface hover:text-brand-dark transition-colors disabled:opacity-40",
           button_next:
-            "h-8 w-8 rounded-md border border-gray-200 text-sm hover:bg-brand-surface disabled:opacity-40",
-          weekdays: "flex gap-1 text-[11px] font-semibold uppercase text-text-muted",
-          weekday: "w-9 text-center",
-          week: "mt-1 flex gap-1",
-          day: "h-9 w-9 text-center text-sm",
+            "inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-brand-surface hover:text-brand-dark transition-colors disabled:opacity-40",
+          chevron: "h-3.5 w-3.5 fill-current",
+          weekdays: "flex",
+          weekday: "flex-1 text-center text-[11px] font-semibold uppercase text-text-muted pb-1",
+          weeks: "space-y-0.5",
+          week: "flex",
+          day: "flex-1 flex items-center justify-center",
           day_button:
-            "mx-auto flex h-9 w-9 items-center justify-center rounded-md font-medium text-text hover:bg-brand-muted",
-          selected: "bg-brand text-white hover:bg-brand hover:text-white rounded-md",
-          range_start: "bg-brand text-white rounded-l-md rounded-r-none",
-          range_end: "bg-brand text-white rounded-r-md rounded-l-none",
-          range_middle: "bg-brand-muted text-brand-dark rounded-none",
-          today: "ring-1 ring-brand/40",
-          disabled: "text-gray-300 line-through",
+            "h-9 w-9 flex items-center justify-center rounded-full text-sm font-medium text-text hover:bg-brand-muted transition-colors duration-150",
+          selected: "!bg-brand !text-white rounded-full",
+          range_start: "!bg-brand !text-white rounded-full",
+          range_end: "!bg-brand !text-white rounded-full",
+          range_middle: "!bg-brand-muted !text-brand-dark [&>button]:rounded-none",
+          today: "font-bold",
+          disabled: "opacity-40 [&>button]:line-through [&>button]:cursor-not-allowed",
+          outside: "opacity-0 pointer-events-none",
+          hidden: "invisible",
         }}
       />
     </div>
