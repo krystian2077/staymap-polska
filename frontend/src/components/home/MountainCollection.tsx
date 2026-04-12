@@ -1,7 +1,19 @@
+"use client";
+
 import Link from "next/link";
+import { useRef } from "react";
 import type { CollectionCardData } from "@/components/home/WaterCollection";
 
 export function MountainCollection({ cards }: { cards: CollectionCardData[] }) {
+  const railRef = useRef<HTMLDivElement>(null);
+
+  const scrollRail = (direction: "left" | "right") => {
+    const el = railRef.current;
+    if (!el) return;
+    const delta = Math.round(el.clientWidth * 0.85) * (direction === "right" ? 1 : -1);
+    el.scrollBy({ left: delta, behavior: "smooth" });
+  };
+
   return (
     <section className="mx-auto w-full max-w-[1240px] px-6 pb-20 md:px-12">
       <div className="relative overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,#f0fdf4_0%,#dcfce7_50%,#f0fdf4_100%)] px-6 pt-9 md:px-10">
@@ -13,17 +25,38 @@ export function MountainCollection({ cards }: { cards: CollectionCardData[] }) {
             <h2 className="mt-3 text-[28px] font-black tracking-[-.7px] text-[#0a2e1a]">Gory na weekend</h2>
             <p className="mt-1 text-[14px] text-[#7a8f84]">Domki, apartamenty i chaty blisko szlakow i punktow widokowych</p>
           </div>
-          <Link href="/search?travel_mode=mountains" className="text-sm font-bold text-[#16a34a] hover:underline">
-            Wszystkie
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => scrollRail("left")}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#bbf7d0] bg-white text-[#16a34a] transition hover:bg-[#dcfce7]"
+              aria-label="Przewin oferty w lewo"
+            >
+              ←
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollRail("right")}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#bbf7d0] bg-white text-[#16a34a] transition hover:bg-[#dcfce7]"
+              aria-label="Przewin oferty w prawo"
+            >
+              →
+            </button>
+            <Link href="/search?travel_mode=mountains" className="ml-1 text-sm font-bold text-[#16a34a] hover:underline">
+              Wszystkie
+            </Link>
+          </div>
         </div>
 
         <span className="pointer-events-none absolute bottom-0 right-10 text-[80px] opacity-[.06] grayscale">⛰️</span>
 
-        <div className="flex gap-4 overflow-x-auto pb-9 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          ref={railRef}
+          className="flex gap-4 overflow-x-auto pb-9 pr-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
           {cards.map((card) => (
             <Link
-              key={card.title}
+              key={`${card.href}-${card.title}`}
               href={card.href}
               className="group min-w-[264px] shrink-0 overflow-hidden rounded-[20px] border border-[#e4ebe7] bg-white shadow-[0_1px_3px_rgba(10,15,13,.05)] transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-1.5 hover:border-[#bbf7d0] hover:shadow-[0_24px_64px_rgba(10,15,13,.16)]"
             >

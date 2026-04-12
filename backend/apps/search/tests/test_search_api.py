@@ -95,3 +95,37 @@ def test_search_cursor_pagination(api_client, user_host):
     r2 = api_client.get(nxt)
     assert r2.status_code == 200
     assert len(r2.json()["data"]) == 2
+
+
+@pytest.mark.django_db
+def test_search_regions_payload_contains_sync_query(api_client, user_host):
+    _approved_listing(
+        user_host,
+        title="Gorski domek",
+        lat=49.30,
+        lng=19.95,
+        city="Zakopane",
+        guests=4,
+    )
+
+    r = api_client.get("/api/v1/search/regions/")
+    assert r.status_code == 200
+    body = r.json()
+    assert isinstance(body.get("data"), list)
+    assert len(body["data"]) == 5
+    keys = {item["key"] for item in body["data"]}
+    assert keys == {"gory", "baltyk", "jeziora", "lasy", "uzdrowiska"}
+
+    first = body["data"][0]
+    assert "key" in first
+    assert "count" in first
+    assert "href" in first and first["href"].startswith("/search?")
+    assert "map_center" in first and "lat" in first["map_center"] and "lng" in first["map_center"]
+    assert "search_query" in first
+    assert "latitude" in first["search_query"]
+    assert "longitude" in first["search_query"]
+    assert "radius_km" in first["search_query"]
+    assert "map_pin_count" in first
+    assert "starting_price" in first
+    assert "highlights" in first and isinstance(first["highlights"], list)
+

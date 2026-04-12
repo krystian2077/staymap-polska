@@ -70,6 +70,8 @@ export function HeroSearchBar() {
   const router = useRouter();
 
   const [open, setOpen] = useState<OpenDropdown>(null);
+  const [isAiMode, setIsAiMode] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
   const [location, setLocation] = useState("");
   const [locationLabel, setLocationLabel] = useState("");
   const [lat, setLat] = useState<number | null>(null);
@@ -192,6 +194,11 @@ export function HeroSearchBar() {
   }, [mode]);
 
   function runSearch() {
+    if (isAiMode) {
+      if (!aiPrompt.trim()) return;
+      router.push(`/ai?prompt=${encodeURIComponent(aiPrompt.trim().slice(0, 300))}`);
+      return;
+    }
     const params: SearchParamsState = {
       location: locationLabel || location,
       lat: lat || undefined,
@@ -353,63 +360,146 @@ export function HeroSearchBar() {
 
   return (
     <div className="relative mx-auto mb-[52px] w-full max-w-[1020px]">
+      <div className="mb-6 flex items-center justify-center gap-6">
+        <button
+          onClick={() => setIsAiMode(false)}
+          className={cn(
+            "relative px-4 py-2 text-[15px] font-bold transition-all",
+            !isAiMode ? "text-[#0a2e1a]" : "text-[#7a8f84] hover:text-[#0a2e1a]"
+          )}
+        >
+          Klasyczne
+          {!isAiMode && (
+            <motion.div
+              layoutId="activeTab"
+              className="absolute bottom-0 left-0 h-1 w-full rounded-full bg-[#16a34a]"
+            />
+          )}
+        </button>
+        <button
+          onClick={() => setIsAiMode(true)}
+          className={cn(
+            "relative flex items-center gap-2 px-4 py-2 text-[15px] font-bold transition-all",
+            isAiMode ? "text-[#0a2e1a]" : "text-[#7a8f84] hover:text-[#0a2e1a]"
+          )}
+        >
+          <span>AI Search</span>
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-tr from-[#7c3aed] to-[#a78bfa] text-[10px] text-white">
+            ✨
+          </span>
+          {isAiMode && (
+            <motion.div
+              layoutId="activeTab"
+              className="absolute bottom-0 left-0 h-1 w-full rounded-full bg-[#7c3aed]"
+            />
+          )}
+        </button>
+      </div>
+
       <Dialog.Root open={open !== null} onOpenChange={(v) => !v && setOpen(null)}>
         <div
-          className="pointer-events-none absolute inset-[-5px] rounded-[30px] bg-[linear-gradient(135deg,rgba(22,163,74,.4),rgba(74,222,128,.25),rgba(22,163,74,.4))] opacity-0 blur-[2px] transition-opacity duration-300 group-focus-within:opacity-100"
+          className={cn(
+            "pointer-events-none absolute inset-[-5px] rounded-[30px] opacity-0 blur-[2px] transition-opacity duration-300 group-focus-within:opacity-100",
+            isAiMode
+              ? "bg-[linear-gradient(135deg,rgba(124,58,237,.4),rgba(167,139,250,.25),rgba(124,58,237,.4))]"
+              : "bg-[linear-gradient(135deg,rgba(22,163,74,.4),rgba(74,222,128,.25),rgba(22,163,74,.4))]"
+          )}
           aria-hidden
         />
 
-        <div className="group relative rounded-[32px] border border-[rgba(228,235,231,0.6)] bg-white shadow-[0_3px_12px_rgba(10,15,13,0.03),0_8px_32px_rgba(10,15,13,0.08)] transition-all duration-300 focus-within:shadow-[0_12px_48px_rgba(10,15,13,0.15)]">
-          <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1.2fr_1fr_1fr_auto]">
-            <button
-              type="button"
-              onClick={() => setOpen("location")}
-              className={cn("sf", open === "location" ? "sf--active" : "hover:after:bg-white")}
-            >
-              <span className="sfl">Gdzie</span>
-              <span className={location ? "sfv" : "sfv ph"}>{location || "Wyszukaj kierunki"}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setOpen("dates")}
-              className={cn("sf", open === "dates" ? "sf--active" : "hover:after:bg-white")}
-            >
-              <span className="sfl">Kiedy</span>
-              <span className={checkIn && checkOut ? "sfv" : "sfv ph"}>{datesLabel}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setOpen("guests")}
-              className={cn("sf", open === "guests" ? "sf--active" : "hover:after:bg-white")}
-            >
-              <span className="sfl">Goście</span>
-              <span className={guestsCount ? "sfv" : "sfv ph"}>{guestsCount ? `${guestsCount} osób` : "Ile osób?"}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setOpen("mode")}
-              className={cn("sf border-r-0", open === "mode" ? "sf--active" : "hover:after:bg-white")}
-            >
-              <span className="sfl">Tryb podróży</span>
-              <span className={modeMeta ? "sfv" : "sfv ph"}>{modeMeta ? `${modeMeta.emoji} ${modeMeta.label}` : "Dowolny styl"}</span>
-            </button>
-
-            <div className="flex items-center px-3 py-2 md:pl-0.5 md:pr-2.5 md:py-2">
+        <div
+          className={cn(
+            "group relative rounded-[32px] border border-[rgba(228,235,231,0.6)] bg-white transition-all duration-300 focus-within:shadow-[0_12px_48px_rgba(10,15,13,0.15)]",
+            isAiMode
+              ? "shadow-[0_3px_12px_rgba(124,58,237,0.03),0_8px_32px_rgba(124,58,237,0.08)]"
+              : "shadow-[0_3px_12px_rgba(10,15,13,0.03),0_8px_32px_rgba(10,15,13,0.08)]"
+          )}
+        >
+          {isAiMode ? (
+            <div className="flex items-center px-8 py-3">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && runSearch()}
+                  placeholder="Opisz swój wymarzony wyjazd, np. 'Domek z sauną blisko lasu dla 4 osób...'"
+                  className="w-full bg-transparent py-4 text-[17px] font-bold text-[#0a2e1a] placeholder:text-[#7a8f84] focus:outline-none"
+                />
+              </div>
               <button
                 type="button"
                 onClick={runSearch}
-                className="sbtn flex h-[48px] w-[48px] items-center justify-center rounded-full bg-[#16a34a] text-white shadow-lg transition-all hover:bg-[#15803d] lg:w-auto lg:px-6 lg:gap-2"
+                className="flex h-[52px] items-center gap-3 rounded-full bg-[#7c3aed] px-8 font-black text-white shadow-lg transition-all hover:bg-[#6d28d9]"
               >
-                <svg viewBox="0 0 24 24" fill="none" className="h-[20px] w-[20px]" stroke="currentColor" strokeWidth="3">
-                  <path d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" strokeLinecap="round" strokeLinejoin="round" />
+                <span>Szukaj z AI</span>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="h-[20px] w-[20px]"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                >
+                  <path
+                    d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
                 </svg>
-                <span className="hidden lg:inline">Szukaj</span>
               </button>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1.2fr_1fr_1fr_auto]">
+              <button
+                type="button"
+                onClick={() => setOpen("location")}
+                className={cn("sf", open === "location" ? "sf--active" : "hover:after:bg-white")}
+              >
+                <span className="sfl">Gdzie</span>
+                <span className={location ? "sfv" : "sfv ph"}>{location || "Wyszukaj kierunki"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOpen("dates")}
+                className={cn("sf", open === "dates" ? "sf--active" : "hover:after:bg-white")}
+              >
+                <span className="sfl">Kiedy</span>
+                <span className={checkIn && checkOut ? "sfv" : "sfv ph"}>{datesLabel}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOpen("guests")}
+                className={cn("sf", open === "guests" ? "sf--active" : "hover:after:bg-white")}
+              >
+                <span className="sfl">Goście</span>
+                <span className={guestsCount ? "sfv" : "sfv ph"}>{guestsCount ? `${guestsCount} osób` : "Ile osób?"}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOpen("mode")}
+                className={cn("sf border-r-0", open === "mode" ? "sf--active" : "hover:after:bg-white")}
+              >
+                <span className="sfl">Tryb podróży</span>
+                <span className={modeMeta ? "sfv" : "sfv ph"}>{modeMeta ? `${modeMeta.emoji} ${modeMeta.label}` : "Dowolny styl"}</span>
+              </button>
+
+              <div className="flex items-center px-3 py-2 md:pl-0.5 md:pr-2.5 md:py-2">
+                <button
+                  type="button"
+                  onClick={runSearch}
+                  className="sbtn flex h-[48px] w-[48px] items-center justify-center rounded-full bg-[#16a34a] text-white shadow-lg transition-all hover:bg-[#15803d] lg:w-auto lg:px-6 lg:gap-2"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" className="h-[20px] w-[20px]" stroke="currentColor" strokeWidth="3">
+                    <path d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <span className="hidden lg:inline">Szukaj</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <Dialog.Portal>

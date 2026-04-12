@@ -1,4 +1,5 @@
 from urllib.parse import urlencode
+import unicodedata
 
 from django.db import models
 from django.contrib.gis.db.models.functions import Distance
@@ -48,6 +49,163 @@ def _attach_distance(rows, cache_params: dict, page_ids):
     for row in rows:
         if row.id in dist_map:
             row.distance = dist_map[row.id]
+
+
+def _normalize_text(value: str) -> str:
+    return unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii").lower()
+
+
+HOME_REGION_DEFINITIONS = [
+    {
+        "key": "gory",
+        "title": "Góry",
+        "subtitle": "Tatry, Beskidy i Bieszczady",
+        "emoji": "🏔️",
+        "bg": "linear-gradient(145deg,#d8e7e1,#b9d0c7)",
+        "glow": "rgba(34,197,94,.26)",
+        "anchor_label": "Zakopane i okolice",
+        "large": True,
+        "tag": "NAJPOPULARNIEJSZY",
+        "price_label": "od 180 zl/noc",
+        "search_params": {
+            "location": "Zakopane",
+            "latitude": 49.2992,
+            "longitude": 19.9496,
+            "radius_km": 90,
+            "near_mountains": True,
+            "ordering": "recommended",
+        },
+        "highlights": ["widoki premium", "domki z sauna", "szlaki w zasiegu"],
+    },
+    {
+        "key": "baltyk",
+        "title": "Bałtyk",
+        "subtitle": "Sopot, Hel, Kołobrzeg",
+        "emoji": "🌊",
+        "bg": "linear-gradient(145deg,#cad9e2,#afc4d0)",
+        "glow": "rgba(56,189,248,.24)",
+        "anchor_label": "Pas nadmorski",
+        "search_params": {
+            "location": "Bałtyk",
+            "latitude": 54.45,
+            "longitude": 18.67,
+            "radius_km": 120,
+            "near_sea": True,
+            "ordering": "recommended",
+        },
+        "highlights": ["plaze i molo", "apartamenty z widokiem", "weekend nad morzem"],
+    },
+    {
+        "key": "jeziora",
+        "title": "Jeziora",
+        "subtitle": "Mazury i relaks nad wodą",
+        "emoji": "🏊",
+        "bg": "linear-gradient(145deg,#d0dfca,#b8cbaf)",
+        "glow": "rgba(16,185,129,.23)",
+        "anchor_label": "Kraina Wielkich Jezior",
+        "search_params": {
+            "location": "Mazury",
+            "latitude": 53.8,
+            "longitude": 21.5,
+            "radius_km": 100,
+            "near_lake": True,
+            "ordering": "recommended",
+        },
+        "highlights": ["pomost i kajaki", "domki nad woda", "cisza po sezonie"],
+    },
+    {
+        "key": "uzdrowiska",
+        "title": "Uzdrowiska & SPA",
+        "subtitle": "Kotlina Klodzka, Cieplice, Swieradow",
+        "emoji": "♨️",
+        "bg": "linear-gradient(145deg,#d8d5e9,#beb7de)",
+        "glow": "rgba(167,139,250,.25)",
+        "anchor_label": "Slow travel i regeneracja",
+        "search_params": {
+            "location": "Kotlina Klodzka",
+            "latitude": 50.366,
+            "longitude": 16.386,
+            "radius_km": 115,
+            "near_forest": True,
+            "near_mountains": True,
+            "ordering": "recommended",
+        },
+        "highlights": ["wellness i termy", "mikroklimat gorski", "weekend detox"],
+    },
+    {
+        "key": "lasy",
+        "title": "Lasy",
+        "subtitle": "Bory, puszcze i totalny reset",
+        "emoji": "🌿",
+        "bg": "linear-gradient(145deg,#dad2ca,#c3bbb0)",
+        "glow": "rgba(132,204,22,.18)",
+        "anchor_label": "Puszcza i dzika przyroda",
+        "search_params": {
+            "location": "Białowieża",
+            "latitude": 52.74,
+            "longitude": 23.86,
+            "radius_km": 120,
+            "near_forest": True,
+            "ordering": "recommended",
+        },
+        "highlights": ["reset offline", "puszcze i bory", "natura 360"],
+    },
+]
+
+
+def _region_filters_from_params(params: dict) -> dict:
+    return {k: True for k, v in params.items() if k.startswith("near_") and v is True}
+
+
+def _region_href_from_params(params: dict) -> str:
+    pairs = []
+    for key, value in params.items():
+        if value is None:
+            continue
+        if isinstance(value, bool):
+            if value:
+                pairs.append((key, "true"))
+            continue
+        pairs.append((key, str(value)))
+    return f"/search?{urlencode(pairs, doseq=True)}"
+
+
+def _build_home_regions_payload() -> list[dict]:
+    payload = []
+    for region in HOME_REGION_DEFINITIONS:
+        search_params = dict(region["search_params"])
+        map_queryset = SearchOrchestrator.build_map_queryset(dict(search_params))
+        count = map_queryset.count()
+        stats = map_queryset.aggregate(min_price=models.Min("base_price"))
+        min_price = stats.get("min_price")
+        payload.append(
+            {
+                "key": region["key"],
+                "title": region["title"],
+                "subtitle": region["subtitle"],
+                "emoji": region["emoji"],
+                "bg": region["bg"],
+                "glow": region["glow"],
+                "anchor_label": region["anchor_label"],
+                "large": bool(region.get("large", False)),
+                "tag": region.get("tag"),
+                "price_label": region.get("price_label"),
+                "count": count,
+                "map_pin_count": min(count, MAX_MAP_PINS),
+                "starting_price": float(min_price) if min_price is not None else None,
+                "location": search_params.get("location", ""),
+                "map_center": {
+                    "lat": search_params.get("latitude"),
+                    "lng": search_params.get("longitude"),
+                },
+                "radius_km": search_params.get("radius_km"),
+                "filters": _region_filters_from_params(search_params),
+                "highlights": region.get("highlights", []),
+                "search_query": search_params,
+                "href": _region_href_from_params(search_params),
+            }
+        )
+    return payload
 
 
 class SearchViewSet(ViewSet):
@@ -161,76 +319,97 @@ class SearchViewSet(ViewSet):
             )
         return Response({"data": pins, "meta": {"count": len(pins)}})
 
+    @extend_schema(summary="Liczba ofert w regionach homepage")
+    @action(detail=False, methods=["get"], url_path="region-counts")
+    def region_counts(self, request):
+        regions = _build_home_regions_payload()
+        counts = {region["key"]: region["count"] for region in regions}
+        return Response({"data": counts})
+
+    @extend_schema(summary="Regiony homepage (pełna synchronizacja z mapą i filtrami)")
+    @action(detail=False, methods=["get"], url_path="regions")
+    def regions(self, request):
+        return Response({"data": _build_home_regions_payload()})
+
     @extend_schema(summary="Sugerowane kierunki na podstawie ofert")
     @action(detail=False, methods=["get"], url_path="suggested-destinations")
     def suggested_destinations(self, request):
-        """Pobiera 8 topowych lokalizacji z bazy danych z aktywnymi ofertami."""
-        # W celach sugestii dopuszczamy wszystkie "widoczne" statusy (Draft w dev, Pending, Approved)
-        # Aby zapewnić premium feel nawet przy pustej bazie, mamy listę fallback.
+        """Pobiera oferty zgrupowane po kategoriach: Góry, Bałtyk, Jeziora, Zachodnia Polska, Lasy."""
         data = []
         
-        # Pobieramy miasta z największą liczbą ofert (dowolny status poza zarchiwizowanym)
-        top_cities = (
-            ListingLocation.objects.filter(listing__status__in=[
-                Listing.Status.APPROVED, Listing.Status.PENDING, Listing.Status.DRAFT
-            ])
-            .values("city", "region", "country")
-            .annotate(listing_count=models.Count("listing"))
-            .order_by("-listing_count", "city")[:12]
-        )
+        # Definicja regionów z filtrami lokalizacji
+        regions = [
+            {
+                "id": "gory",
+                "name": "Góry",
+                "icon": "city",
+                "description": "Górskie wędrówki i piękne widoki",
+                "filters": {"location__near_mountains": True},
+                "fallback": {"name": "Zakopane", "region": "Podhale", "lat": 49.2992, "lng": 19.9495}
+            },
+            {
+                "id": "baltyk",
+                "name": "Bałtyk",
+                "icon": "beach",
+                "description": "Plaże i morski klimat",
+                "filters": {"location__near_sea": True},
+                "fallback": {"name": "Gdańsk", "region": "Pomorskie", "lat": 54.3520, "lng": 18.6466}
+            },
+            {
+                "id": "jeziora",
+                "name": "Jeziora",
+                "icon": "beach",
+                "description": "Relaks nad wodą",
+                "filters": {"location__near_lake": True},
+                "fallback": {"name": "Mikołajki", "region": "Warmińsko-Mazurskie", "lat": 53.7510, "lng": 21.4910}
+            },
+            {
+                "id": "zachodnia_polska",
+                "name": "Zachodnia Polska",
+                "icon": "city",
+                "description": "Bogate dziedzictwo kulturowe",
+                "filters": {"location__region__in": ["Lubuskie", "Dolny Śląsk", "Wielkopolska", "Zachodniopomorskie"]},
+                "fallback": {"name": "Wrocław", "region": "Dolny Śląsk", "lat": 51.1079, "lng": 17.0385}
+            },
+            {
+                "id": "lasy",
+                "name": "Lasy",
+                "icon": "city",
+                "description": "Cisza, spokój i przyroda",
+                "filters": {"location__near_forest": True},
+                "fallback": {"name": "Białowieża", "region": "Podlasie", "lat": 52.7406, "lng": 24.9970}
+            },
+        ]
 
-        for item in top_cities:
-            city = item["city"]
-            if not city:
-                continue
-            
-            sample_loc = ListingLocation.objects.filter(
-                city=city, 
-                listing__status__in=[Listing.Status.APPROVED, Listing.Status.PENDING, Listing.Status.DRAFT]
-            ).first()
-            if not sample_loc:
-                continue
+        for region in regions:
+            # Szukamy pierwsze lepsze lokalizacji z tym filtrem
+            sample = ListingLocation.objects.filter(
+                listing__status__in=[Listing.Status.APPROVED, Listing.Status.PENDING, Listing.Status.DRAFT],
+                **region["filters"]
+            ).select_related("listing").first()
 
-            icon = "city"
-            description = f"Odkryj uroki {city}"
-            
-            if sample_loc.near_sea or sample_loc.beach_access:
-                icon = "beach"
-                description = f"Wypoczynek nad morzem"
-            elif sample_loc.near_mountains:
-                icon = "city"
-                description = f"Górskie wędrówki i widoki"
-            elif sample_loc.near_lake:
-                icon = "beach"
-                description = f"Relaks nad jeziorem"
+            if sample:
+                data.append({
+                    "name": region["name"],
+                    "region": sample.region or "Polska",
+                    "lat": sample.point.y,
+                    "lng": sample.point.x,
+                    "icon": region["icon"],
+                    "description": region["description"]
+                })
+            else:
+                # Jeśli brak ofert, używamy fallback
+                fallback = region["fallback"]
+                data.append({
+                    "name": region["name"],
+                    "region": fallback["region"],
+                    "lat": fallback["lat"],
+                    "lng": fallback["lng"],
+                    "icon": region["icon"],
+                    "description": region["description"]
+                })
 
-            data.append({
-                "name": city,
-                "region": item["region"] or (item["country"] if item["country"] != "PL" else "Polska"),
-                "lat": sample_loc.point.y,
-                "lng": sample_loc.point.x,
-                "icon": icon,
-                "description": description
-            })
-
-        # --- FALLBACK DO POPULARNYCH MIEJSC W POLSCE ---
-        if len(data) < 4:
-            fallbacks = [
-                {"name": "Warszawa", "region": "Mazowsze", "lat": 52.2297, "lng": 21.0122, "icon": "city", "description": "Serce Polski"},
-                {"name": "Kraków", "region": "Małopolska", "lat": 50.0647, "lng": 19.9450, "icon": "city", "description": "Dawna stolica królów"},
-                {"name": "Gdańsk", "region": "Pomorskie", "lat": 54.3520, "lng": 18.6466, "icon": "beach", "description": "Bałtycka perła"},
-                {"name": "Wrocław", "region": "Dolny Śląsk", "lat": 51.1079, "lng": 17.0385, "icon": "city", "description": "Miasto stu mostów"},
-                {"name": "Zakopane", "region": "Podhale", "lat": 49.2992, "lng": 19.9495, "icon": "city", "description": "Zimowa stolica Polski"},
-                {"name": "Poznań", "region": "Wielkopolska", "lat": 52.4064, "lng": 16.9252, "icon": "city", "description": "Historia i kultura"},
-                {"name": "Gdynia", "region": "Pomorskie", "lat": 54.5189, "lng": 18.5305, "icon": "beach", "description": "Nowoczesność nad morzem"},
-                {"name": "Białystok", "region": "Podlasie", "lat": 53.1325, "lng": 23.1688, "icon": "city", "description": "Brama na wschód"},
-            ]
-            for fb in fallbacks:
-                if len(data) >= 8: break
-                if not any(d["name"].lower() == fb["name"].lower() for d in data):
-                    data.append(fb)
-
-        return Response({"data": data[:8]})
+        return Response({"data": data})
 
     @extend_schema(
         summary="Autouzupełnianie wyszukiwania",

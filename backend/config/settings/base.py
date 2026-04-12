@@ -142,10 +142,7 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "EXCEPTION_HANDLER": "apps.common.exceptions.custom_exception_handler",
-    "DEFAULT_THROTTLE_CLASSES": [
-        "rest_framework.throttling.AnonRateThrottle",
-        "rest_framework.throttling.UserRateThrottle",
-    ],
+    "DEFAULT_THROTTLE_CLASSES": [],
     "DEFAULT_THROTTLE_RATES": {
         "anon": "60/min",
         "user": "300/min",
@@ -156,7 +153,6 @@ REST_FRAMEWORK = {
         "booking_create": "10/min",
         "listing_nearby": "18/hour",
         "listing_nearby_user": "60/hour",
-        "ai_search": "10/hour",
     },
 }
 

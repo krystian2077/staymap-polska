@@ -35,17 +35,17 @@ export function ListingCard({ listing, badge = "Polecane", badgeColor = "#16a34a
   return (
     <Link
       href={`/listing/${listing.slug}`}
-      className="group block overflow-hidden rounded-[22px] border border-[#e4ebe7] bg-white shadow-[0_1px_3px_rgba(10,15,13,.05)] transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-[7px] hover:border-[#bbf7d0] hover:shadow-[0_24px_64px_rgba(10,15,13,.16)]"
+      className="group block overflow-hidden rounded-[22px] border border-[#e4ebe7] bg-white shadow-[0_10px_30px_-24px_rgba(10,15,13,.3)] transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-[7px] hover:border-[#bbf7d0] hover:shadow-[0_26px_70px_-24px_rgba(10,15,13,.35)]"
       style={{ animation: `fadeUp .65s ${index * 0.08}s cubic-bezier(.16,1,.3,1) both` }}
     >
-      <div className="relative flex h-[224px] items-center justify-center overflow-hidden" style={{ background: "linear-gradient(145deg,#d1fae5,#a7f3d0)" }}>
+      <div className="relative flex h-[224px] items-center justify-center overflow-hidden" style={{ background: "linear-gradient(145deg,#dff8e9,#bcefd4)" }}>
         {cover ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={cover} alt="" className="h-full w-full object-cover transition-transform duration-500 ease-[cubic-bezier(.16,1,.3,1)] group-hover:scale-[1.08]" />
         ) : (
           <span className="text-[64px] transition-transform duration-500 group-hover:scale-105">{emojiFallback}</span>
         )}
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,transparent_40%,rgba(10,46,26,.13)_100%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,.03)_24%,rgba(10,46,26,.18)_100%)]" />
 
         <span className="absolute left-3 top-3 rounded-pill px-3 py-1 text-[11px] font-bold text-white" style={{ backgroundColor: badgeColor }}>
           {badge}
@@ -66,7 +66,7 @@ export function ListingCard({ listing, badge = "Polecane", badgeColor = "#16a34a
 
       <div className="px-5 pb-5 pt-4">
         <h3 className="mb-1.5 line-clamp-2 text-[15px] font-bold leading-[1.32] text-[#0a0f0d]">{listing.title}</h3>
-        <p className="mb-3.5 flex items-center gap-1 text-[12px] text-[#7a8f84]">
+        <p className="mb-3.5 flex items-center gap-1 text-[12px] text-[#6e8378]">
           <span>📍</span>
           {location}
         </p>

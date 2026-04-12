@@ -17,61 +17,64 @@ export function NavbarNotifications() {
     setToken(typeof window !== "undefined" ? localStorage.getItem("access") : null);
   }, []);
 
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        className="relative inline-flex p-2 text-lg text-brand-dark"
-        aria-label="Powiadomienia"
-        onClick={() => setOpen((o) => !o)}
-      >
-        🔔
-        {unreadTotal > 0 ? (
-          <span className="absolute -right-0.5 -top-0 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand px-0.5 text-[9px] font-bold text-white">
-            {unreadTotal > 99 ? "99+" : unreadTotal}
-          </span>
-        ) : null}
-      </button>
-      {open ? (
-        <div className="absolute right-0 top-full z-50 mt-2 w-[min(100vw-2rem,320px)] rounded-xl border border-[#e5e7eb] bg-white py-2 shadow-elevated">
-          <div className="max-h-64 overflow-y-auto px-2">
-            {notifications.length === 0 ? (
-              <p className="px-3 py-4 text-center text-xs text-text-muted">Brak powiadomień</p>
-            ) : (
-              notifications.map((n, i) => (
-                <Link
-                  key={i}
-                  href={n.link || "#"}
-                  className="block rounded-lg px-3 py-2 text-xs hover:bg-gray-50"
-                  onClick={() => setOpen(false)}
-                >
-                  <span className="font-semibold text-brand-dark">{n.title}</span>
-                  {n.body ? <p className="text-text-muted">{n.body}</p> : null}
-                </Link>
-              ))
-            )}
-          </div>
-          <div className="flex border-t border-[#e5e7eb]">
-            <button
-              type="button"
-              className="flex-1 px-3 py-2 text-center text-[11px] font-semibold text-text-secondary hover:bg-gray-50"
-              onClick={() => {
-                markAllRead();
-                setOpen(false);
-              }}
-            >
-              Oznacz jako przeczytane
-            </button>
-            <button
-              type="button"
-              className="flex-1 border-l border-[#e5e7eb] px-3 py-2 text-center text-[11px] font-semibold text-brand"
-              onClick={() => setOpen(false)}
-            >
-              Zamknij
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
+   return (
+     <div className="relative">
+       <button
+         type="button"
+         className="relative inline-flex p-2.5 text-2xl text-brand-dark transition-all duration-300 hover:scale-110 active:scale-95"
+         aria-label="Powiadomienia"
+         onClick={() => setOpen((o) => !o)}
+       >
+         🔔
+         {unreadTotal > 0 ? (
+           <span className="absolute -right-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-white shadow-md animate-pulse">
+             {unreadTotal > 99 ? "99+" : unreadTotal}
+           </span>
+         ) : null}
+       </button>
+       {open ? (
+         <div className="absolute right-0 top-full z-50 mt-3 w-[min(100vw-2rem,380px)] rounded-xl border border-gray-200/60 bg-white shadow-lg overflow-hidden">
+           <div className="border-b border-gray-200/50 px-4 py-3">
+             <h3 className="text-sm font-bold text-text">Powiadomienia</h3>
+           </div>
+           <div className="max-h-80 overflow-y-auto">
+             {notifications.length === 0 ? (
+               <p className="px-4 py-8 text-center text-sm text-text-muted">Brak powiadomień</p>
+             ) : (
+               notifications.map((n, i) => (
+                 <Link
+                   key={i}
+                   href={n.link || "#"}
+                   className="block border-b border-gray-100/60 px-4 py-3 text-sm transition-all duration-200 hover:bg-brand-surface/50 last:border-b-0"
+                   onClick={() => setOpen(false)}
+                 >
+                   <span className="font-semibold text-brand-dark block">{n.title}</span>
+                   {n.body ? <p className="mt-1 text-text-muted text-xs">{n.body}</p> : null}
+                 </Link>
+               ))
+             )}
+           </div>
+           <div className="flex gap-2 border-t border-gray-200/50 p-3">
+             <button
+               type="button"
+               className="flex-1 rounded-lg px-3 py-2.5 text-xs font-semibold text-text-secondary transition-all duration-200 hover:bg-brand-surface/80 active:scale-95"
+               onClick={() => {
+                 markAllRead();
+                 setOpen(false);
+               }}
+             >
+               Przeczytane
+             </button>
+             <button
+               type="button"
+               className="flex-1 rounded-lg bg-brand px-3 py-2.5 text-xs font-bold text-white transition-all duration-200 hover:bg-brand-700 active:scale-95"
+               onClick={() => setOpen(false)}
+             >
+               Zamknij
+             </button>
+           </div>
+         </div>
+       ) : null}
+     </div>
+   );
 }

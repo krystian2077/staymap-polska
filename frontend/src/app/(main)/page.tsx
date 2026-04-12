@@ -1,14 +1,11 @@
 import { AiSection } from "@/components/home/AiSection";
-import { CtaSection } from "@/components/home/CtaSection";
 import { FeaturedListings } from "@/components/home/FeaturedListings";
 import { HeroSection } from "@/components/home/HeroSection";
 import { HostCta } from "@/components/home/HostCta";
 import { LastMinute } from "@/components/home/LastMinute";
 import { MarqueeTicker } from "@/components/home/MarqueeTicker";
 import { MountainCollection } from "@/components/home/MountainCollection";
-import { RegionsGrid } from "@/components/home/RegionsGrid";
 import { StatsStrip } from "@/components/home/StatsStrip";
-import { TravelModes } from "@/components/home/TravelModes";
 import { type CollectionCardData, WaterCollection } from "@/components/home/WaterCollection";
 import { Footer } from "@/components/layout/Footer";
 import { apiUrl } from "@/lib/api";
@@ -18,7 +15,7 @@ import type { DiscoveryHomepageData } from "@/types/listing";
 
 async function loadFeatured(): Promise<SearchListing[]> {
   try {
-    const res = await fetch(apiUrl("/api/v1/search/?ordering=recommended&page_size=8"), {
+    const res = await fetch(apiUrl("/api/v1/search/?ordering=recommended&page_size=18"), {
       cache: "no-store",
     });
     if (!res.ok) return [];
@@ -36,7 +33,7 @@ async function loadDiscoveryFallback(): Promise<SearchListing[]> {
     const json = (await res.json()) as { data?: DiscoveryHomepageData };
     const firstCollection = json.data?.featured_collections?.[0];
     if (!firstCollection?.listings?.length) return [];
-    return firstCollection.listings.slice(0, 8).map(similarListingToSearch);
+    return firstCollection.listings.slice(0, 18).map(similarListingToSearch);
   } catch {
     return [];
   }
@@ -75,15 +72,27 @@ function searchToCollectionCard(listing: SearchListing, fallback: CollectionCard
   };
 }
 
-function countRegions(listings: SearchListing[]) {
-  const text = (l: SearchListing) => `${l.title} ${l.location?.city ?? ""} ${l.location?.region ?? ""}`.toLowerCase();
-  const by = (needle: string[]) => listings.filter((l) => needle.some((n) => text(l).includes(n))).length;
+function searchToWaterRailCard(listing: SearchListing): CollectionCardData {
+  const loc = [listing.location?.city, listing.location?.region].filter(Boolean).join(", ") || "Polska";
+  const price = Math.max(1, Math.round(Number(listing.base_price) || 199));
+  const text = `${listing.title} ${listing.location?.city ?? ""} ${listing.location?.region ?? ""}`.toLowerCase();
+  const badge = text.includes("mor") || text.includes("balty") ? "Morze" : text.includes("kaj") ? "Kajaki" : "Jezioro";
+  const dist = text.includes("plaz") ? "Blisko plazy" : text.includes("pomost") ? "Pomost" : "Nad woda";
   return {
-    zakopane: by(["zakop", "tatry", "bukowina", "nowy targ"]),
-    mazury: by(["mazur", "mikolaj", "gizyck", "augustow"]),
-    bieszczady: by(["bieszcz", "ustrzyki"]),
-    baltyk: by(["ustka", "baltyk", "sopot", "gdyn", "kolobrzeg"]),
-    szklarska: by(["szklars", "karpacz"]),
+    title: listing.title || "Oferta nad woda",
+    loc,
+    price,
+    rating: parseRating(listing.average_rating),
+    reviews: listing.review_count ?? 0,
+    badge,
+    dist,
+    emoji: badge === "Morze" ? "🌊" : badge === "Kajaki" ? "🛶" : "🏊",
+    href: `/listing/${listing.slug}`,
+    bg: badge === "Morze"
+      ? "linear-gradient(145deg,#bfdbfe,#93c5fd)"
+      : badge === "Kajaki"
+        ? "linear-gradient(145deg,#ccfbf1,#99f6e4)"
+        : "linear-gradient(145deg,#dbeafe,#bfdbfe)",
   };
 }
 
@@ -99,7 +108,6 @@ export default async function HomePage() {
     ) ?? [];
 
   const allPool = [...listings, ...discoveryListings].filter(Boolean);
-  const regionCounts = countRegions(allPool);
 
   const waterDefaults: CollectionCardData[] = [
     {
@@ -261,11 +269,17 @@ export default async function HomePage() {
     waterPool[index] ? searchToCollectionCard(waterPool[index], fallback) : fallback
   );
 
+  const extraWaterCards = waterPool
+    .slice(waterDefaults.length, waterDefaults.length + 12)
+    .map(searchToWaterRailCard);
+
+  const waterRailCards = [...waterCards, ...extraWaterCards];
+
   const mountainCards = mountainDefaults.map((fallback, index) =>
     mountainPool[index] ? searchToCollectionCard(mountainPool[index], fallback) : fallback
   );
 
-  const lastMinuteItems = discovery?.last_minute?.slice(0, 3) ?? [];
+  const lastMinuteItems = discovery?.last_minute?.slice(0, 8) ?? [];
 
   return (
     <>
@@ -273,16 +287,15 @@ export default async function HomePage() {
       <div className="-mt-[7.5rem] mb-12 sm:-mt-[9.5rem] sm:mb-14">
         <MarqueeTicker />
       </div>
-      <TravelModes />
-      <AiSection />
-      <FeaturedListings listings={listings} />
-      <CtaSection />
-      <StatsStrip />
-      <RegionsGrid counts={regionCounts} />
-      <LastMinute items={lastMinuteItems} />
-      <WaterCollection cards={waterCards} />
-      <MountainCollection cards={mountainCards} />
-      <HostCta />
+      <div className="space-y-14 pb-8 sm:space-y-16 sm:pb-10 lg:space-y-20 lg:pb-12">
+        <AiSection />
+        <FeaturedListings listings={listings} />
+        <StatsStrip />
+        <WaterCollection cards={waterRailCards} />
+        <MountainCollection cards={mountainCards} />
+        <LastMinute items={lastMinuteItems} />
+        <HostCta />
+      </div>
       <Footer />
     </>
   );

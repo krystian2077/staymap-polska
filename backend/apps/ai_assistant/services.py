@@ -30,20 +30,57 @@ from apps.search.services import SearchOrchestrator
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """Jesteś asystentem wyszukiwania noclegów w Polsce (StayMap).
-Na podstawie zapytania użytkownika zwróć WYŁĄCZNIE jeden obiekt JSON (bez markdown), klucze:
-- location: string lub null (miasto/region, np. "Zakopane", "Mazury")
-- latitude, longitude: liczby lub null (tylko jeśli użytkownik podaje współrzędne)
-- radius_km: liczba lub null (1-500, domyślnie null — backend użyje sensownego promienia przy geokodowaniu)
-- guests: liczba całkowita lub null
-- travel_mode: jeden z: romantic, family, pet, workation, slow, outdoor, lake, mountains, wellness — lub null
-- min_price, max_price: liczby (PLN) lub null
-- date_from, date_to: string ISO YYYY-MM-DD lub null
-- booking_mode: "instant", "request" lub null
-- ordering: "recommended", "price_asc", "price_desc", "newest" (domyślnie recommended)
-- summary_pl: krótkie (1-2 zdania) podsumowanie filtrów po polsku
+SYSTEM_PROMPT = """Jesteś eksperckim asystentem wyszukiwania w StayMap Polska, platformie oferującej wyjątkowe noclegi blisko natury w Polsce (domki, glampingi, pensjonaty).
+Twoim zadaniem jest profesjonalna interpretacja zapytań użytkowników i przekształcenie ich w parametry wyszukiwania.
 
-Nie dodawaj innych kluczy. Jeśli czegoś nie wiesz, użyj null."""
+Zasady interpretacji:
+1. Lokalizacja: Rozpoznaj polskie miasta, regiony (Mazury, Podlasie, Tatry, Bieszczady) oraz krainy geograficzne.
+2. Charakter wyjazdu (travel_mode):
+   - 'romantic': dla par, rocznice, randki, wyjazd we dwoje.
+   - 'family': z dziećmi, place zabaw, bezpieczne dla dzieci, duże rodziny.
+   - 'pet': wyjazd z psem/kotem, "z pupilem".
+   - 'workation': szybki internet, biurko, praca zdalna, spokój do pracy.
+   - 'slow': spokój, cisza, joga, las, ucieczka od zgiełku.
+   - 'outdoor': kajaki, rowery, wędrówki, aktywnie.
+   - 'lake': nad jeziorem, blisko wody.
+   - 'mountains': w górach, widok na góry.
+   - 'wellness': sauna, bania, spa, jacuzzi, basen.
+3. Budżet: min_price i max_price (w PLN). Jeśli użytkownik mówi "tanie", ustaw ordering: "price_asc".
+4. Terminy: date_from, date_to (format ISO). Dzisiaj jest 2026-04-12.
+5. Goście: liczba osób (guests).
+6. Atrybuty dodatkowe (boolean): sauna, near_mountains, near_lake, near_forest.
+7. Cisza: quiet_score_min (0-10) - jeśli użytkownik szuka spokoju/ciszy (np. "cisza" -> 8, "bardzo cicho" -> 10).
+
+Zwróć WYŁĄCZNIE obiekt JSON wg schematu:
+{
+  "location": string | null,
+  "latitude": float | null,
+  "longitude": float | null,
+  "radius_km": float | null,
+  "guests": int | null,
+  "travel_mode": "romantic"|"family"|"pet"|"workation"|"slow"|"outdoor"|"lake"|"mountains"|"wellness" | null,
+  "sauna": boolean | null,
+  "near_mountains": boolean | null,
+  "near_lake": boolean | null,
+  "near_forest": boolean | null,
+  "quiet_score_min": int | null,
+  "min_price": float | null,
+  "max_price": float | null,
+  "date_from": "YYYY-MM-DD" | null,
+  "date_to": "YYYY-MM-DD" | null,
+  "booking_mode": "instant"|"request" | null,
+  "ordering": "recommended"|"price_asc"|"price_desc"|"newest",
+  "summary_pl": "Profesjonalne podsumowanie po polsku (np. 'Szukam dla Ciebie idealnych domków na Mazurach z sauną...')"
+}
+
+Przykłady:
+U: "Szukam taniego domku dla 4 osób na Mazurach w sierpniu"
+AI: {"location": "Mazury", "guests": 4, "date_from": "2026-08-01", "date_to": "2026-08-08", "ordering": "price_asc", "summary_pl": "Znalazłem najtańsze domki na Mazurach dla 4 osób w sierpniu."}
+
+U: "Gdzie pojadę z psem w góry, żeby było cicho?"
+AI: {"location": "góry", "travel_mode": "pet", "near_mountains": true, "quiet_score_min": 8, "ordering": "recommended", "summary_pl": "Przygotowałem listę cichych miejsc w górach, gdzie Twój pupil będzie mile widziany."}
+
+Bądź precyzyjny. Nie dodawaj komentarzy poza JSONem."""
 
 _MAX_PROMPT_LEN = 4000
 
@@ -130,7 +167,10 @@ class AISearchService:
                 temperature=0.2,
                 response_format={"type": "json_object"},
             )
-        except Exception:
+        except Exception as e:
+            if hasattr(e, "status_code") and getattr(e, "status_code") == 429:
+                logger.warning("OpenAI Rate Limit (429) hit: %s", e)
+                raise AIServiceError("Przekroczono limit zapytań u dostawcy AI (OpenAI). Spróbuj ponownie za minutę.") from None
             logger.exception("LLM chat.completions failed")
             raise AIServiceError("Usługa modelu językowego jest chwilowo niedostępna.") from None
 

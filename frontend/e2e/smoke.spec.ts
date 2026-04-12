@@ -13,18 +13,13 @@ test("link do wyszukiwania (nav desktop)", async ({ page }) => {
 test.describe("homepage mobile 375", () => {
   test.use({ viewport: { width: 375, height: 812 } });
 
-  test("sekcje koncowe i CTA sa widoczne", async ({ page }) => {
+  test("sekcje koncowe sa widoczne", async ({ page }) => {
     await page.goto("/");
 
     const aiSection = page.getByTestId("home-ai-section");
     await aiSection.scrollIntoViewIfNeeded();
     await expect(aiSection).toBeVisible();
 
-    const guestCta = page.getByTestId("home-guest-cta-section");
-    await guestCta.scrollIntoViewIfNeeded();
-    await expect(guestCta).toBeVisible();
-    await expect(page.getByTestId("home-guest-cta-primary")).toBeVisible();
-    await expect(page.getByTestId("home-guest-cta-secondary")).toBeVisible();
 
     const hostCta = page.getByTestId("home-host-cta-section");
     await hostCta.scrollIntoViewIfNeeded();

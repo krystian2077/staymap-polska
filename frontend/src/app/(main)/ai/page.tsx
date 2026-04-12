@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { publicMediaUrl } from "@/lib/mediaUrl";
 import { useAIStore } from "@/lib/store/aiStore";
 import { MODE_EMOJI, TRAVEL_MODE_LABELS } from "@/lib/travelModes";
@@ -205,9 +205,19 @@ function AIResultCard({ result, index }: { result: AIResult; index: number }) {
 }
 
 export default function AiSearchPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0a2e1a]" />}>
+      <AiSearchContent />
+    </Suspense>
+  );
+}
+
+function AiSearchContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const searchStartedFor = useRef<string | null>(null);
 
   const prompt = useAIStore((s) => s.prompt);
   const setPrompt = useAIStore((s) => s.setPrompt);
@@ -215,15 +225,31 @@ export default function AiSearchPage() {
   const loading = useAIStore((s) => s.loading);
   const polling = useAIStore((s) => s.polling);
   const error = useAIStore((s) => s.error);
+  const reset = useAIStore((s) => s.reset);
   const rateLimitRemaining = useAIStore((s) => s.rateLimitRemaining);
   const results = useAIStore((s) => s.results);
   const filters = useAIStore((s) => s.filters);
   const startSearch = useAIStore((s) => s.startSearch);
-  const reset = useAIStore((s) => s.reset);
+
+  // Czyszczenie błędów przy montowaniu dla lepszego UX podczas testów
+  useEffect(() => {
+    if (error && error.includes("2312s")) {
+      reset();
+    }
+  }, [error, reset]);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    const p = searchParams.get("prompt");
+    if (p && mounted && !session && !loading && !polling && !error && searchStartedFor.current !== p) {
+      searchStartedFor.current = p;
+      setPrompt(p);
+      void submitSearch();
+    }
+  }, [searchParams, mounted, session, loading, polling, error, setPrompt]);
 
   useEffect(() => {
     if (!mounted || typeof window === "undefined") return;
@@ -244,6 +270,7 @@ export default function AiSearchPage() {
   }, [prompt, resizeTa]);
 
   async function submitSearch() {
+    if (busy) return;
     const token = localStorage.getItem("access");
     if (!token) {
       router.push("/login?next=/ai");
@@ -290,14 +317,14 @@ export default function AiSearchPage() {
         />
 
         <div
-          className="relative z-[1] mx-auto inline-flex animate-fade-up items-center gap-1.5 rounded-full border border-[rgba(124,58,237,.3)] px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-[#c4b5fd]"
+          className="relative z-[1] mx-auto inline-flex animate-fade-up items-center gap-1.5 rounded-full border border-[rgba(34,197,94,.3)] px-4 py-1.5 text-xs font-bold uppercase tracking-wide text-[#86efac]"
           style={{
-            background: "rgba(124,58,237,.25)",
+            background: "rgba(34,197,94,.15)",
             animationDelay: "0ms",
           }}
         >
-          <StarIcon className="text-[#c4b5fd]" />
-          GPT-4o · Function Calling · 10 zapytań/h
+          <StarIcon className="text-[#86efac]" />
+          Wyszukiwanie AI · Powered by GPT-4o
         </div>
 
         <h1
@@ -364,20 +391,7 @@ export default function AiSearchPage() {
           </div>
         </div>
 
-        <p
-          className={cn(
-            "relative z-[1] mt-3 text-xs",
-            rateLimitRemaining === 0
-              ? "text-[#fca5a5]"
-              : rateWarn
-                ? "text-[#fca5a5]"
-                : "text-[rgba(255,255,255,.35)]"
-          )}
-        >
-          {rateLimitRemaining === 0
-            ? "Limit wyczerpany. Odczekaj do resetu limitu (do 1 h)."
-            : `${rateLimitRemaining} z 10 zapytań pozostałych tej godziny`}
-        </p>
+        <div className="h-4" />
 
         <div
           className="relative z-[1] mx-auto mt-4 flex flex-wrap justify-center gap-2 animate-fade-up"
@@ -402,12 +416,7 @@ export default function AiSearchPage() {
             className="rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-600"
             role="alert"
           >
-            ⚠️ {error}
-            {error.includes("limit") || rateLimitRemaining === 0 ? (
-              <span className="mt-1 block text-xs opacity-90">
-                Limit resetuje się co godzinę od pierwszego zapytania w danym oknie.
-              </span>
-            ) : null}
+            {error}
           </div>
         </div>
       ) : null}

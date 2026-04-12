@@ -426,6 +426,7 @@ export function HeroSearchBar({ variant }: HeroSearchBarProps) {
 
   // ── AI search ────────────────────────────────────────────────────────────
   const runAiSearch = useCallback(async () => {
+    if (aiBusy) return;
     const text = aiPrompt.trim();
     if (!text) { toast.error("Wpisz opis wyjazdu."); return; }
     const token = typeof window !== "undefined" ? localStorage.getItem("access") : null;
@@ -462,7 +463,7 @@ export function HeroSearchBar({ variant }: HeroSearchBarProps) {
     } finally {
       setAiBusy(false);
     }
-  }, [aiPrompt, router, setParams]);
+  }, [aiPrompt, aiBusy, router, setParams]);
 
   // ── RENDER ──────────────────────────────────────────────────────────────
   const modalContent = (

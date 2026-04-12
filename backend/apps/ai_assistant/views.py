@@ -11,13 +11,10 @@ from rest_framework.viewsets import ViewSet
 from apps.ai_assistant.models import AiFilterInterpretation, AiRecommendation, AiTravelSession
 from apps.ai_assistant.serializers import AiSearchCreateSerializer
 from apps.ai_assistant.services import AISearchService
+from apps.search.serializers import ListingSearchSerializer
 
 
-class AISearchUserThrottle(UserRateThrottle):
-    scope = "ai_search"
-
-
-def _session_payload(session: AiTravelSession) -> dict:
+def _session_payload(session: AiTravelSession, request=None) -> dict:
     prompt = session.prompts.order_by("-created_at").first()
     interp = (
         AiFilterInterpretation.objects.filter(prompt=prompt).first()
@@ -25,41 +22,66 @@ def _session_payload(session: AiTravelSession) -> dict:
         else None
     )
     expired = timezone.now() > session.expires_at
+
     data = {
-        "id": str(session.id),
+        "session_id": str(session.id),
         "status": session.status,
-        "expires_at": session.expires_at.isoformat(),
-        "is_expired": expired,
-        "model_used": session.model_used,
-        "total_tokens_used": session.total_tokens_used,
-        "total_cost_usd": str(session.total_cost_usd),
-        "error_message": session.error_message or None,
         "prompt": prompt.raw_text if prompt else None,
-        "interpretation": None,
-        "listing_ids": session.result_listing_ids or [],
-        "result_total_count": session.result_total_count,
+        "created_at": session.created_at.isoformat(),
+        "expires_at": session.expires_at.isoformat(),
+        "tokens_used": session.total_tokens_used,
+        "cost_usd": float(session.total_cost_usd),
+        "error_message": session.error_message or None,
+        "filters": None,
+        "results": [],
     }
+
     if interp:
-        data["interpretation"] = {
-            "summary_pl": interp.summary_pl or None,
-            "normalized_params": interp.normalized_params or {},
+        raw = interp.raw_llm_json or {}
+        # Frontend spodziewa się obiektu AIFilterInterpretation
+        data["filters"] = {
+            "summary_pl": interp.summary_pl or "",
+            "location": raw.get("location"),
+            "travel_mode": raw.get("travel_mode"),
+            "sauna": bool(raw.get("sauna")),
+            "near_mountains": bool(raw.get("near_mountains")),
+            "near_lake": bool(raw.get("near_lake")),
+            "near_forest": bool(raw.get("near_forest")),
+            "max_price": raw.get("max_price"),
+            "min_guests": raw.get("guests"),
+            "max_guests": raw.get("guests"),
+            "quiet_score_min": raw.get("quiet_score_min"),
+            "custom_tags": [],
         }
+
         recs = (
             AiRecommendation.objects.filter(interpretation=interp)
-            .select_related("listing")
+            .select_related(
+                "listing",
+                "listing__location",
+                "listing__listing_type",
+            )
+            .prefetch_related("listing__images")
             .order_by("rank", "id")[:24]
         )
-        data["recommendations"] = [
-            {
+
+        results = []
+        for r in recs:
+            # Używamy ListingSearchSerializer do podstawowych danych
+            ser = ListingSearchSerializer(r.listing, context={"request": request})
+            base_data = ser.data
+
+            # Rozszerzamy o pola AIResult
+            results.append({
+                **base_data,
                 "listing_id": str(r.listing_id),
-                "slug": r.listing.slug,
-                "title": r.listing.title,
-                "rank": r.rank,
-            }
-            for r in recs
-        ]
-    else:
-        data["recommendations"] = []
+                "match_score": 100 - (r.rank * 2),  # Heurystyka dla UI
+                "match_reasons": [
+                    f"Idealne dla trybu {data['filters']['travel_mode']}" if data["filters"]["travel_mode"] else "Pasuje do Twoich wymagań"
+                ],
+            })
+        data["results"] = results
+
     return data
 
 
@@ -67,9 +89,7 @@ class AiSearchViewSet(ViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_throttles(self):
-        if getattr(self, "action", None) == "create":
-            return [AISearchUserThrottle()]
-        return super().get_throttles()
+        return []
 
     @extend_schema(
         summary="AI search — start",
@@ -92,4 +112,4 @@ class AiSearchViewSet(ViewSet):
             AiTravelSession.objects.filter(user=request.user),
             pk=pk,
         )
-        return Response({"data": _session_payload(session), "meta": {}})
+        return Response({"data": _session_payload(session, request), "meta": {}})
