@@ -9,6 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 try:
     _env_paths = [
+        Path("/app/.env"),
         BASE_DIR.parent / ".env",
         BASE_DIR / ".env",
     ]
