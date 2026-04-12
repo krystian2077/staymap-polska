@@ -91,7 +91,6 @@ def _session_payload(session: AiTravelSession, request=None) -> dict:
             .select_related(
                 "listing",
                 "listing__location",
-                "listing__listing_type",
             )
             .prefetch_related("listing__images")
             .order_by("rank", "id")[:24]
