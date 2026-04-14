@@ -48,7 +48,7 @@ export function StatsStrip() {
             }}
           >
             <p className="mb-2.5 text-[52px] font-black tracking-[-2.5px] text-white">{stat.value}</p>
-            <p className="text-[13px] font-medium text-white/50">{stat.label}</p>
+            <p className="text-[13px] font-medium text-white/75">{stat.label}</p>
           </div>
         ))}
       </div>

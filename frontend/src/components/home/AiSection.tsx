@@ -50,7 +50,7 @@ export function AiSection() {
               a AI znajdzie najlepsze miejsca
             </span>
           </h2>
-          <p className="mt-5 max-w-[580px] text-[15px] leading-8 text-white/70 md:text-[16px]">
+          <p className="mt-5 max-w-[580px] text-[15px] leading-8 text-white/90 md:text-[16px]">
             Nie musisz ustawiać filtra po filtrze. Napisz naturalnie, czego potrzebujesz, a system
             dopasuje oferty i wyjaśni, dlaczego pasują do Twojego stylu podróży.
           </p>
@@ -74,10 +74,10 @@ export function AiSection() {
         </div>
 
         <div className="rounded-[24px] border border-white/10 bg-white/8 p-5 shadow-[0_22px_58px_rgba(0,0,0,.24)] backdrop-blur-xl">
-          <div className="mb-4 rounded-[14px] border border-white/12 bg-white/10 px-4 py-3 text-[14px] font-medium text-white/80">
+          <div className="mb-4 rounded-[14px] border border-white/12 bg-white/10 px-4 py-3 text-[14px] font-medium text-white">
             &bdquo;Szukam spokojnego domku z sauną dla dwojga, blisko lasu, najlepiej w górach&rdquo;
           </div>
-          <div className="mb-4 flex items-center gap-2 text-[12px] text-white/50">
+          <div className="mb-4 flex items-center gap-2 text-[12px] text-white/75">
             <span className="h-2 w-2 animate-pulse rounded-full bg-[#a78bfa] motion-reduce:animate-none" />
             Analizuję 2 400+ ofert...
           </div>
@@ -93,7 +93,7 @@ export function AiSection() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-bold text-white">{result.title}</p>
-                  <p className="mt-0.5 truncate text-[11px] text-white/55">{result.reasons}</p>
+                  <p className="mt-0.5 truncate text-[11px] text-white/80">{result.reasons}</p>
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="rounded-full bg-[#7c3aed]/30 px-2 py-0.5 text-[10px] font-bold text-[#c4b5fd]">

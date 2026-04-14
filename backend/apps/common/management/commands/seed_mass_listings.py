@@ -136,13 +136,28 @@ def _apply_pricing(listing: Listing, rules: list[dict]) -> None:
 
 def _build_data_row(idx: int, loc: tuple) -> dict:
     from apps.common.seed_mass_listings_generators import P, RI, RNG, RF
+    from apps.search.schemas import VALID_TRAVEL_MODES
 
     city, region, lat, lon, near_sea, near_mtn, near_lake, near_forest, _w = loc
     lat += RNG.uniform(-0.06, 0.06)
     lon += RNG.uniform(-0.09, 0.09)
 
+    # Gwarancja obecności ofert dla każdego z trybów (cykl co ofertę)
+    modes_list = sorted(list(VALID_TRAVEL_MODES))
+    forced_mode = modes_list[(idx - 1) % len(modes_list)]
+
     ltype = P(TYPE_POOL)
-    max_g = RI(2, 14)
+    
+    # Dostosowanie ltype pod tryb
+    if forced_mode == "romantic":
+        ltype = P(["glamping", "domek", "treehouse", "apartament"])
+        max_g = 2
+    elif forced_mode == "family":
+        ltype = P(["domek", "willa", "stodola", "pensjonat"])
+        max_g = RI(4, 10)
+    else:
+        max_g = RI(2, 14)
+
     bedrooms = min(max_g // 2 + 1, 7)
     beds = RI(bedrooms, bedrooms + 2)
     baths = max(1, bedrooms // 2)
@@ -156,17 +171,53 @@ def _build_data_row(idx: int, loc: tuple) -> dict:
     pet_ok = RNG.random() < 0.33
     forest_f = near_forest or (RNG.random() < 0.35 and not near_sea)
 
+    # Wymuszanie tagów pod tryb
+    if forced_mode == "mountains":
+        near_mtn = True
+    elif forced_mode == "lake":
+        near_lake = True
+    elif forced_mode == "slow":
+        forest_f = True
+
     title = gen_title(ltype, city, region, near_mtn, near_lake, near_sea, forest_f)
+    
+    # Wstrzykiwanie słów kluczowych do tytułu dla forced_mode
+    if forced_mode == "romantic":
+        title = P(["Romantyczny", "Przytulny", "Dla par"]) + " " + title
+    elif forced_mode == "workation":
+        title = title + " - idealny na workation"
+    elif forced_mode == "wellness":
+        title = title + " z prywatnym SPA"
+    elif forced_mode == "pet":
+        title = title + " (akceptujemy pieski)"
+
     slug_base = slugify(title)[:100] + f"-{idx}"
     slug = slug_base[:220]
 
     desc = gen_desc(ltype, region, near_mtn, near_lake, near_sea, forest_f, max_g, city)
+    
+    if forced_mode == "slow":
+        desc = "Cisza, detoks od telefonu i wylogowanie do życia. " + desc
+    elif forced_mode == "workation":
+        desc = "Szybki internet i wygodne biurko. Praca zdalna w naturze. " + desc
+
     short = P(SHORT_DESCS)
 
     am_slugs = amenity_set(ltype, near_mtn, near_lake, near_sea, pet_ok, base_p)
     tags_extra = extra_location_tags(near_sea, near_mtn, near_lake, forest_f)
 
     pr = pricing_rules_payload(base_p, near_sea, near_mtn)
+    
+    # Wymuszanie udogodnień pod tryb
+    if forced_mode == "wellness":
+        am_slugs = list(set(am_slugs + ["sauna_fin", "jacuzzi_ext", "balia"]))
+    elif forced_mode == "workation":
+        am_slugs = list(set(am_slugs + ["wifi_500", "biurko"]))
+    elif forced_mode == "family":
+        am_slugs = list(set(am_slugs + ["plac_zabaw"]))
+    elif forced_mode == "romantic":
+        am_slugs = list(set(am_slugs + ["kominek"]))
+
     rating = RF(4.15, 5.00, 2)
     revs = RI(2, 380) if idx < 1800 else RI(1, 40)
     # Jedna miniatura na ofertę — wystarczy do listy/mapy; 5–8× PIL na rekord rozciągałby seed godzinami.

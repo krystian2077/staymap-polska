@@ -41,7 +41,7 @@ export function SearchMapPopupCard({ pin, listing, onClose }: Props) {
 
   return (
     <div
-      className="relative w-[240px] overflow-hidden rounded-[16px] border border-gray-100 bg-white shadow-[0_8px_32px_rgba(0,0,0,.16)] transition-all duration-200"
+      className="relative w-[274px] overflow-hidden rounded-[22px] border border-white/70 bg-white shadow-[0_20px_56px_rgba(15,23,42,.18)] ring-1 ring-black/5 transition-all duration-200"
       style={{ animation: "scaleIn 0.18s cubic-bezier(.16,1,.3,1) both" }}
     >
       <button
@@ -54,7 +54,7 @@ export function SearchMapPopupCard({ pin, listing, onClose }: Props) {
       </button>
 
       {/* Zdjęcie */}
-      <div className="relative h-[130px] w-full overflow-hidden bg-brand-surface">
+      <div className="relative h-[148px] w-full overflow-hidden bg-brand-surface">
         {coverSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -65,17 +65,40 @@ export function SearchMapPopupCard({ pin, listing, onClose }: Props) {
         ) : (
           <div className="flex h-full items-center justify-center text-[40px]">{typeIcon}</div>
         )}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/18 via-black/0 to-black/0" />
         {/* Price badge */}
-        <div className="absolute bottom-2 left-2 rounded-lg bg-brand-dark/90 px-2.5 py-1 text-xs font-extrabold text-white backdrop-blur-sm">
-          {priceOk ? `${priceNum.toFixed(0)} zł` : `${pin.price} zł`}
-          <span className="ml-1 font-normal opacity-75">/ noc</span>
+        <div
+          className="absolute bottom-2 left-2 rounded-[18px] px-3.5 py-2 text-white"
+          style={{
+            backgroundColor: "rgba(15, 23, 42, 0.98)",
+            border: "1px solid rgba(255, 255, 255, 0.18)",
+            boxShadow: "0 16px 34px rgba(0, 0, 0, 0.42)",
+          }}
+        >
+          <div className="flex items-baseline gap-1.5 whitespace-nowrap">
+            <span
+              className="rounded-full px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.14em] text-white"
+              style={{ backgroundColor: "rgba(255, 255, 255, 0.12)" }}
+            >
+              od
+            </span>
+            <span
+              className="text-[14px] font-black leading-none tracking-[-0.05em] text-white"
+              style={{ textShadow: "0 1px 2px rgba(0, 0, 0, 0.35)" }}
+            >
+              {priceOk ? `${priceNum.toFixed(0)} zł` : `${pin.price} zł`}
+            </span>
+            <span className="text-[9px] font-medium leading-none text-white">
+              / noc
+            </span>
+          </div>
         </div>
       </div>
 
       {/* Treść */}
-      <div className="px-3 pb-3 pt-2.5">
-        <p className="mb-0.5 line-clamp-2 text-[13px] font-bold leading-snug text-text">{title}</p>
-        <p className="mb-2 flex items-center gap-1 text-[11px] text-text-muted">
+      <div className="px-4 pb-4 pt-[11px]">
+        <p className="mb-0.5 line-clamp-2 text-[13.5px] font-bold leading-snug text-text">{title}</p>
+        <p className="mb-2.5 flex items-center gap-1 text-[11px] text-text-muted">
           <span aria-hidden className="text-[10px]">📍</span>
           {locLine}
         </p>
@@ -93,8 +116,8 @@ export function SearchMapPopupCard({ pin, listing, onClose }: Props) {
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
-              "rounded-md bg-brand px-3 py-1.5 text-[11px] font-bold text-white",
-              "transition-all duration-150 hover:bg-brand-700 active:scale-95"
+              "rounded-full bg-brand px-3 py-1.5 text-[11px] font-bold text-white shadow-[0_8px_18px_rgba(22,163,74,.18)]",
+              "transition-all duration-150 hover:-translate-y-px hover:bg-brand-700 active:scale-95"
             )}
             onClick={(e) => {
               e.stopPropagation();

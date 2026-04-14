@@ -104,7 +104,7 @@ class ReviewCreateSerializer(serializers.Serializer):
         max_value=Decimal("5"),
     )
     title = serializers.CharField(required=False, allow_blank=True, max_length=200, default="")
-    content = serializers.CharField(max_length=4000)
+    content = serializers.CharField(max_length=4000, required=False, allow_blank=True, default="")
     subscores = serializers.JSONField(required=False, allow_null=True)
 
 

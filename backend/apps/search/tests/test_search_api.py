@@ -49,6 +49,34 @@ def test_search_geo_order_and_map(api_client, user_host):
 
 
 @pytest.mark.django_db
+def test_search_my_location_respects_explicit_250km_radius(api_client, user_host):
+    _approved_listing(user_host, title="Warszawa", lat=52.23, lng=21.01, city="Warszawa")
+    _approved_listing(user_host, title="Łódź", lat=51.77, lng=19.46, city="Łódź")
+    _approved_listing(user_host, title="Kraków", lat=50.06, lng=19.94, city="Kraków")
+
+    query = {
+        "location": "Moja lokalizacja",
+        "latitude": "52.23",
+        "longitude": "21.01",
+        "radius_km": "250",
+    }
+
+    r = api_client.get("/api/v1/search/", query)
+    assert r.status_code == 200
+    titles = [x["title"] for x in r.json()["data"]]
+    assert "Warszawa" in titles
+    assert "Łódź" in titles
+    assert "Kraków" not in titles
+
+    m = api_client.get("/api/v1/search/map/", query)
+    assert m.status_code == 200
+    pin_titles = [x["title"] for x in m.json()["data"]]
+    assert "Warszawa" in pin_titles
+    assert "Łódź" in pin_titles
+    assert "Kraków" not in pin_titles
+
+
+@pytest.mark.django_db
 def test_search_travel_mode_family_orders_by_guests(api_client, user_host):
     _approved_listing(
         user_host, title="Mały", lat=50.0, lng=19.0, city="Kraków", guests=2

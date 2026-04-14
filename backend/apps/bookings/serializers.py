@@ -77,6 +77,7 @@ class BookingDetailSerializer(serializers.ModelSerializer):
     status_history = BookingStatusHistorySerializer(many=True, read_only=True)
     guest = serializers.SerializerMethodField()
     conversation_id = serializers.SerializerMethodField()
+    has_guest_review = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -103,6 +104,7 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "status_history",
+            "has_guest_review",
         )
         read_only_fields = fields
 
@@ -128,3 +130,12 @@ class BookingDetailSerializer(serializers.ModelSerializer):
             .first()
         )
         return str(cid) if cid else None
+
+    def get_has_guest_review(self, obj):
+        from apps.reviews.models import Review
+
+        return Review.objects.filter(
+            booking=obj,
+            reviewer_role=Review.ReviewerRole.GUEST,
+            deleted_at__isnull=True,
+        ).exists()

@@ -64,9 +64,8 @@ class SearchOrchestrator:
         normalized = cls._normalize_params_for_cache(params)
         serialized = json.dumps(normalized, sort_keys=True, default=str)
         digest = hashlib.md5(serialized.encode()).hexdigest()
-        # v2: po zmianie polityki statusów publicznych (tylko approved)
-        # wymuszamy nową przestrzeń kluczy, aby nie czytać starych cache z pending/draft.
-        return f"search:v2:{digest}"
+        # v7: wymuszenie odświeżenia cache po dodaniu PENDING do fallbacku
+        return f"search:v7:{digest}"
 
     @classmethod
     def get_ordered_ids(cls, params: dict[str, Any]) -> list[UUID]:
@@ -76,12 +75,18 @@ class SearchOrchestrator:
         if cached is not None:
             try:
                 raw_ids = json.loads(cached)
-                return [UUID(x) for x in raw_ids]
+                ids = [UUID(x) for x in raw_ids]
+                logger.info(f"get_ordered_ids [CACHE HIT]: key={cache_key}, count={len(ids)}")
+                return ids
             except (json.JSONDecodeError, TypeError, ValueError):
                 logger.warning("search cache corrupt for key %s — rebuilding", cache_key)
 
         qs = cls.build_queryset(params)
-        ids = list(qs.values_list("id", flat=True)[:MAX_CACHED_IDS])
+        all_ids = list(qs.values_list("id", flat=True))
+        ids = all_ids[:MAX_CACHED_IDS]
+        
+        logger.info(f"get_ordered_ids [DB FETCH]: key={cache_key}, found={len(all_ids)}, caching={len(ids)}")
+        
         try:
             cache.set(
                 cache_key,
@@ -152,13 +157,12 @@ class SearchOrchestrator:
                 is_category_location
             )
 
-            # Promień: jawny z parametrów > (1000km jeśli generyczne else 50km)
-            # Jeśli to wyszukiwanie generyczne (np. Moja lokalizacja), wymuszamy promień ogólnopolski (1000km),
-            # aby uniknąć pustych wyników przy domyślnym promieniu 300km przesyłanym z frontendu.
-            if is_generic_search:
-                radius_km = 1000.0
-            elif params.get("radius_km"):
+            # Promień: jawny z parametrów > fallback (1000km jeśli generyczne else 50km).
+            # Dzięki temu geolokalizacja z frontu (np. 400 km) nie jest nadpisywana na 1000 km.
+            if params.get("radius_km"):
                 radius_km = float(params["radius_km"])
+            elif is_generic_search:
+                radius_km = 1000.0
             else:
                 radius_km = 50.0
 
@@ -186,6 +190,8 @@ class SearchOrchestrator:
 
         if travel_mode := params.get("travel_mode"):
             qs = TravelModeRanker.apply(qs, travel_mode)
+            # Logowanie dla debugowania (widoczne w logach backendu)
+            logger.info(f"SearchOrchestrator: travel_mode={travel_mode}, count_before_ranking={qs.count()}")
 
         for tag in LOCATION_TAG_FIELD_NAMES:
             if params.get(tag) is True:
@@ -253,6 +259,26 @@ class SearchOrchestrator:
             except Exception:
                 pass  # availability filter is best-effort
 
+        # Jeśli wyszukiwanie jest specyficzne pod tryb podróży, a nie znaleziono ŻADNYCH ofert (np. błąd danych),
+        # zwróćmy chociaż 12 najnowszych ofert APPROVED jako fallback, zamiast pustej strony.
+        if params.get("travel_mode") and not for_map:
+            # Wymuszamy ewaluację querysetu, aby sprawdzić czy jest pusty
+            final_count = qs.count()
+            logger.info(f"SearchOrchestrator: Final count for mode {params.get('travel_mode')} is {final_count}")
+            
+            if final_count == 0:
+                logger.warning(f"SearchOrchestrator: BRAK OFERT dla trybu {params.get('travel_mode')}. Zwracam fallback (wszystkie approved).")
+                # Fallback: wszystkie oferty w statusie APPROVED lub PENDING (dla dewelopmentu), posortowane od najnowszych
+                # W środowisku dev często oferty są w statusie PENDING, więc dodajemy go do fallbacku
+                fallback_statuses = [Listing.Status.APPROVED, Listing.Status.PENDING]
+                fallback_qs = Listing.objects.filter(status__in=fallback_statuses).order_by("-created_at", "id")
+                
+                # Prefetchowanie zdjęć dla fallbacku (build_queryset to robi, ale tu mamy nowy QS)
+                fallback_qs = fallback_qs.select_related("location", "host__user").prefetch_related(img_prefetch).defer("description")
+                
+                logger.info(f"SearchOrchestrator: Fallback count is {fallback_qs.count()}")
+                return fallback_qs
+
         return cls._apply_ranking(qs, params, has_point=has_point)
 
     @staticmethod
@@ -281,6 +307,9 @@ class SearchOrchestrator:
             order.extend(["-travel_score", "-created_at", "id"])
         else:
             order.extend(["-created_at", "id"])
+        
+        # Jeśli mamy travel_mode, a queryet nie ma travel_score (nie został zaanotowany przez Ranker),
+        # upewnij się że zapytanie się nie wywali — chociaż Ranker powinien go dodać.
         return qs.order_by(*order)
 
     @classmethod

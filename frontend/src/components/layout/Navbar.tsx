@@ -15,6 +15,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Wyszukaj", href: "/search" },
   { label: "Discovery", href: "/discovery" },
   { label: "Ulubione", href: "/wishlist" },
+  { label: "Tryby Podróży", href: "/travel" },
   { label: "Zostań gospodarzem", href: "/host" },
   { label: "✨ StayMap AI", href: "/ai", ai: true },
 ];
@@ -166,7 +167,7 @@ export function Navbar() {
 
   const linkClass = (href: string, ai?: boolean) =>
      cn(
-       "group relative flex items-center h-full px-5 text-[16px] font-bold tracking-[-0.3px] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+       "group relative flex items-center h-full px-3 lg:px-4 xl:px-5 text-[16px] font-bold tracking-[-0.3px] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
        ai
          ? "mx-2 px-4 py-1 text-[#7c3aed] hover:text-[#6d28d9] hover:scale-105"
           : "text-[#1f2937] hover:text-[#0a0f0d]",
@@ -180,13 +181,13 @@ export function Navbar() {
          scrolled && "h-[80px] shadow-[0_10px_28px_-14px_rgba(0,0,0,0.24)]"
        )}
      >
-       <div className="mx-auto flex h-full w-full max-w-[1340px] items-center justify-between px-4 md:px-10 lg:px-12">
+       <div className="mx-auto flex h-full w-full max-w-[1560px] items-center justify-between px-4 md:px-8 lg:px-10 xl:px-12">
          <Link href="/" className="group flex items-end leading-none transition-all duration-300 hover:scale-[1.03] active:scale-95">
            <span className="text-[28px] font-[900] tracking-[-1.2px] text-[#0a2e1a] sm:text-[30px]">StayMap</span>
            <span className="ml-0.5 text-[32px] leading-none text-[#16a34a] transition-all duration-500 group-hover:ml-1.5 group-hover:scale-150 sm:text-[36px]">.</span>
          </Link>
 
-         <nav className="hidden h-full items-center gap-[8px] md:flex lg:gap-[12px]" aria-label="Nawigacja główna">
+          <nav className="hidden h-full flex-nowrap items-center gap-[8px] md:flex lg:gap-[12px]" aria-label="Nawigacja główna">
            {navItems.map((item) => (
              <Link key={item.href} href={item.href} className={linkClass(item.href, item.ai)}>
                {item.label}

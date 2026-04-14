@@ -114,10 +114,10 @@ DEMO_LISTINGS = [
         "is_pet_friendly": True,
         "listing_type": {"name": "Dom", "icon": "🏡", "slug": "dom"},
         "amenities": [
-            {"id": "sauna", "name": "Sauna", "icon": "sauna", "category": "wellness"},
-            {"id": "wifi", "name": "Wi‑Fi", "icon": "wifi", "category": "tech"},
+            {"id": "sauna_fin", "name": "Sauna", "icon": "sauna", "category": "wellness"},
+            {"id": "wifi_100", "name": "Wi‑Fi", "icon": "wifi", "category": "tech"},
             {"id": "parking", "name": "Parking", "icon": "parking", "category": "outdoor"},
-            {"id": "fireplace", "name": "Kominek", "icon": "fireplace", "category": "comfort"},
+            {"id": "kominek", "name": "Kominek", "icon": "fireplace", "category": "comfort"},
             {"id": "kitchen", "name": "Pełna kuchnia", "icon": "kitchen", "category": "comfort"},
             {"id": "terrace", "name": "Taras z widokiem", "icon": "terrace", "category": "outdoor"},
             {"id": "ac", "name": "Klimatyzacja", "icon": "ac", "category": "comfort"},
@@ -172,9 +172,9 @@ DEMO_LISTINGS = [
         "is_pet_friendly": False,
         "listing_type": {"name": "Apartament", "icon": "🏢", "slug": "apartament"},
         "amenities": [
-            {"id": "wifi", "name": "Wi‑Fi", "icon": "wifi", "category": "tech"},
+            {"id": "wifi_100", "name": "Wi‑Fi", "icon": "wifi", "category": "tech"},
             {"id": "parking", "name": "Parking", "icon": "parking", "category": "outdoor"},
-            {"id": "bike", "name": "Rowery", "icon": "bike", "category": "outdoor"},
+            {"id": "rowery", "name": "Rowery", "icon": "bike", "category": "outdoor"},
             {"id": "kitchen", "name": "Kuchnia", "icon": "kitchen", "category": "comfort"},
             {"id": "tv", "name": "Telewizor", "icon": "tv", "category": "tech"},
         ],
@@ -225,9 +225,9 @@ DEMO_LISTINGS = [
         "is_pet_friendly": False,
         "listing_type": {"name": "Chata", "icon": "🏔️", "slug": "chata"},
         "amenities": [
-            {"id": "jacuzzi", "name": "Jacuzzi na zewnątrz", "icon": "jacuzzi", "category": "wellness"},
-            {"id": "wifi", "name": "Wi‑Fi", "icon": "wifi", "category": "tech"},
-            {"id": "fireplace", "name": "Kominek", "icon": "fireplace", "category": "comfort"},
+            {"id": "jacuzzi_ext", "name": "Jacuzzi na zewnątrz", "icon": "jacuzzi", "category": "wellness"},
+            {"id": "wifi_100", "name": "Wi‑Fi", "icon": "wifi", "category": "tech"},
+            {"id": "kominek", "name": "Kominek", "icon": "fireplace", "category": "comfort"},
             {"id": "parking", "name": "Parking 2 miejsca", "icon": "parking", "category": "outdoor"},
         ],
         "destination_score_cache": _score(
@@ -278,9 +278,9 @@ DEMO_LISTINGS = [
         "listing_type": {"name": "Dom", "icon": "🏠", "slug": "dom"},
         "amenities": [
             {"id": "garden", "name": "Ogród z grillem", "icon": "garden", "category": "outdoor"},
-            {"id": "wifi", "name": "Wi‑Fi", "icon": "wifi", "category": "tech"},
+            {"id": "wifi_100", "name": "Wi‑Fi", "icon": "wifi", "category": "tech"},
             {"id": "washer", "name": "Pralka", "icon": "washer", "category": "comfort"},
-            {"id": "pets", "name": "Zwierzęta mile widziane", "icon": "pets", "category": "outdoor"},
+            {"id": "pies_ok", "name": "Zwierzęta mile widziane", "icon": "pets", "category": "outdoor"},
         ],
         "destination_score_cache": _score(
             romantic=7.5,
@@ -328,9 +328,9 @@ DEMO_LISTINGS = [
         "is_pet_friendly": False,
         "listing_type": {"name": "Glamping", "icon": "⛺", "slug": "glamping"},
         "amenities": [
-            {"id": "wifi", "name": "Wi‑Fi (LTE)", "icon": "wifi", "category": "tech"},
+            {"id": "wifi_100", "name": "Wi‑Fi (LTE)", "icon": "wifi", "category": "tech"},
             {"id": "kitchen", "name": "Mini kuchnia", "icon": "kitchen", "category": "comfort"},
-            {"id": "desk", "name": "Stół roboczy", "icon": "desk", "category": "tech"},
+            {"id": "biurko", "name": "Stół roboczy", "icon": "desk", "category": "tech"},
         ],
         "destination_score_cache": _score(
             romantic=9.5,
@@ -377,8 +377,8 @@ DEMO_LISTINGS = [
         "is_pet_friendly": False,
         "listing_type": {"name": "Apartament", "icon": "🛋️", "slug": "apartament"},
         "amenities": [
-            {"id": "wifi", "name": "Światłowód 600 Mb", "icon": "wifi", "category": "tech"},
-            {"id": "desk", "name": "Biurko ergonomiczne", "icon": "desk", "category": "tech"},
+            {"id": "wifi_500", "name": "Światłowód 600 Mb", "icon": "wifi", "category": "tech"},
+            {"id": "biurko", "name": "Biurko ergonomiczne", "icon": "desk", "category": "tech"},
             {"id": "ac", "name": "Klimatyzacja", "icon": "ac", "category": "comfort"},
             {"id": "washer", "name": "Pralko-suszarka", "icon": "washer", "category": "comfort"},
         ],
@@ -427,7 +427,7 @@ DEMO_LISTINGS = [
         "is_pet_friendly": False,
         "listing_type": {"name": "Willa", "icon": "🏛️", "slug": "willa"},
         "amenities": [
-            {"id": "wifi", "name": "Wi‑Fi", "icon": "wifi", "category": "tech"},
+            {"id": "wifi_100", "name": "Wi‑Fi", "icon": "wifi", "category": "tech"},
             {"id": "parking", "name": "Parking na 2 auta", "icon": "parking", "category": "outdoor"},
             {"id": "garden", "name": "Ogród", "icon": "garden", "category": "outdoor"},
             {"id": "kitchen", "name": "Kuchnia szefa", "icon": "kitchen", "category": "comfort"},
@@ -480,10 +480,10 @@ DEMO_LISTINGS = [
         "is_pet_friendly": True,
         "listing_type": {"name": "Domek", "icon": "🏡", "slug": "domek"},
         "amenities": [
-            {"id": "wifi", "name": "Wi‑Fi", "icon": "wifi", "category": "tech"},
+            {"id": "wifi_100", "name": "Wi‑Fi", "icon": "wifi", "category": "tech"},
             {"id": "parking", "name": "Parking", "icon": "parking", "category": "outdoor"},
             {"id": "kitchen", "name": "Kuchnia", "icon": "kitchen", "category": "comfort"},
-            {"id": "fireplace", "name": "Kominek", "icon": "fireplace", "category": "comfort"},
+            {"id": "kominek", "name": "Kominek", "icon": "fireplace", "category": "comfort"},
         ],
         "destination_score_cache": _score(
             romantic=8.0,

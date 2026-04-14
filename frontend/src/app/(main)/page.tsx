@@ -5,6 +5,7 @@ import { HostCta } from "@/components/home/HostCta";
 import { LastMinute } from "@/components/home/LastMinute";
 import { MarqueeTicker } from "@/components/home/MarqueeTicker";
 import { MountainCollection } from "@/components/home/MountainCollection";
+import { SpontanSection } from "@/components/home/SpontanSection";
 import { StatsStrip } from "@/components/home/StatsStrip";
 import { type CollectionCardData, WaterCollection } from "@/components/home/WaterCollection";
 import { Footer } from "@/components/layout/Footer";
@@ -293,6 +294,7 @@ export default async function HomePage() {
         <StatsStrip />
         <WaterCollection cards={waterRailCards} />
         <MountainCollection cards={mountainCards} />
+        <SpontanSection />
         <LastMinute items={lastMinuteItems} />
         <HostCta />
       </div>

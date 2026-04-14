@@ -38,10 +38,6 @@ class ReviewService:
         ).exists():
             raise ValidationError({"detail": ["Recenzja dla tej roli już istnieje."]})
 
-        today = timezone.localdate()
-        if role == Review.ReviewerRole.GUEST and today < booking.check_out:
-            raise ValidationError({"detail": ["Recenzję można dodać po dniu wymeldowania."]})
-
         if booking.status not in (
             Booking.Status.CONFIRMED,
             Booking.Status.COMPLETED,

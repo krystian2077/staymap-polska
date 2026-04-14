@@ -376,6 +376,7 @@ body {
 @keyframes calIn { from { opacity: 0; transform: translateY(-8px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes guestsIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(300%); } }
+@keyframes btnShimmer { 0% { transform: translateX(-150%); } 60% { transform: translateX(150%); } 100% { transform: translateX(150%); } }
 
 .staymap-leaflet-divicon {
   background: transparent !important;
@@ -428,23 +429,79 @@ body {
   position: relative;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  gap: 0;
+  min-width: 112px;
   white-space: nowrap;
-  background: rgba(15, 23, 42, 0.94);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.92));
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: #ffffff;
-  padding: 7px 14px;
+  padding: 8px 13px;
   border-radius: 9999px;
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 900;
   line-height: 1;
-  letter-spacing: -0.01em;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.15);
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  letter-spacing: -0.02em;
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.28),
+    0 3px 8px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition:
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s ease,
+    background-color 0.24s ease,
+    border-color 0.24s ease,
+    color 0.24s ease;
   cursor: pointer;
   transform-origin: bottom center;
   user-select: none;
+  will-change: transform, box-shadow, opacity;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+  animation: smap-pin-entrance 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--pin-enter-delay, 0ms);
+}
+
+.smap-pin__tag {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  padding: 3px 6px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.smap-pin__price {
+  display: inline-flex;
+  align-items: center;
+  font-size: 14.5px;
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes smap-pin-entrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .smap-pin::after {
@@ -470,6 +527,7 @@ body {
   border-right: 8px solid transparent;
   border-top: 9px solid rgba(255, 255, 255, 0.15);
   z-index: -1;
+  transition: border-top-color 0.4s ease;
 }
 
 .smap-pin:hover,
@@ -477,10 +535,27 @@ body {
   background: #16a34a;
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.4);
-  box-shadow: 0 12px 28px rgba(22, 163, 74, 0.45), 0 4px 10px rgba(0, 0, 0, 0.2);
-  transform: translateY(-8px) scale(1.15);
+  box-shadow:
+    0 12px 28px rgba(22, 163, 74, 0.45),
+    0 4px 10px rgba(0, 0, 0, 0.2),
+    0 0 20px rgba(22, 163, 74, 0.3);
+  transform: translateY(-6px) scale(1.08);
   z-index: 9999 !important;
 }
+
+.smap-pin:hover .smap-pin__tag,
+.smap-pin.is-hovered .smap-pin__tag,
+.smap-pin.is-selected .smap-pin__tag {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.smap-pin:hover .smap-pin__price,
+.smap-pin.is-hovered .smap-pin__price,
+.smap-pin.is-selected .smap-pin__price {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
 .smap-pin:hover::after,
 .smap-pin.is-hovered::after {
   border-top-color: #16a34a;
@@ -494,10 +569,15 @@ body {
   background: #16a34a;
   color: #ffffff;
   border-color: #ffffff;
-  box-shadow: 0 14px 36px rgba(22, 163, 74, 0.55), 0 8px 16px rgba(0, 0, 0, 0.25);
-  transform: translateY(-12px) scale(1.3);
+  box-shadow:
+    0 14px 36px rgba(22, 163, 74, 0.55),
+    0 8px 16px rgba(0, 0, 0, 0.25),
+    0 0 30px rgba(22, 163, 74, 0.4),
+    inset 0 0 20px rgba(255, 255, 255, 0.1);
+  transform: translateY(-8px) scale(1.11);
   z-index: 10000 !important;
 }
+
 .smap-pin.is-selected::after {
   border-top-color: #16a34a;
 }
@@ -511,24 +591,174 @@ body {
   font-weight: 900 !important;
   font-size: 13px !important;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3) !important;
+  animation: cluster-entrance 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
+@keyframes cluster-entrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .marker-cluster-small,
 .marker-cluster-medium,
 .marker-cluster-large {
   background: rgba(15, 23, 42, 0.15) !important;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: cluster-entrance 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
 .marker-cluster:hover {
   background: rgba(15, 23, 42, 0.25) !important;
+  transform: scale(1.08);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
+
 .marker-cluster:hover div {
   background: #16a34a !important;
-  transform: scale(1.1);
+  transform: scale(1.15);
+  box-shadow: 0 8px 20px rgba(22, 163, 74, 0.4) !important;
 }
 
 .leaflet-cluster-anim .leaflet-marker-icon,
 .leaflet-cluster-anim .leaflet-marker-shadow {
-  transition: transform 0.22s ease-out;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Naturalny ruch pinow podczas pan/zoom */
+.is-map-moving .smap-pin {
+  transition-duration: 0.16s;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22), 0 2px 4px rgba(0, 0, 0, 0.12);
+}
+
+.is-map-moving .smap-pin:hover,
+.is-map-moving .smap-pin.is-hovered,
+.is-map-moving .smap-pin.is-selected {
+  transform: translateY(-4px) scale(1.04);
+}
+
+.leaflet-zoom-anim .smap-pin {
+  transition-duration: 0.14s;
+}
+
+/* W trakcie zoomu: mniej skali i lżejsze cienie = mniej jittera */
+.is-map-zooming .smap-pin,
+.leaflet-zoom-anim .smap-pin {
+  transition-property: transform, box-shadow, background-color, border-color, color;
+  transition-duration: 0.12s;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2), 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.is-map-zooming .smap-pin:hover,
+.is-map-zooming .smap-pin.is-hovered,
+.is-map-zooming .smap-pin.is-selected,
+.leaflet-zoom-anim .smap-pin:hover,
+.leaflet-zoom-anim .smap-pin.is-hovered,
+.leaflet-zoom-anim .smap-pin.is-selected {
+  transform: translateY(-3px) scale(1.02);
+}
+
+.leaflet-zoom-anim .marker-cluster,
+.leaflet-zoom-anim .marker-cluster div {
+  transition-duration: 0.12s !important;
+}
+
+.map-voiv-label {
+  background: rgba(22, 101, 52, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border-radius: 999px;
+  padding: 2px 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
+.map-city-label {
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 2px 6px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.16);
+}
+
+/* ──────────────────────────────────────────────────────────────────── */
+/* Globalne animacje dla mapy */
+/* ──────────────────────────────────────────────────────────────────── */
+
+/* Map controls smooth hover */
+.leaflet-control-container .leaflet-bar a {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.leaflet-control-container .leaflet-bar a:hover {
+  transform: scale(1.08);
+}
+
+/* Smooth fade in animations for popups */
+@keyframes popup-entrance {
+  0% {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.leaflet-popup {
+  animation: popup-entrance 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.leaflet-popup:hover {
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Smooth cluster animations */
+.marker-cluster {
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Improved zoom control animations */
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+  transform: scale(1.1) !important;
+}
+
+/* Tile fade-in animation */
+.leaflet-tile {
+  animation: tile-fade-in 0.28s ease-out;
+}
+
+@keyframes tile-fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Smooth bounds fitting animation */
+.leaflet-container.leaflet-touch .leaflet-control-attribution,
+.leaflet-container .leaflet-control-attribution {
+  transition: all 0.3s ease;
 }
 
 @keyframes ai-glow {

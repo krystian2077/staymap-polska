@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { api } from "@/lib/api";
@@ -21,6 +21,7 @@ type Row = {
   conversation_id?: string | null;
   special_requests?: string;
   cancellation_policy_snapshot?: string;
+  has_guest_review?: boolean;
   status_history?: Array<{
     id: string;
     old_status: string;
@@ -76,12 +77,194 @@ function nightsCount(checkIn: string, checkOut: string): number | null {
   return nights > 0 ? nights : null;
 }
 
+function canWriteReview(booking: Row): boolean {
+  if (booking.has_guest_review) return false;
+  return booking.status === "completed" || booking.status === "confirmed";
+}
+
+// ── Star Picker ────────────────────────────────────────────────────────────────
+
+function StarPicker({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const [hovered, setHovered] = useState(0);
+
+  return (
+    <div className="flex gap-1" role="radiogroup" aria-label="Ocena">
+      {[1, 2, 3, 4, 5].map((star) => {
+        const filled = star <= (hovered || value);
+        return (
+          <button
+            key={star}
+            type="button"
+            role="radio"
+            aria-checked={star === value}
+            aria-label={`${star} ${star === 1 ? "gwiazdka" : star < 5 ? "gwiazdki" : "gwiazdek"}`}
+            onMouseEnter={() => setHovered(star)}
+            onMouseLeave={() => setHovered(0)}
+            onClick={() => onChange(star)}
+            className="text-3xl leading-none transition-transform hover:scale-110 focus:outline-none"
+          >
+            <span className={filled ? "text-amber-400" : "text-slate-300"}>★</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Review Modal ───────────────────────────────────────────────────────────────
+
+function ReviewModal({
+  booking,
+  onClose,
+  onSubmitted,
+}: {
+  booking: Row;
+  onClose: () => void;
+  onSubmitted: () => void;
+}) {
+  const [rating, setRating] = useState(0);
+  const [content, setContent] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  // Close on overlay click
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === overlayRef.current) onClose();
+  };
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rating === 0) {
+      toast.error("Wybierz ocenę w skali 1–5 gwiazdek.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await api.post("/api/v1/reviews/", {
+        booking_id: booking.id,
+        reviewer_role: "guest",
+        overall_rating: rating,
+        content: content.trim(),
+      });
+      toast.success("Recenzja została opublikowana!");
+      onSubmitted();
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Nie udało się opublikować recenzji.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const ratingLabels: Record<number, string> = {
+    1: "Bardzo słabo",
+    2: "Słabo",
+    3: "Przeciętnie",
+    4: "Dobrze",
+    5: "Wyśmienicie",
+  };
+
+  return (
+    <div
+      ref={overlayRef}
+      onClick={handleOverlayClick}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+    >
+      <div className="w-full max-w-lg rounded-[28px] border border-brand-dark/[.08] bg-white p-7 shadow-[0_40px_100px_-30px_rgba(15,23,42,0.45)] sm:p-8">
+        <div className="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand">Recenzja pobytu</p>
+            <h2 className="mt-1 text-xl font-black tracking-tight text-brand-dark line-clamp-2">
+              {booking.listing_title}
+            </h2>
+            <p className="mt-1 text-xs text-text-secondary">
+              {fmtDate(booking.check_in)} – {fmtDate(booking.check_out)}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Zamknij"
+            className="shrink-0 rounded-xl border border-brand-dark/[.1] bg-white p-2 text-text-secondary transition hover:bg-brand-surface hover:text-brand-dark"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
+          <div>
+            <p className="mb-2 text-sm font-bold text-brand-dark">Ogólna ocena *</p>
+            <StarPicker value={rating} onChange={setRating} />
+            {rating > 0 && (
+              <p className="mt-1.5 text-sm font-semibold text-amber-600">{ratingLabels[rating]}</p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="review-content" className="mb-1.5 block text-sm font-bold text-brand-dark">
+              Treść recenzji{" "}
+              <span className="font-normal text-text-secondary">(opcjonalna)</span>
+            </label>
+            <textarea
+              id="review-content"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              maxLength={4000}
+              rows={5}
+              placeholder="Opisz swoje doświadczenia — co było super, a co można poprawić..."
+              className="w-full resize-none rounded-2xl border border-brand-dark/[.15] bg-[#f8faf9] px-4 py-3 text-sm text-brand-dark placeholder:text-text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+            />
+            <p className="mt-1 text-right text-[11px] text-text-muted">{content.length}/4000</p>
+          </div>
+
+          <div className="flex flex-wrap gap-3 pt-1">
+            <button
+              type="submit"
+              disabled={submitting || rating === 0}
+              className="flex-1 rounded-xl bg-gradient-to-r from-brand to-[#15803d] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:-translate-y-px hover:from-[#15803d] hover:to-[#166534] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {submitting ? "Publikowanie..." : "Opublikuj recenzję"}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-brand-dark/[.1] bg-white px-5 py-3 text-sm font-bold text-brand-dark transition hover:-translate-y-px hover:bg-brand-surface"
+            >
+              Anuluj
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────────
+
 export function BookingsPageClient() {
   const router = useRouter();
   const [rows, setRows] = useState<Row[] | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [reviewBooking, setReviewBooking] = useState<Row | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -159,6 +342,12 @@ export function BookingsPageClient() {
     }
   };
 
+  const onReviewSubmitted = (bookingId: string) => {
+    setRows((prev) =>
+      (prev ?? []).map((b) => (b.id === bookingId ? { ...b, has_guest_review: true } : b))
+    );
+  };
+
   if (err) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
@@ -194,139 +383,167 @@ export function BookingsPageClient() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-12">
-      <div className="relative overflow-hidden rounded-[32px] border border-brand-dark/[.08] bg-gradient-to-br from-brand-dark via-[#0f5f2e] to-[#15803d] p-7 text-white shadow-[0_35px_90px_-45px_rgba(21,128,61,0.65)] sm:p-8">
-        <div className="pointer-events-none absolute -right-8 -top-10 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
-        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">Twoje konto</p>
-        <h1 className="mt-2 text-3xl font-black tracking-tight">Moje rezerwacje</h1>
-        <p className="mt-2 max-w-2xl text-sm text-white/85">Zarządzaj pobytami, sprawdzaj szczegóły, anuluj rezerwację i skontaktuj się bezpośrednio z gospodarzem.</p>
-      </div>
+    <>
+      {reviewBooking && (
+        <ReviewModal
+          booking={reviewBooking}
+          onClose={() => setReviewBooking(null)}
+          onSubmitted={() => {
+            onReviewSubmitted(reviewBooking.id);
+          }}
+        />
+      )}
 
-      <ul className="mt-8 space-y-5">
-        {sortedRows.map((b) => (
-          (() => {
-            const nights = nightsCount(b.check_in, b.check_out);
-            const isBusy = busyId === b.id;
-            const canCancel = cancellableStatuses.has(b.status);
-            return (
-          <li
-            key={b.id}
-            className="group overflow-hidden rounded-[26px] border border-brand-dark/[.08] bg-white p-5 shadow-[0_20px_45px_-36px_rgba(15,23,42,0.45)] transition-all duration-300 hover:-translate-y-[2px] hover:shadow-[0_28px_70px_-34px_rgba(15,23,42,0.45)] sm:p-6"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ring-1 ${statusTone(b.status)}`}>
-                    {statusPl[b.status] ?? b.status}
-                  </span>
-                  {b.confirmation_email_sent ? (
-                    <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600 ring-1 ring-slate-200">
-                      Potwierdzenie e-mail
+      <div className="mx-auto max-w-5xl px-4 py-12">
+        <div className="relative overflow-hidden rounded-[32px] border border-brand-dark/[.08] bg-gradient-to-br from-brand-dark via-[#0f5f2e] to-[#15803d] p-7 text-white shadow-[0_35px_90px_-45px_rgba(21,128,61,0.65)] sm:p-8">
+          <div className="pointer-events-none absolute -right-8 -top-10 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">Twoje konto</p>
+          <h1 className="mt-2 text-3xl font-black tracking-tight">Moje rezerwacje</h1>
+          <p className="mt-2 max-w-2xl text-sm text-white/85">Zarządzaj pobytami, sprawdzaj szczegóły, anuluj rezerwację i skontaktuj się bezpośrednio z gospodarzem.</p>
+        </div>
+
+        <ul className="mt-8 space-y-5">
+          {sortedRows.map((b) => (
+            (() => {
+              const nights = nightsCount(b.check_in, b.check_out);
+              const isBusy = busyId === b.id;
+              const canCancel = cancellableStatuses.has(b.status);
+              const showReviewBtn = canWriteReview(b);
+              return (
+            <li
+              key={b.id}
+              className="group overflow-hidden rounded-[26px] border border-brand-dark/[.08] bg-white p-5 shadow-[0_20px_45px_-36px_rgba(15,23,42,0.45)] transition-all duration-300 hover:-translate-y-[2px] hover:shadow-[0_28px_70px_-34px_rgba(15,23,42,0.45)] sm:p-6"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ring-1 ${statusTone(b.status)}`}>
+                      {statusPl[b.status] ?? b.status}
                     </span>
+                    {b.confirmation_email_sent ? (
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600 ring-1 ring-slate-200">
+                        Potwierdzenie e-mail
+                      </span>
+                    ) : null}
+                    {b.has_guest_review ? (
+                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700 ring-1 ring-amber-200">
+                        ★ Recenzja wystawiona
+                      </span>
+                    ) : null}
+                  </div>
+                  <Link
+                    href={`/listing/${b.listing_slug}`}
+                    className="line-clamp-2 text-[22px] font-black leading-tight tracking-tight text-brand-dark transition-colors hover:text-brand"
+                  >
+                    {b.listing_title}
+                  </Link>
+                  <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium text-text-secondary">
+                    <span>📍 {b.listing_slug}</span>
+                    <span>👥 {b.guests_count} {b.guests_count === 1 ? "gość" : "gości"}</span>
+                    {nights ? <span>🌙 {nights} {nights === 1 ? "noc" : "nocy"}</span> : null}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-brand-dark/[.08] bg-[#f8faf9] px-4 py-3 text-right shadow-inner sm:min-w-[170px]">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Do zapłaty</p>
+                  <p className="mt-1 text-2xl font-black tracking-tight text-brand-dark">
+                    {b.final_amount} {b.currency}
+                  </p>
+                  <p className="mt-1 text-[11px] text-text-muted">ID: {b.id.slice(0, 8).toUpperCase()}</p>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-2 rounded-2xl border border-brand-dark/[.08] bg-[#f8faf9] p-4 text-sm text-text-secondary sm:grid-cols-2">
+                <p>
+                  <span className="font-semibold text-brand-dark">Przyjazd:</span> {fmtDate(b.check_in)}
+                </p>
+                <p>
+                  <span className="font-semibold text-brand-dark">Wyjazd:</span> {fmtDate(b.check_out)}
+                </p>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setExpandedId((prev) => (prev === b.id ? null : b.id))}
+                  className="rounded-xl border border-brand-dark/[.1] bg-white px-4 py-2.5 text-xs font-bold text-brand-dark transition hover:-translate-y-px hover:bg-brand-surface"
+                >
+                  {expandedId === b.id ? "Ukryj szczegóły" : "Szczegóły"}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isBusy || !canCancel}
+                  onClick={() => void onCancel(b)}
+                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-700 transition hover:-translate-y-px hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isBusy ? "Anulowanie..." : "Anuluj"}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={() => void onMessageHost(b)}
+                  className="rounded-xl bg-gradient-to-r from-brand to-[#15803d] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:-translate-y-px hover:from-[#15803d] hover:to-[#166534] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isBusy ? "Otwieranie..." : "Napisz do gospodarza"}
+                </button>
+
+                {showReviewBtn && (
+                  <button
+                    type="button"
+                    onClick={() => setReviewBooking(b)}
+                    className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-700 transition hover:-translate-y-px hover:bg-amber-100"
+                  >
+                    ★ Napisz recenzję
+                  </button>
+                )}
+              </div>
+
+              {expandedId === b.id ? (
+                <div className="mt-4 rounded-2xl border border-brand-dark/[.08] bg-white p-4 shadow-inner sm:p-5">
+                  <h3 className="text-sm font-extrabold uppercase tracking-wide text-brand-dark">Szczegóły rezerwacji</h3>
+                  <div className="mt-3 grid grid-cols-1 gap-3 text-sm text-text-secondary sm:grid-cols-2">
+                    <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Termin</p>
+                      <p className="mt-1 font-semibold text-brand-dark">{fmtDate(b.check_in)} - {fmtDate(b.check_out)}</p>
+                    </div>
+                    <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Status</p>
+                      <p className="mt-1 font-semibold text-brand-dark">{statusPl[b.status] ?? b.status}</p>
+                    </div>
+                    <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5 sm:col-span-2">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Polityka anulacji</p>
+                      <p className="mt-1 font-semibold text-brand-dark">{b.cancellation_policy_snapshot || "Brak informacji"}</p>
+                    </div>
+                    <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5 sm:col-span-2">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Wiadomość do gospodarza</p>
+                      <p className="mt-1 font-semibold text-brand-dark">{b.special_requests?.trim() || "Brak"}</p>
+                    </div>
+                  </div>
+
+                  {Array.isArray(b.status_history) && b.status_history.length > 0 ? (
+                    <div className="mt-4 rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] p-3.5">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-brand-dark">Historia statusów</p>
+                      <ul className="mt-2 space-y-1.5 text-xs text-text-secondary">
+                        {b.status_history.slice(-4).reverse().map((h) => (
+                          <li key={h.id} className="rounded-lg bg-white px-2.5 py-2 ring-1 ring-black/[.04]">
+                            <span className="font-semibold text-brand-dark">{fmtDate(h.created_at)}</span>
+                            {" - "}
+                            {statusPl[h.new_status] ?? h.new_status}
+                            {h.note ? ` (${h.note})` : ""}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ) : null}
                 </div>
-                <Link
-                  href={`/listing/${b.listing_slug}`}
-                  className="line-clamp-2 text-[22px] font-black leading-tight tracking-tight text-brand-dark transition-colors hover:text-brand"
-                >
-                  {b.listing_title}
-                </Link>
-                <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium text-text-secondary">
-                  <span>📍 {b.listing_slug}</span>
-                  <span>👥 {b.guests_count} {b.guests_count === 1 ? "gość" : "gości"}</span>
-                  {nights ? <span>🌙 {nights} {nights === 1 ? "noc" : "nocy"}</span> : null}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-brand-dark/[.08] bg-[#f8faf9] px-4 py-3 text-right shadow-inner sm:min-w-[170px]">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Do zapłaty</p>
-                <p className="mt-1 text-2xl font-black tracking-tight text-brand-dark">
-                  {b.final_amount} {b.currency}
-                </p>
-                <p className="mt-1 text-[11px] text-text-muted">ID: {b.id.slice(0, 8).toUpperCase()}</p>
-              </div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-2 rounded-2xl border border-brand-dark/[.08] bg-[#f8faf9] p-4 text-sm text-text-secondary sm:grid-cols-2">
-              <p>
-                <span className="font-semibold text-brand-dark">Przyjazd:</span> {fmtDate(b.check_in)}
-              </p>
-              <p>
-                <span className="font-semibold text-brand-dark">Wyjazd:</span> {fmtDate(b.check_out)}
-              </p>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2.5">
-              <button
-                type="button"
-                onClick={() => setExpandedId((prev) => (prev === b.id ? null : b.id))}
-                className="rounded-xl border border-brand-dark/[.1] bg-white px-4 py-2.5 text-xs font-bold text-brand-dark transition hover:-translate-y-px hover:bg-brand-surface"
-              >
-                {expandedId === b.id ? "Ukryj szczegóły" : "Szczegóły"}
-              </button>
-
-              <button
-                type="button"
-                disabled={isBusy || !canCancel}
-                onClick={() => void onCancel(b)}
-                className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-700 transition hover:-translate-y-px hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isBusy ? "Anulowanie..." : "Anuluj"}
-              </button>
-
-              <button
-                type="button"
-                disabled={isBusy}
-                onClick={() => void onMessageHost(b)}
-                className="rounded-xl bg-gradient-to-r from-brand to-[#15803d] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:-translate-y-px hover:from-[#15803d] hover:to-[#166534] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isBusy ? "Otwieranie..." : "Napisz do gospodarza"}
-              </button>
-            </div>
-
-            {expandedId === b.id ? (
-              <div className="mt-4 rounded-2xl border border-brand-dark/[.08] bg-white p-4 shadow-inner sm:p-5">
-                <h3 className="text-sm font-extrabold uppercase tracking-wide text-brand-dark">Szczegóły rezerwacji</h3>
-                <div className="mt-3 grid grid-cols-1 gap-3 text-sm text-text-secondary sm:grid-cols-2">
-                  <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Termin</p>
-                    <p className="mt-1 font-semibold text-brand-dark">{fmtDate(b.check_in)} - {fmtDate(b.check_out)}</p>
-                  </div>
-                  <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Status</p>
-                    <p className="mt-1 font-semibold text-brand-dark">{statusPl[b.status] ?? b.status}</p>
-                  </div>
-                  <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5 sm:col-span-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Polityka anulacji</p>
-                    <p className="mt-1 font-semibold text-brand-dark">{b.cancellation_policy_snapshot || "Brak informacji"}</p>
-                  </div>
-                  <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5 sm:col-span-2">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Wiadomość do gospodarza</p>
-                    <p className="mt-1 font-semibold text-brand-dark">{b.special_requests?.trim() || "Brak"}</p>
-                  </div>
-                </div>
-
-                {Array.isArray(b.status_history) && b.status_history.length > 0 ? (
-                  <div className="mt-4 rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] p-3.5">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-brand-dark">Historia statusów</p>
-                    <ul className="mt-2 space-y-1.5 text-xs text-text-secondary">
-                      {b.status_history.slice(-4).reverse().map((h) => (
-                        <li key={h.id} className="rounded-lg bg-white px-2.5 py-2 ring-1 ring-black/[.04]">
-                          <span className="font-semibold text-brand-dark">{fmtDate(h.created_at)}</span>
-                          {" - "}
-                          {statusPl[h.new_status] ?? h.new_status}
-                          {h.note ? ` (${h.note})` : ""}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </li>
-            );
-          })()
-        ))}
-      </ul>
-    </div>
+              ) : null}
+            </li>
+              );
+            })()
+          ))}
+        </ul>
+      </div>
+    </>
   );
 }

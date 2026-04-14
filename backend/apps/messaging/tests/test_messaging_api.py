@@ -73,3 +73,96 @@ def test_host_opens_thread_with_guest_id(api_client, user_host, guest_user, appr
     )
     assert res.status_code == 200
     assert res.json()["data"]["guest_id"] == str(guest_user.id)
+
+
+@pytest.mark.django_db
+def test_message_history_visible_for_guest_and_host(api_client, user_host, guest_user, approved_listing):
+    api_client.force_authenticate(user=guest_user)
+    created = api_client.post(
+        "/api/v1/conversations/",
+        {"listing_id": str(approved_listing.id)},
+        format="json",
+    )
+    assert created.status_code == 200
+    cid = created.json()["data"]["id"]
+
+    guest_msg = api_client.post(
+        f"/api/v1/conversations/{cid}/messages/",
+        {"body": "Dzień dobry, czy parking jest dostępny?"},
+        format="json",
+    )
+    assert guest_msg.status_code == 201
+
+    api_client.force_authenticate(user=user_host)
+    host_msg = api_client.post(
+        f"/api/v1/conversations/{cid}/messages/",
+        {"body": "Tak, parking jest bezpłatny dla gości."},
+        format="json",
+    )
+    assert host_msg.status_code == 201
+
+    host_history = api_client.get(f"/api/v1/conversations/{cid}/messages/")
+    assert host_history.status_code == 200
+    host_data = host_history.json()["data"]
+    assert [row["body"] for row in host_data] == [
+        "Dzień dobry, czy parking jest dostępny?",
+        "Tak, parking jest bezpłatny dla gości.",
+    ]
+
+    api_client.force_authenticate(user=guest_user)
+    guest_history = api_client.get(f"/api/v1/conversations/{cid}/messages/")
+    assert guest_history.status_code == 200
+    guest_data = guest_history.json()["data"]
+    assert len(guest_data) == 2
+    assert guest_data[0]["sender_id"] == str(guest_user.id)
+    assert guest_data[1]["sender_id"] == str(user_host.id)
+
+
+@pytest.mark.django_db
+def test_host_notifications_include_new_message_and_read_state(
+    api_client,
+    user_host,
+    guest_user,
+    approved_listing,
+):
+    api_client.force_authenticate(user=guest_user)
+    created = api_client.post(
+        "/api/v1/conversations/",
+        {"listing_id": str(approved_listing.id)},
+        format="json",
+    )
+    assert created.status_code == 200
+    cid = created.json()["data"]["id"]
+
+    sent = api_client.post(
+        f"/api/v1/conversations/{cid}/messages/",
+        {"body": "Czy mogę przyjechać wcześniej?"},
+        format="json",
+    )
+    assert sent.status_code == 201
+    msg_id = sent.json()["data"]["id"]
+
+    api_client.force_authenticate(user=user_host)
+    notifications = api_client.get("/api/v1/host/notifications/?limit=20")
+    assert notifications.status_code == 200
+    rows = notifications.json()["data"]
+
+    message_notification = next((row for row in rows if row["id"] == f"message:{msg_id}"), None)
+    assert message_notification is not None
+    assert message_notification["type"] == "message.new"
+    assert message_notification["is_read"] is False
+    assert message_notification["link"] == f"/host/messages?conv={cid}"
+
+    history = api_client.get(f"/api/v1/conversations/{cid}/messages/")
+    assert history.status_code == 200
+
+    notifications_after_read = api_client.get("/api/v1/host/notifications/?limit=20")
+    assert notifications_after_read.status_code == 200
+    rows_after = notifications_after_read.json()["data"]
+    message_notification_after = next(
+        (row for row in rows_after if row["id"] == f"message:{msg_id}"),
+        None,
+    )
+    assert message_notification_after is not None
+    assert message_notification_after["is_read"] is True
+

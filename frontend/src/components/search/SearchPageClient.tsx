@@ -5,10 +5,10 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ComponentType } from "react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { ListingCard } from "@/components/listings/ListingCard";
-import { SkeletonCard } from "@/components/ui/SkeletonCard";
 import { api, apiUrl } from "@/lib/api";
 import { getAccessToken } from "@/lib/authStorage";
 import {
@@ -20,6 +20,7 @@ import { LOCATION_TAG_KEYS } from "@/lib/locationTags";
 import { urlSearchParamsToQueryPayload } from "@/lib/searchUrl";
 import type { MapBounds } from "@/lib/store/searchStore";
 import type { MapPin, SearchListResponse, SearchListing } from "@/lib/searchTypes";
+import type { SearchMapProps } from "./SearchMap";
 import { useSearchStore } from "@/lib/store/searchStore";
 import { MODE_EMOJI, TRAVEL_MODE_LABELS } from "@/lib/travelModes";
 import { cn } from "@/lib/utils";
@@ -30,8 +31,11 @@ import { SearchFiltersBar } from "./SearchFiltersBar";
 import { SearchFiltersPanel } from "./SearchFiltersPanel";
 import { SearchMobileBottomSheet } from "./SearchMobileBottomSheet";
 
-const SearchMap = dynamic(
-  () => import("./SearchMap").then((m) => ({ default: m.SearchMap })),
+const SearchMap = dynamic<SearchMapProps>(
+  () =>
+    import("./SearchMap").then(
+      (m) => m.SearchMap as ComponentType<SearchMapProps>,
+    ),
   {
     ssr: false,
     loading: () => (
@@ -67,6 +71,7 @@ export default function SearchPageClient() {
   const setMapBounds = useSearchStore((s) => s.setMapBounds);
 
   const mapCenter = useMemo(() => parseMapCenterFromSearchParams(sp), [sp]);
+  const isMyLocationActive = params.lat != null && params.lng != null;
 
   const [nextUrl, setNextUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -112,9 +117,11 @@ export default function SearchPageClient() {
         ]);
         if (!listRes.ok) {
           const j = await listRes.json().catch(() => ({})) as { error?: { message?: string } };
-          throw new Error(
-            typeof j?.error?.message === "string" ? j.error.message : listRes.statusText,
-          );
+          setError(typeof j?.error?.message === "string" ? j.error.message : listRes.statusText);
+          setResults([], 0);
+          setMapPins([]);
+          setNextUrl(null);
+          return;
         }
         const listJson = (await listRes.json()) as SearchListResponse;
         const mapJson = (await mapRes.json()) as { data: MapPin[] };
@@ -179,52 +186,157 @@ export default function SearchPageClient() {
     router.replace(`/search?${newQ}`);
   }, [params, router]);
 
-  const handleLocationFound = useCallback(
-    (lat: number, lng: number) => {
-      // Przy geolokalizacji resetujemy filtry, które mogłyby blokować wyniki w nowym miejscu,
-      // ale zachowujemy daty i gości jako parametry intencjonalne.
-      const update: any = {
-        lat,
-        lng,
-        radius_km: 300,
-        location: "Moja lokalizacja",
-        bbox_south: undefined,
-        bbox_west: undefined,
-        bbox_north: undefined,
-        bbox_east: undefined,
-        // Reset filtrów zawężających:
-        listing_types: undefined,
-        amenities: undefined,
-        is_pet_friendly: undefined,
-        travel_mode: undefined,
-        min_price: undefined,
-        max_price: undefined,
-      };
+   const handleLocationFound = useCallback(
+     (lat: number, lng: number) => {
+       // Natychmiast czyścimy piny na mapie
+       setMapPins([]);
 
-      // Czyścimy tagi otoczenia
-      for (const tag of LOCATION_TAG_KEYS) {
-        update[tag] = undefined;
-      }
+       // Przy geolokalizacji resetujemy filtry, które mogłyby blokować wyniki w nowym miejscu,
+       // ale zachowujemy daty i gości jako parametry intencjonalne.
+       const update: any = {
+         lat,
+         lng,
+         radius_km: 250,
+         location: "Moja lokalizacja",
+         bbox_south: undefined,
+         bbox_west: undefined,
+         bbox_north: undefined,
+         bbox_east: undefined,
+         // Reset filtrów zawężających:
+         listing_types: undefined,
+         amenities: undefined,
+         is_pet_friendly: undefined,
+         travel_mode: undefined,
+         min_price: undefined,
+         max_price: undefined,
+       };
 
-      setParams(update);
+       // Czyścimy tagi otoczenia
+       for (const tag of LOCATION_TAG_KEYS) {
+         update[tag] = undefined;
+       }
 
-      // Budujemy nextParams jawnie, aby uniknąć konfliktów ze starymi współrzędnymi w params
-      const nextParams: any = {
-        ...update,
-        date_from: params.date_from,
-        date_to: params.date_to,
-        guests: params.guests,
-        adults: params.adults,
-        children: params.children,
-        infants: params.infants,
-        pets: params.pets,
-      };
+       // Budujemy nextParams jawnie, aby uniknąć konfliktów ze starymi współrzędnymi w params
+       const nextParams: any = {
+         ...update,
+         date_from: params.date_from,
+         date_to: params.date_to,
+         guests: params.guests,
+         adults: params.adults,
+         children: params.children,
+         infants: params.infants,
+         pets: params.pets,
+       };
 
-      const newQ = buildSearchQueryString(nextParams);
-      router.replace(`/search?${newQ}`);
-    },
-    [params, setParams, router]
-  );
+       const newQ = buildSearchQueryString(nextParams);
+
+       // Zmieniamy URL
+       router.replace(`/search?${newQ}`);
+
+       // Jednocześnie fetchujemy dane z NOWĄ query string
+       // żeby uniknąć race condition gdzie `sp` nie jest jeszcze zaktualizowana
+       void (async () => {
+         setLoading(true);
+         setError(null);
+         try {
+           const [listRes, mapRes] = await Promise.all([
+             fetch(apiUrl(`/api/v1/search/?${newQ}`), { cache: "no-store" }),
+             fetch(apiUrl(`/api/v1/search/map/?${newQ}`), { cache: "no-store" }),
+           ]);
+           if (!listRes.ok) {
+             const j = await listRes.json().catch(() => ({})) as { error?: { message?: string } };
+             setError(typeof j?.error?.message === "string" ? j.error.message : listRes.statusText);
+             setResults([], 0);
+             return;
+           }
+           const listJson = (await listRes.json()) as SearchListResponse;
+           const mapJson = (await mapRes.json()) as { data: MapPin[] };
+           setResults(listJson.data, listJson.meta.count);
+           setMapPins(mapJson.data);
+           setNextUrl(listJson.meta.next);
+         } catch (e) {
+           setError(e instanceof Error ? e.message : "Błąd sieci");
+           setResults([], 0);
+           setMapPins([]);
+           setNextUrl(null);
+         } finally {
+           setLoading(false);
+         }
+       })();
+
+       setParams(update);
+     },
+     [params, setParams, router, setMapPins, setLoading, setError, setResults, setNextUrl]
+   );
+
+   const handleLocationCleared = useCallback(() => {
+     // Natychmiast czyścimy piny na mapie
+     setMapPins([]);
+
+     const update: any = {
+       lat: undefined,
+       lng: undefined,
+       radius_km: undefined,
+       location: "",
+       bbox_south: undefined,
+       bbox_west: undefined,
+       bbox_north: undefined,
+       bbox_east: undefined,
+     };
+
+     for (const tag of LOCATION_TAG_KEYS) {
+       update[tag] = undefined;
+     }
+
+     const nextParams: any = {
+       ...params,
+       ...update,
+       date_from: params.date_from,
+       date_to: params.date_to,
+       guests: params.guests,
+       adults: params.adults,
+       children: params.children,
+       infants: params.infants,
+       pets: params.pets,
+     };
+
+     const newQ = buildSearchQueryString(nextParams);
+
+     // Zmieniamy URL
+     router.replace(`/search?${newQ}`);
+
+     // Jednocześnie fetchujemy dane z NOWĄ query string
+     void (async () => {
+       setLoading(true);
+       setError(null);
+       try {
+         const [listRes, mapRes] = await Promise.all([
+           fetch(apiUrl(`/api/v1/search/?${newQ}`), { cache: "no-store" }),
+           fetch(apiUrl(`/api/v1/search/map/?${newQ}`), { cache: "no-store" }),
+         ]);
+         if (!listRes.ok) {
+           const j = await listRes.json().catch(() => ({})) as { error?: { message?: string } };
+           setError(typeof j?.error?.message === "string" ? j.error.message : listRes.statusText);
+           setResults([], 0);
+           return;
+         }
+         const listJson = (await listRes.json()) as SearchListResponse;
+         const mapJson = (await mapRes.json()) as { data: MapPin[] };
+         setResults(listJson.data, listJson.meta.count);
+         setMapPins(mapJson.data);
+         setNextUrl(listJson.meta.next);
+       } catch (e) {
+         setError(e instanceof Error ? e.message : "Błąd sieci");
+         setResults([], 0);
+         setMapPins([]);
+         setNextUrl(null);
+       } finally {
+         setLoading(false);
+       }
+     })();
+
+     setParams(update);
+   }, [params, router, setParams, setMapPins, setLoading, setError, setResults, setNextUrl]);
 
   // Scroll to selected card
   useEffect(() => {
@@ -274,8 +386,15 @@ export default function SearchPageClient() {
     if (!nextUrl) return;
     setLoading(true);
     try {
-      const res = await fetch(nextUrl, { cache: "no-store" });
-      if (!res.ok) throw new Error(res.statusText);
+      // nextUrl może być pełnym URL-em z Django (np. http://backend:8000/api/v1/...)
+      // Wyodrębniamy ścieżkę+query i przepuszczamy przez apiUrl() → BFF
+      const parsed = new URL(nextUrl, window.location.href);
+      const relPath = parsed.pathname + parsed.search;
+      const res = await fetch(apiUrl(relPath), { cache: "no-store" });
+      if (!res.ok) {
+        setError(res.statusText);
+        return;
+      }
       const listJson = (await res.json()) as SearchListResponse;
       const prev = useSearchStore.getState().results;
       setResults([...prev, ...listJson.data], listJson.meta.count);
@@ -398,7 +517,7 @@ export default function SearchPageClient() {
       <aside
         className={cn(
           "hidden flex-col bg-white lg:flex",
-          "w-[460px] shrink-0 shadow-[20px_0_40px_rgba(0,0,0,0.03)]",
+            "w-[420px] shrink-0 shadow-[20px_0_40px_rgba(0,0,0,0.03)]",
           "overflow-hidden z-30 scrollbar-hide",
         )}
       >
@@ -479,6 +598,8 @@ export default function SearchPageClient() {
           <div className="relative z-10 flex min-w-max items-center justify-center gap-5 px-6 py-7 sm:px-10">
             <MyLocationButton
               onLocationFound={handleLocationFound}
+              onClearLocation={handleLocationCleared}
+              active={isMyLocationActive}
               className="hidden lg:flex"
             />
             <PriceRangeFilter
@@ -493,6 +614,22 @@ export default function SearchPageClient() {
               onChange={handleFiltersChange}
               onSearch={handleFiltersSearch}
             />
+            <Link
+              href="/ai"
+              className={cn(
+                "group flex h-[60px] items-center gap-3.5 rounded-[24px] border px-7 text-[15px] font-black transition-all duration-300 shadow-xl active:scale-[0.97]",
+                "border-brand/30 bg-white text-brand-dark hover:border-brand hover:shadow-brand/20 hover:shadow-2xl",
+              )}
+            >
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-surface text-brand shadow-sm transition-all duration-300 group-hover:bg-brand group-hover:text-white group-hover:scale-110">
+                <svg className="h-5 w-5 transition-transform duration-300 group-hover:rotate-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                  <path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5L12 3z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M19 14l.75 2.25L22 17l-2.25.75L19 20l-.75-2.25L16 17l2.25-.75L19 14z" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M5 17l.5 1.5L7 19l-1.5.5L5 21l-.5-1.5L3 19l1.5-.5L5 17z" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <span className="hidden sm:inline transition-colors duration-300 group-hover:text-brand">Wyszukaj z AI</span>
+            </Link>
           </div>
 
           {/* Active filter chips */}
@@ -519,6 +656,9 @@ export default function SearchPageClient() {
                 selectedId={selectedId}
                 onPinHover={setHovered}
                 onPinSelect={setSelected}
+                onLocationFound={handleLocationFound}
+                  onClearLocation={handleLocationCleared}
+                  isLocationActive={isMyLocationActive}
                 center={mapCenter}
                 onBoundsChange={handleBoundsChange}
               />
