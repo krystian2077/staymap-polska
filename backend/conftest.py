@@ -4,6 +4,23 @@ import pytest
 from rest_framework.test import APIClient
 
 
+@pytest.fixture(autouse=True)
+def _pricing_tests_deterministic(settings):
+    """Reguły sezonowe z kodu wyłączone w testach — przewidywalne kwoty w asercjach."""
+    settings.DEFAULT_SEASONAL_PRICING_ENABLED = False
+
+
+@pytest.fixture(autouse=True)
+def _reset_travel_peak_year_cache():
+    yield
+    try:
+        from apps.pricing.polish_travel_peaks import clear_travel_peak_cache
+
+        clear_travel_peak_cache()
+    except Exception:
+        pass
+
+
 @pytest.fixture
 def api_client():
     return APIClient()

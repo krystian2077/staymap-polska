@@ -9,6 +9,7 @@ import { z } from "zod";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { setAuthTokens } from "@/lib/authStorage";
 import { api } from "@/lib/api";
+import { requestGoogleCredential } from "@/lib/googleIdentity";
 import { useAuthStore } from "@/lib/store/authStore";
 
 const schema = z.object({
@@ -30,6 +31,7 @@ export function LoginForm() {
   const setUser = useAuthStore((s) => s.setUser);
   const [showPw, setShowPw] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
   const {
     register,
@@ -58,6 +60,34 @@ export function LoginForm() {
       router.refresh();
     } catch (e) {
       setFormError(e instanceof Error ? e.message : "Błąd logowania");
+    }
+  }
+
+  async function onGoogleLogin() {
+    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+    setFormError(null);
+    setIsGoogleSubmitting(true);
+    try {
+      const credential = await requestGoogleCredential(googleClientId);
+      const tokens = await api.post<{ access: string; refresh: string }>("/api/v1/auth/google/", {
+        credential,
+      });
+      setAuthTokens(tokens.access, tokens.refresh);
+      const me = await api.get<{
+        data: {
+          id: string;
+          email: string;
+          first_name: string;
+          last_name: string;
+        };
+      }>("/api/v1/auth/me/");
+      if (me.data) setUser(me.data);
+      router.push(next);
+      router.refresh();
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : "Błąd logowania Google");
+    } finally {
+      setIsGoogleSubmitting(false);
     }
   }
 
@@ -129,9 +159,10 @@ export function LoginForm() {
       <button
         type="button"
         className="btn-secondary w-full py-3 text-sm"
-        onClick={() => alert("Logowanie Google — wkrótce")}
+        onClick={onGoogleLogin}
+        disabled={isSubmitting || isGoogleSubmitting}
       >
-        Kontynuuj z Google
+        {isGoogleSubmitting ? "Łączenie z Google…" : "Kontynuuj z Google"}
       </button>
       <p className="mt-6 text-center text-sm text-text-muted">
         Nie masz konta?{" "}

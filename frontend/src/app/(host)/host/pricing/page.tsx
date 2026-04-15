@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { HostListingPricingRules } from "@/components/host/HostListingPricingRules";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
 const CARD = "rounded-2xl bg-white shadow-card ring-1 ring-black/[.04] dark:bg-[var(--bg2)] dark:ring-brand-border/45";
@@ -158,6 +159,8 @@ export default function HostPricingPage() {
                     <p className="mt-0.5 text-xs text-text-muted">{policy.desc}</p>
                   </div>
                 )}
+
+                <HostListingPricingRules listingId={l.id} currency={l.currency} />
               </div>
             );
           })}

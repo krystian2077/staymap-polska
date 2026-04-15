@@ -3,16 +3,19 @@
 import Link from "next/link";
 import { publicMediaUrl } from "@/lib/mediaUrl";
 import type { MapPin, SearchListing } from "@/lib/searchTypes";
+import { MODE_EMOJI, TRAVEL_MODE_LABELS } from "@/lib/travelModes";
 import { cn } from "@/lib/utils";
 
 type Props = {
   pin: MapPin;
   /** Pełne dane listingu (z wyników listy) — opcjonalne, wzbogaca popup */
   listing?: SearchListing | null;
+  /** Aktywny tryb podróży z URL — pokazuje dopasowanie oferty do trybu (jak na liście). */
+  travelMode?: string | null;
   onClose: () => void;
 };
 
-export function SearchMapPopupCard({ pin, listing, onClose }: Props) {
+export function SearchMapPopupCard({ pin, listing, travelMode, onClose }: Props) {
   const title = listing?.title ?? pin.title ?? "Oferta";
   const slug = listing?.slug ?? pin.slug;
   const city = listing?.location?.city ?? pin.city;
@@ -29,6 +32,11 @@ export function SearchMapPopupCard({ pin, listing, onClose }: Props) {
 
   const locLine = [city, region].filter(Boolean).join(", ") || "Polska";
   const href = slug ? `/listing/${slug}` : "#";
+  const modeKey = travelMode?.trim() || "";
+  const modeScore =
+    modeKey && listing?.destination_score_cache
+      ? listing.destination_score_cache[modeKey]
+      : undefined;
 
   const cacheListing = () => {
     if (typeof window === "undefined" || !listing?.slug) return;
@@ -102,6 +110,11 @@ export function SearchMapPopupCard({ pin, listing, onClose }: Props) {
           <span aria-hidden className="text-[10px]">📍</span>
           {locLine}
         </p>
+        {modeKey && typeof modeScore === "number" && (
+          <p className="mb-2 text-[10px] font-semibold text-brand-dark">
+            {MODE_EMOJI[modeKey] ?? "✨"} {TRAVEL_MODE_LABELS[modeKey] ?? modeKey}: {modeScore.toFixed(1)}/10
+          </p>
+        )}
         <div className="flex items-center justify-between gap-2">
           {ratingNum != null && ratingNum > 0 ? (
             <div className="flex items-center gap-0.5 text-amber-500">

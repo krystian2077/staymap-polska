@@ -9,6 +9,7 @@ import { z } from "zod";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { setAuthTokens } from "@/lib/authStorage";
 import { api } from "@/lib/api";
+import { requestGoogleCredential } from "@/lib/googleIdentity";
 import { useAuthStore } from "@/lib/store/authStore";
 
 const schema = z.object({
@@ -33,6 +34,7 @@ export default function RegisterPage() {
   const router = useRouter();
   const setUser = useAuthStore((s) => s.setUser);
   const [formError, setFormError] = useState<string | null>(null);
+  const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
 
   const {
     register,
@@ -81,6 +83,34 @@ export default function RegisterPage() {
         setError("email", { message: "Ten e-mail jest już zajęty" });
       }
       setFormError(err.message || "Błąd rejestracji");
+    }
+  }
+
+  async function onGoogleRegister() {
+    const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+    setFormError(null);
+    setIsGoogleSubmitting(true);
+    try {
+      const credential = await requestGoogleCredential(googleClientId);
+      const tokens = await api.post<{ access: string; refresh: string }>("/api/v1/auth/google/", {
+        credential,
+      });
+      setAuthTokens(tokens.access, tokens.refresh);
+      const me = await api.get<{
+        data: {
+          id: string;
+          email: string;
+          first_name: string;
+          last_name: string;
+        };
+      }>("/api/v1/auth/me/");
+      if (me.data) setUser(me.data);
+      router.push("/");
+      router.refresh();
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : "Błąd logowania Google");
+    } finally {
+      setIsGoogleSubmitting(false);
     }
   }
 
@@ -163,6 +193,19 @@ export default function RegisterPage() {
             )}
           </button>
         </form>
+        <div className="my-6 flex items-center gap-3 text-xs text-text-muted">
+          <span className="h-px flex-1 bg-gray-200" />
+          lub
+          <span className="h-px flex-1 bg-gray-200" />
+        </div>
+        <button
+          type="button"
+          className="btn-secondary w-full py-3 text-sm"
+          onClick={onGoogleRegister}
+          disabled={isSubmitting || isGoogleSubmitting}
+        >
+          {isGoogleSubmitting ? "Łączenie z Google…" : "Kontynuuj z Google"}
+        </button>
         <p className="mt-3 text-center text-[11px] leading-relaxed text-text-muted">
           Rejestrując się akceptujesz{" "}
           <span className="cursor-not-allowed text-brand opacity-80">Regulamin</span> i{" "}

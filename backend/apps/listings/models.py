@@ -87,6 +87,10 @@ class Listing(BaseModel):
     )
     check_in_time = models.CharField(max_length=5, default="15:00")
     check_out_time = models.CharField(max_length=5, default="11:00")
+    apply_pl_travel_peak_extras = models.BooleanField(
+        default=True,
+        help_text="Typowe polskie długie weekendy, mosty, Wigilia, Wielki Piątek itd. (poza świętami GUS). Wyłącz, jeśli chcesz tylko święta ustawowe + własne reguły cenowe.",
+    )
     listing_type = models.JSONField(default=default_listing_type)
     amenities = models.JSONField(default=list)
     destination_score_cache = models.JSONField(null=True, blank=True)

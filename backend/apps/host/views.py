@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -30,6 +31,12 @@ from apps.listings.serializers import (
 )
 from apps.listings.services import ListingService
 from apps.messaging.models import Message
+from apps.pricing.host_pricing import (
+    host_create_pricing_rule,
+    host_delete_pricing_rule,
+    host_get_pricing_rules,
+    host_patch_pricing_rule,
+)
 
 from .models import HostProfile
 from .serializers import HostOnboardingSerializer
@@ -300,6 +307,90 @@ class HostListingViewSet(viewsets.ModelViewSet):
             },
             status=200,
         )
+
+    @action(detail=True, methods=["get", "post"], url_path="pricing-rules")
+    def pricing_rules(self, request, pk=None):
+        listing = self.get_object()
+        if request.method == "GET":
+            return Response({"data": host_get_pricing_rules(listing), "meta": {}}, status=200)
+        try:
+            created = host_create_pricing_rule(listing, request.data)
+        except DRFValidationError as e:
+            return Response(
+                {
+                    "error": {
+                        "code": "VALIDATION_ERROR",
+                        "message": "Niepoprawne dane reguły.",
+                        "details": e.detail,
+                        "status": 400,
+                    }
+                },
+                status=400,
+            )
+        return Response({"data": created, "meta": {}}, status=201)
+
+    @action(
+        detail=True,
+        methods=["patch", "delete"],
+        url_path=r"pricing-rules/(?P<rule_id>[0-9a-f-]{36})",
+    )
+    def pricing_rule_detail(self, request, pk=None, rule_id=None):
+        listing = self.get_object()
+        if request.method == "DELETE":
+            rt = request.query_params.get("rule_type")
+            if not rt:
+                return Response(
+                    {
+                        "error": {
+                            "code": "VALIDATION_ERROR",
+                            "message": "Podaj query: rule_type=seasonal|holiday_date|custom_price|long_stay",
+                            "status": 400,
+                        }
+                    },
+                    status=400,
+                )
+            try:
+                host_delete_pricing_rule(listing, str(rule_id), rt)
+            except DRFValidationError as e:
+                return Response(
+                    {
+                        "error": {
+                            "code": "VALIDATION_ERROR",
+                            "message": "Nie można usunąć reguły.",
+                            "details": e.detail,
+                            "status": 400,
+                        }
+                    },
+                    status=400,
+                )
+            return Response(status=204)
+        body = {**request.data, "rule_type": request.data.get("rule_type")}
+        if not body.get("rule_type"):
+            return Response(
+                {
+                    "error": {
+                        "code": "VALIDATION_ERROR",
+                        "message": "W body podaj rule_type.",
+                        "status": 400,
+                    }
+                },
+                status=400,
+            )
+        try:
+            updated = host_patch_pricing_rule(listing, str(rule_id), body)
+        except DRFValidationError as e:
+            return Response(
+                {
+                    "error": {
+                        "code": "VALIDATION_ERROR",
+                        "message": "Niepoprawne dane.",
+                        "details": e.detail,
+                        "status": 400,
+                    }
+                },
+                status=400,
+            )
+        return Response({"data": updated, "meta": {}}, status=200)
 
 
 class HostBookingListView(APIView):

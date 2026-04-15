@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from typing import Any
+from typing import Any, Optional
 from uuid import UUID
 
 from django.contrib.gis.db.models.functions import Distance
@@ -68,7 +68,7 @@ class SearchOrchestrator:
         return f"search:v7:{digest}"
 
     @classmethod
-    def get_ordered_ids(cls, params: dict[str, Any], *, use_cache: bool = True) -> list[UUID]:
+    def get_ordered_ids(cls, params: dict[str, Any], use_cache: bool = True) -> list[UUID]:
         """Lista PK w kolejności wyników — z Redis (TTL) albo z bazy.
 
         use_cache=False: dla StayMap AI — unika powtarzania tej samej listy z Redis przy podobnych
@@ -293,7 +293,7 @@ class SearchOrchestrator:
         return cls._apply_ranking(qs, params, has_point=has_point)
 
     @staticmethod
-    def _extract_point(params: dict[str, Any]) -> Point | None:
+    def _extract_point(params: dict[str, Any]) -> Optional[Point]:
         lat = params.get("latitude") or params.get("lat")
         lng = params.get("longitude") or params.get("lng")
         if lat is not None and lng is not None:
@@ -312,11 +312,14 @@ class SearchOrchestrator:
             return qs.order_by("-created_at", "id")
 
         order: list[str] = []
-        if has_point:
-            order.append("distance")
         if params.get("travel_mode"):
-            order.extend(["-travel_score", "-created_at", "id"])
+            order.extend(["-travel_score"])
+            if has_point:
+                order.append("distance")
+            order.extend(["-created_at", "id"])
         else:
+            if has_point:
+                order.append("distance")
             order.extend(["-created_at", "id"])
         
         # Jeśli mamy travel_mode, a queryet nie ma travel_score (nie został zaanotowany przez Ranker),

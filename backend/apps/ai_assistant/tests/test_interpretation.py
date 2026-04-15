@@ -1,4 +1,8 @@
-from apps.ai_assistant.interpretation import json_safe_normalized_params, normalized_search_params_from_llm
+from apps.ai_assistant.interpretation import (
+    json_safe_normalized_params,
+    normalized_search_params_from_llm,
+    normalized_search_params_from_llm_lenient,
+)
 
 
 def test_normalized_search_params_invalid_travel_mode():
@@ -46,5 +50,30 @@ def test_normalized_search_params_sauna_maps_to_amenities():
     params, errs = normalized_search_params_from_llm({"sauna": True, "ordering": "recommended"})
     assert not errs
     assert params.get("amenities") == ["sauna", "private_sauna"]
+
+
+def test_lenient_normalization_repairs_invalid_ordering_and_mode():
+    params, warnings = normalized_search_params_from_llm_lenient(
+        {
+            "travel_mode": "romance",
+            "ordering": "best_match",
+        }
+    )
+    assert params.get("travel_mode") == "romantic"
+    assert params.get("ordering") == "recommended"
+    assert warnings
+
+
+def test_lenient_normalization_repairs_swapped_price_range():
+    params, warnings = normalized_search_params_from_llm_lenient(
+        {
+            "min_price": 1200,
+            "max_price": 600,
+            "ordering": "recommended",
+        }
+    )
+    assert params.get("min_price") == 600
+    assert params.get("max_price") == 1200
+    assert any("zamieniono" in w for w in warnings)
 
 

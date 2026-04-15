@@ -44,6 +44,9 @@ services:
       redis:
         condition: service_healthy
 
+  # Nie startują przy zwykłym `docker compose up` — potrzebny profil:
+  #   docker compose --profile celery up -d
+  # Po zmianie backend/requirements przebuduj obrazy: docker compose build celery_worker celery_beat
   celery_worker:
     profiles: ["celery"]
     build:

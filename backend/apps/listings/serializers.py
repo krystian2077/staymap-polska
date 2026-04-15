@@ -298,6 +298,7 @@ class ListingDetailSerializer(ListingListSerializer):
             "description",
             "host",
             "service_fee_percent",
+            "apply_pl_travel_peak_extras",
         )
 
     def get_service_fee_percent(self, obj):
@@ -351,6 +352,7 @@ class ListingWriteSerializer(serializers.ModelSerializer):
             "bathrooms",
             "amenities",
             "location",
+            "apply_pl_travel_peak_extras",
         )
         extra_kwargs = {
             "status": {"required": False},

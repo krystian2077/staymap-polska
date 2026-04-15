@@ -5,6 +5,7 @@ import json
 import logging
 import re
 from difflib import SequenceMatcher
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any, Optional
 from uuid import UUID
@@ -18,6 +19,7 @@ from openai import OpenAI
 from apps.ai_assistant.interpretation import (
     json_safe_normalized_params,
     normalized_search_params_from_llm,
+    normalized_search_params_from_llm_lenient,
 )
 from apps.ai_assistant.models import (
     AiFilterInterpretation,
@@ -29,10 +31,14 @@ from apps.listings.models import Listing
 from rest_framework.exceptions import ValidationError as DRFValidationError
 
 from apps.common.exceptions import AIServiceError
+from apps.pricing.polish_holidays import pricing_peak_day_name
+from apps.pricing.seasonality_defaults import default_seasonal_multiplier
 from apps.search.nominatim import geocode_poland
 from apps.search.services import SearchOrchestrator
 
 logger = logging.getLogger(__name__)
+
+AI_RECOMMENDATION_LIMIT = 6
 
 EXPLANATION_SYSTEM_PROMPT = """Tworzysz premium uzasadnienia dopasowania ofert dla StayMap AI.
 Masz korzystać WYŁĄCZNIE z dostarczonych faktów JSON dla każdej oferty.
@@ -72,7 +78,7 @@ Zasady interpretacji:
    - 'mountains': w górach, widok na góry.
    - 'wellness': sauna, bania, spa, jacuzzi, basen.
 3. Budżet: min_price i max_price (w PLN). Jeśli użytkownik mówi "tanie", ustaw ordering: "price_asc".
-4. Terminy: date_from, date_to (format ISO). Dzisiaj jest 2026-04-15.
+ 4. Terminy: date_from, date_to (format ISO). Rozpoznawaj też długie weekendy w Polsce (majówka, Boże Ciało, 15 sierpnia, listopadowe mosty, Wigilia, Boże Narodzenie, Nowy Rok, Sylwester) i sezonowość cenową także poza świętami ustawowymi.
 5. Goście: liczba osób (guests).
 6. Atrybuty dodatkowe (boolean): sauna, near_mountains, near_lake, near_forest.
 7. Cisza: quiet_score_min (0-10) - jeśli użytkownik szuka spokoju/ciszy (np. "cisza" -> 8, "bardzo cicho" -> 10).
@@ -96,7 +102,7 @@ Zwróć WYŁĄCZNIE obiekt JSON wg schematu:
   "date_to": "YYYY-MM-DD" | null,
   "booking_mode": "instant"|"request" | null,
   "ordering": "recommended"|"price_asc"|"price_desc"|"newest",
-  "summary_pl": "1-2 zdania po polsku w tonie StayMap AI: pewnie i konkretnie względem intencji (region, klimat wyjazdu). Bez emotikon i bez sztampowych zwrotów typu „super oferta”."
+  "summary_pl": "1-2 zdania po polsku w tonie StayMap AI: pewnie i konkretnie względem intencji (region, klimat wyjazdu). Styl naturalny i przyjazny; możesz użyć maks. jednego emoji tylko jeśli pasuje do kontekstu. Unikaj sztampy i powtórzeń."
 }
 
 Przykłady:
@@ -109,6 +115,23 @@ AI: {"location": "góry", "travel_mode": "pet", "near_mountains": true, "quiet_s
 Bądź precyzyjny. Stosuj tylko informacje wynikające z zapytania i kontekstu platformy. Nie dodawaj komentarzy poza JSONem."""
 
 _MAX_PROMPT_LEN = 4000
+
+_PL_MONTHS = {
+    "stycz": 1,
+    "lut": 2,
+    "mar": 3,
+    "kwiec": 4,
+    "kwi": 4,
+    "maj": 5,
+    "czerw": 6,
+    "lip": 7,
+    "sierp": 8,
+    "wrze": 9,
+    "paz": 10,
+    "paź": 10,
+    "list": 11,
+    "grud": 12,
+}
 
 _POLISH_STOPWORDS = frozenset(
     {
@@ -192,6 +215,18 @@ def _extract_meaningful_tokens(text: str, *, max_tokens: int = 7) -> list[str]:
     return out
 
 
+def _listing_text_blob(listing: Listing) -> str:
+    loc = getattr(listing, "location", None)
+    parts = [
+        str(getattr(listing, "title", "") or ""),
+        str(getattr(listing, "short_description", "") or ""),
+        str(getattr(listing, "description", "") or ""),
+        str(getattr(loc, "city", "") or ""),
+        str(getattr(loc, "region", "") or ""),
+    ]
+    return " ".join(parts).lower()
+
+
 def _format_listing_digest_line(listing: Listing) -> str:
     loc = getattr(listing, "location", None)
     city = getattr(loc, "city", "") if loc else ""
@@ -258,14 +293,276 @@ def _usage_cost_usd(usage: Any) -> Decimal:
     return Decimal("0")
 
 
+def _month_from_polish_text(text: str) -> Optional[int]:
+    src = (text or "").strip().lower()
+    for token, month_no in _PL_MONTHS.items():
+        if token in src:
+            return month_no
+    return None
+
+
+def _safe_date(y: int, m: int, d: int) -> Optional[date]:
+    try:
+        return date(y, m, d)
+    except ValueError:
+        return None
+
+
+def _resolve_year_for_month_day(month_no: int, day_no: int, today: date) -> int:
+    candidate = _safe_date(today.year, month_no, day_no)
+    if candidate is not None and candidate >= today:
+        return today.year
+    return today.year + 1
+
+
+def _next_weekend_range(today: date) -> tuple[date, date]:
+    # Weekend: piątek -> niedziela (check-out w poniedziałek).
+    wd = today.weekday()  # 0=pon ... 6=niedz
+    days_until_friday = (4 - wd) % 7
+    if days_until_friday == 0:
+        days_until_friday = 7
+    start = today + timedelta(days=days_until_friday)
+    end = start + timedelta(days=3)
+    return start, end
+
+
+def _next_long_weekend_range(today: date, *, horizon_days: int = 240) -> tuple[date, date]:
+    """Najbliższy długi weekend oparty o dzień podwyższonego popytu / święto."""
+    for offset in range(horizon_days + 1):
+        anchor = today + timedelta(days=offset)
+        if not pricing_peak_day_name(anchor):
+            continue
+
+        wd = anchor.weekday()
+        if wd == 0:
+            return anchor - timedelta(days=3), anchor + timedelta(days=1)
+        if wd == 1:
+            return anchor - timedelta(days=2), anchor + timedelta(days=2)
+        if wd == 2:
+            return anchor - timedelta(days=1), anchor + timedelta(days=4)
+        if wd == 3:
+            return anchor, anchor + timedelta(days=4)
+        if wd == 4:
+            return anchor, anchor + timedelta(days=3)
+        if wd == 5:
+            return anchor, anchor + timedelta(days=2)
+        return anchor, anchor + timedelta(days=1)
+
+    return _next_weekend_range(today)
+
+
+def _special_polish_period_hints(text: str, *, today: date) -> dict[str, Any]:
+    """Deterministyczne mapowanie nazwanych polskich okresów na zakres dat."""
+    src = re.sub(r"\s+", " ", (text or "").lower())
+    out: dict[str, Any] = {}
+
+    # Majówka
+    if "majów" in src or "majow" in src:
+        y = _resolve_year_for_month_day(5, 1, today)
+        out["date_from"] = date(y, 5, 1)
+        out["date_to"] = date(y, 5, 5)
+        return out
+
+    # Boże Ciało / okolice czwartku i piątku po
+    if "boże cia" in src or "boze cial" in src or "boże cial" in src or "boze cia" in src:
+        y = _resolve_year_for_month_day(6, 4, today)
+        corpus = date(y, 6, 4)
+        out["date_from"] = corpus - timedelta(days=1)
+        out["date_to"] = corpus + timedelta(days=4)
+        return out
+
+    # 15 sierpnia / długi sierpniowy weekend
+    if "15 sierp" in src or "sierpniow" in src or "długi weekend sierp" in src or "dlugi weekend sierp" in src:
+        y = _resolve_year_for_month_day(8, 15, today)
+        anchor = date(y, 8, 15)
+        out["date_from"] = anchor - timedelta(days=1)
+        out["date_to"] = anchor + timedelta(days=3)
+        return out
+
+    # Listopadowy most: 1 listopada / 11 listopada
+    if "listopadow" in src or "1 listop" in src or "11 listop" in src or "zaduszk" in src or "niepodleg" in src:
+        candidates = []
+        for month, day in ((11, 1), (11, 11)):
+            y = _resolve_year_for_month_day(month, day, today)
+            candidates.append(date(y, month, day))
+        anchor = min((d for d in candidates if d >= today), default=min(candidates))
+        out["date_from"] = anchor - timedelta(days=2)
+        out["date_to"] = anchor + timedelta(days=2)
+        return out
+
+    # Boże Narodzenie / Wigilia / Nowy Rok
+    if "boż" in src or "boze narodz" in src or "wigili" in src or "święta" in src or "swieta" in src or "nowy rok" in src:
+        y = _resolve_year_for_month_day(12, 24, today)
+        out["date_from"] = date(y, 12, 24)
+        out["date_to"] = date(y + 1, 1, 2)
+        return out
+
+    return out
+
+
+def _extract_natural_date_hints(text: str, *, today: date) -> dict[str, Any]:
+    src = (text or "").lower()
+    compact = re.sub(r"\s+", " ", src)
+    out: dict[str, Any] = {}
+
+    # ISO daty wpisane bezpośrednio: od YYYY-MM-DD do YYYY-MM-DD
+    m_iso = re.search(r"od\s*(\d{4}-\d{2}-\d{2})\s*(?:do|-)\s*(\d{4}-\d{2}-\d{2})", compact)
+    if m_iso:
+        try:
+            df = date.fromisoformat(m_iso.group(1))
+            dt = date.fromisoformat(m_iso.group(2))
+            if dt > df:
+                out["date_from"] = df
+                out["date_to"] = dt
+                return out
+        except ValueError:
+            pass
+
+    # „od 3 do 8 czerwca”, „3-8 czerwca”
+    m_range = re.search(
+        r"(?:od\s*)?(\d{1,2})\s*(?:do|[-–])\s*(\d{1,2})\s+([a-ząćęłńóśźż]+)",
+        compact,
+    )
+    if m_range:
+        d1 = int(m_range.group(1))
+        d2 = int(m_range.group(2))
+        month_no = _month_from_polish_text(m_range.group(3))
+        if month_no is not None and 1 <= d1 <= 31 and 1 <= d2 <= 31:
+            y = _resolve_year_for_month_day(month_no, min(d1, d2), today)
+            start = _safe_date(y, month_no, min(d1, d2))
+            end_inclusive = _safe_date(y, month_no, max(d1, d2))
+            if start and end_inclusive and end_inclusive >= start:
+                out["date_from"] = start
+                out["date_to"] = end_inclusive + timedelta(days=1)
+                return out
+
+    special = _special_polish_period_hints(compact, today=today)
+    if special:
+        return special
+
+    # „majówka”
+    if "majow" in compact or "majów" in compact:
+        y = _resolve_year_for_month_day(5, 1, today)
+        out["date_from"] = date(y, 5, 1)
+        out["date_to"] = date(y, 5, 5)
+        return out
+
+    # „wakacje”
+    if "wakacj" in compact:
+        start_md = getattr(settings, "DEFAULT_SEASONAL_SUMMER_START", (6, 1))
+        end_md = getattr(settings, "DEFAULT_SEASONAL_SUMMER_END", (9, 15))
+        start_m, start_d = int(start_md[0]), int(start_md[1])
+        end_m, end_d = int(end_md[0]), int(end_md[1])
+        y = _resolve_year_for_month_day(start_m, start_d, today)
+        start = _safe_date(y, start_m, start_d)
+        end = _safe_date(y, end_m, end_d)
+        if start and end:
+            out["date_from"] = start
+            out["date_to"] = end + timedelta(days=1)
+            return out
+
+    # „sylwester”
+    if "sylwest" in compact:
+        y = _resolve_year_for_month_day(12, 31, today)
+        out["date_from"] = date(y, 12, 31)
+        out["date_to"] = date(y + 1, 1, 2)
+        return out
+
+    # „długi weekend” bez daty
+    if "długi weekend" in compact or "dlugi weekend" in compact:
+        start, end = _next_long_weekend_range(today)
+        out["date_from"] = start
+        out["date_to"] = end
+        return out
+
+    # „weekend” bez daty
+    if "weekend" in compact and "date_from" not in out and "date_to" not in out:
+        start, end = _next_weekend_range(today)
+        out["date_from"] = start
+        out["date_to"] = end
+
+    return out
+
+
+def _seasonality_note_for_params(params: dict[str, Any]) -> Optional[str]:
+    df = params.get("date_from")
+    dt = params.get("date_to")
+    if not isinstance(df, date) or not isinstance(dt, date) or dt <= df:
+        return None
+
+    peak_names: list[str] = []
+    seasonal_days = 0
+    days = 0
+    cur = df
+    while cur < dt and days < 45:
+        peak = pricing_peak_day_name(cur)
+        if peak and peak not in peak_names:
+            peak_names.append(peak)
+        if default_seasonal_multiplier(cur) > Decimal("1"):
+            seasonal_days += 1
+        cur += timedelta(days=1)
+        days += 1
+
+    if peak_names:
+        top = ", ".join(peak_names[:2])
+        if seasonal_days > 0:
+            return (
+                f"W tym terminie wypada okres podwyższonego popytu ({top}) i część dni jest w wysokim sezonie w Polsce, "
+                "więc ceny mogą być wyższe."
+            )
+        return f"W tym terminie wypada okres podwyższonego popytu ({top}), więc ceny mogą być wyższe."
+    if seasonal_days >= max(2, int(days * 0.5)):
+        return "To termin wysokiego sezonu w Polsce (także poza świętami ustawowymi), więc ceny i obłożenie mogą być wyższe."
+    if seasonal_days > 0:
+        return "Część tego terminu wypada w sezonie podwyższonego popytu poza świętami ustawowymi, więc ceny mogą być wyższe."
+    return None
+
+
 def _format_premium_summary(raw_summary: str, params: dict[str, Any]) -> str:
     """
     Formatuje podsumowanie AI na premium look z emojis i strukturą.
     Wejście: surowy tekst z LLM
     Wyjście: sformatowany premium tekst z emojis
     """
+    mode = str((params or {}).get("travel_mode") or "").strip().lower()
+
+    def _prefix_emoji(src: str) -> str:
+        if not getattr(settings, "AI_CHAT_EMOJI_ENABLED", True):
+            return src
+        try:
+            rate = float(getattr(settings, "AI_CHAT_EMOJI_RATE", 0.30) or 0.0)
+        except (TypeError, ValueError):
+            rate = 0.0
+        rate = max(0.0, min(rate, 1.0))
+        if rate <= 0:
+            return src
+        if re.match(r"^[✨💑🏔️🌲🌊🧖🐕💻]", src):
+            return src
+        seed = f"{mode}\u241f{src}"
+        bucket = int(hashlib.sha256(seed.encode("utf-8")).hexdigest(), 16) % 100
+        if bucket >= int(rate * 100):
+            return src
+        by_mode = {
+            "romantic": "💑",
+            "family": "👨‍👩‍👧",
+            "pet": "🐕",
+            "workation": "💻",
+            "slow": "🌲",
+            "outdoor": "🥾",
+            "lake": "🌊",
+            "mountains": "🏔️",
+            "wellness": "🧖",
+        }
+        return f"{by_mode.get(mode, '✨')} {src}"
+
     if not raw_summary:
-        return "Jasne, przygotowuję dla Ciebie dopasowane propozycje noclegów."
+        fallback_pool = [
+            "Przygotowuję dla Ciebie najlepiej dopasowane propozycje noclegów.",
+            "Sprawdzam oferty i wybieram opcje najbardziej zgodne z Twoimi kryteriami.",
+            "Dobieram propozycje, które najlepiej pasują do Twojego stylu wyjazdu.",
+        ]
+        idx = int(hashlib.sha256((mode or "staymap").encode("utf-8")).hexdigest(), 16) % len(fallback_pool)
+        return _prefix_emoji(fallback_pool[idx])
 
     summary = re.sub(r"\s+", " ", raw_summary).strip()
     summary = re.sub(r"^[✨💑🐕🧖💻🏔️🌊🏖️🌲🔥🛁🛏️💰🆕]\s*", "", summary)
@@ -277,18 +574,7 @@ def _format_premium_summary(raw_summary: str, params: dict[str, Any]) -> str:
     if summary[-1] not in ".!?":
         summary += "."
 
-    travel_mode = str(params.get("travel_mode") or "").strip().lower()
-    if travel_mode:
-        closers = {
-            "romantic": "W kolejnym kroku dopracuję klimat i prywatność miejsc.",
-            "family": "Dopilnuję też, żeby oferty były wygodne dla całej rodziny.",
-            "workation": "Skupię się dodatkowo na komforcie pracy i spokojnym otoczeniu.",
-            "wellness": "Dobiorę opcje z mocnym profilem relaksu i strefą wellness.",
-        }
-        closer = closers.get(travel_mode, "Za chwilę pokażę najbardziej trafne opcje dla Twoich kryteriów.")
-        if closer not in summary:
-            summary = f"{summary} {closer}"
-    return summary
+    return _prefix_emoji(summary)
 
 
 def _score_to_text(val: Any) -> Optional[str]:
@@ -668,7 +954,12 @@ class AISearchService:
         return lines
 
     @staticmethod
-    def _retrieval_listings_for_prompt(user_text: str, *, limit: int = 22) -> list[Listing]:
+    def _retrieval_listings_for_prompt(
+        user_text: str,
+        *,
+        params: Optional[dict] = None,
+        limit: int = 22,
+    ) -> list[Listing]:
         try:
             tokens = _extract_meaningful_tokens(user_text)
             base = (
@@ -676,6 +967,26 @@ class AISearchService:
                 .select_related("location")
                 .defer("description")
             )
+            p = params or {}
+            if p.get("travel_mode"):
+                try:
+                    base = SearchOrchestrator.build_queryset(dict(p))
+                except Exception:
+                    logger.exception("AI retrieval: build_queryset with params failed, fallback to base")
+
+            # Twarde sygnały intencji dla puli kandydatów.
+            if p.get("near_mountains"):
+                base = base.filter(location__near_mountains=True)
+            if p.get("near_lake"):
+                base = base.filter(location__near_lake=True)
+            if p.get("near_forest"):
+                base = base.filter(location__near_forest=True)
+
+            if p.get("min_price") is not None:
+                base = base.filter(base_price__gte=p["min_price"])
+            if p.get("max_price") is not None:
+                base = base.filter(base_price__lte=p["max_price"])
+
             if not tokens:
                 return list(base.order_by("-average_rating", "-review_count", "-created_at")[:limit])
             q = Q()
@@ -729,6 +1040,11 @@ class AISearchService:
             "=== Katalog StayMap — dane rzeczywiste (nie halucynuj nazw obiektów spoza tej listy) ===",
             *stats_lines,
             "",
+            "=== Dozwolone wartości filtrów ===",
+            "travel_mode=romantic|family|pet|workation|slow|outdoor|lake|mountains|wellness",
+            "ordering=recommended|price_asc|price_desc|newest",
+            "summary_pl ma opisywać intencję i zakres zgodny z realnymi regionami/typami z tego kontekstu.",
+            "",
             "=== Słownik domenowy (przykładowe wartości z ofert) ===",
             (
                 f"regiony={', '.join(domain.get('regions', [])[:14]) or 'brak'}, "
@@ -757,6 +1073,7 @@ class AISearchService:
         lines.append("")
         lines.append("Nowa wiadomość użytkownika (główne kryterium wyszukiwania):")
         lines.append(current_prompt)
+        lines.append(f"Bieżąca data serwera: {timezone.localdate().isoformat()}")
         lines.append(
             "Zinterpretuj tę wiadomość jako aktualne zapytanie. "
             "Historia służy tylko do doprecyzowania; przy sprzeczności wygrywa nowa wiadomość. "
@@ -775,6 +1092,149 @@ class AISearchService:
             return float(cleaned)
         except (TypeError, ValueError):
             return None
+
+    @classmethod
+    def _score_listing_relevance(
+        cls,
+        listing: Listing,
+        *,
+        prompt_tokens: list[str],
+        params: dict[str, Any],
+    ) -> float:
+        score = 0.0
+        text_blob = _listing_text_blob(listing)
+        loc = getattr(listing, "location", None)
+        amenities = listing.amenities if isinstance(getattr(listing, "amenities", None), list) else []
+        amenity_tokens = {
+            (str(item.get("id") or item.get("name") or "") if isinstance(item, dict) else str(item)).lower()
+            for item in amenities
+        }
+
+        # Treść promptu kontra tekst oferty
+        token_hits = 0
+        for tok in prompt_tokens:
+            if tok in text_blob:
+                token_hits += 1
+        score += token_hits * 4.0
+
+        location_hint = str(params.get("location") or "").strip().lower()
+        if location_hint and location_hint in text_blob:
+            score += 10.0
+        elif location_hint:
+            score -= 12.0
+
+        if params.get("near_mountains"):
+            score += 24.0 if bool(getattr(loc, "near_mountains", False)) else -22.0
+        if params.get("near_lake"):
+            score += 24.0 if bool(getattr(loc, "near_lake", False)) else -22.0
+        if params.get("near_forest"):
+            score += 14.0 if bool(getattr(loc, "near_forest", False)) else -10.0
+
+        mode = str(params.get("travel_mode") or "").strip().lower()
+        max_guests = int(getattr(listing, "max_guests", 0) or 0)
+        if mode == "romantic":
+            if max_guests == 2:
+                score += 10.0
+            if any(tok in amenity_tokens for tok in ("jacuzzi", "jacuzzi_int", "jacuzzi_ext", "hot_tub")):
+                score += 8.0
+            if "kominek" in amenity_tokens:
+                score += 6.0
+            if any(tok in amenity_tokens for tok in ("sauna", "private_sauna", "sauna_fin", "sauna_infra")):
+                score += 4.0
+        elif mode == "family":
+            if max_guests >= 4:
+                score += 8.0
+        elif mode == "mountains":
+            if bool(getattr(loc, "near_mountains", False)):
+                score += 10.0
+        elif mode == "lake":
+            if bool(getattr(loc, "near_lake", False)):
+                score += 10.0
+
+        min_price = params.get("min_price")
+        max_price = params.get("max_price")
+        try:
+            p = float(getattr(listing, "base_price", 0) or 0)
+            if min_price is not None or max_price is not None:
+                if min_price is not None and p < float(min_price):
+                    score -= 6.0
+                if max_price is not None and p > float(max_price):
+                    score -= 6.0
+                if (min_price is None or p >= float(min_price)) and (max_price is None or p <= float(max_price)):
+                    score += 6.0
+        except (TypeError, ValueError):
+            pass
+
+        try:
+            rating = float(getattr(listing, "average_rating", 0) or 0)
+            score += min(max(rating, 0.0), 5.0)
+        except (TypeError, ValueError):
+            pass
+
+        return score
+
+    @classmethod
+    def _merge_candidate_ids_with_prompt_retrieval(
+        cls,
+        ordered_ids: list[Any],
+        *,
+        prompt_text: str,
+        params: Optional[dict] = None,
+        pool_limit: int,
+    ) -> list[Any]:
+        """Łączy ranking search z retrieval promptowym, aby uniknąć stałej szóstki przy różnych zapytaniach."""
+        merged: list[Any] = []
+        seen: set[str] = set()
+
+        try:
+            retrieval_rows = cls._retrieval_listings_for_prompt(
+                prompt_text,
+                params=params,
+                limit=max(24, int(pool_limit)),
+            )
+        except Exception:
+            retrieval_rows = []
+
+        for row in retrieval_rows:
+            pk = getattr(row, "id", None)
+            if pk is None:
+                continue
+            k = str(pk)
+            if k in seen:
+                continue
+            seen.add(k)
+            merged.append(pk)
+            if len(merged) >= pool_limit:
+                return merged
+
+        for pk in ordered_ids:
+            k = str(pk)
+            if k in seen:
+                continue
+            seen.add(k)
+            merged.append(pk)
+            if len(merged) >= pool_limit:
+                break
+        return merged
+
+    @classmethod
+    def _rerank_listings_by_prompt_relevance(
+        cls,
+        listings: list[Listing],
+        *,
+        prompt_text: str,
+        params: dict[str, Any],
+        limit: int,
+    ) -> list[Listing]:
+        if not listings:
+            return []
+        prompt_tokens = _extract_meaningful_tokens(prompt_text, max_tokens=10)
+        scored: list[tuple[float, int, Listing]] = []
+        for idx, row in enumerate(listings):
+            s = cls._score_listing_relevance(row, prompt_tokens=prompt_tokens, params=params)
+            scored.append((s, -idx, row))
+        scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
+        return [row for _, _, row in scored[: max(1, int(limit or 1))]]
 
     @classmethod
     def _rule_based_hints(cls, text: str) -> dict[str, Any]:
@@ -825,8 +1285,6 @@ class AISearchService:
             hints["sauna"] = True
 
         location_tokens = {
-            "gor": "Tatry",
-            "gór": "Tatry",
             "tatry": "Tatry",
             "bieszcz": "Bieszczady",
             "mazur": "Mazury",
@@ -883,6 +1341,12 @@ class AISearchService:
             if any(tok in compact for tok in tokens):
                 hints.setdefault("travel_mode", mode)
                 break
+
+        date_hints = _extract_natural_date_hints(compact, today=timezone.localdate())
+        if isinstance(date_hints.get("date_from"), date):
+            hints.setdefault("date_from", date_hints["date_from"])
+        if isinstance(date_hints.get("date_to"), date):
+            hints.setdefault("date_to", date_hints["date_to"])
 
         return hints
 
@@ -943,10 +1407,6 @@ class AISearchService:
         for key in (
             "quiet_score_min",
             "sauna",
-            "near_mountains",
-            "near_lake",
-            "near_forest",
-            "travel_mode",
         ):
             soft_prefs.pop(key, None)
         out.append(("soft_preferences", soft_prefs))
@@ -972,12 +1432,6 @@ class AISearchService:
         *,
         prompt_fingerprint: str = "",
     ) -> tuple[list[Any], str]:
-        for level, candidate in cls._relaxation_candidates(params, prompt_fingerprint=prompt_fingerprint):
-            # Bez cache Redis — inaczej każde podobne zapytanie dostaje identyczną listę ID z Redis.
-            ids = SearchOrchestrator.get_ordered_ids(candidate, use_cache=False)
-            if ids:
-                return ids, level
-
         has_explicit_constraints = any(
             params.get(key) not in (None, "", [], False)
             for key in (
@@ -995,6 +1449,14 @@ class AISearchService:
                 "is_pet_friendly",
             )
         )
+        for level, candidate in cls._relaxation_candidates(params, prompt_fingerprint=prompt_fingerprint):
+            if level == "global_fallback" and has_explicit_constraints:
+                continue
+            # Bez cache Redis — inaczej każde podobne zapytanie dostaje identyczną listę ID z Redis.
+            ids = SearchOrchestrator.get_ordered_ids(candidate, use_cache=False)  # type: ignore[call-arg]
+            if ids:
+                return ids, level
+
         if has_explicit_constraints:
             # Nie pokazuj globalnie tych samych ofert, gdy użytkownik podał konkretne kryteria.
             return [], "no_results"
@@ -1024,6 +1486,57 @@ class AISearchService:
         return ids[offset:] + ids[:offset]
 
     @classmethod
+    def _travel_quality_threshold(cls, params: dict[str, Any]) -> int:
+        base = int(getattr(settings, "AI_TRAVEL_SCORE_MIN", 30) or 30)
+        by_mode_raw = getattr(settings, "AI_TRAVEL_SCORE_MIN_BY_MODE", {})
+        by_mode = by_mode_raw if isinstance(by_mode_raw, dict) else {}
+        mode = str(params.get("travel_mode") or "").strip().lower()
+
+        def _read_threshold(key: str) -> Optional[int]:
+            val = by_mode.get(key)
+            if val is None:
+                return None
+            try:
+                return int(val)
+            except (TypeError, ValueError):
+                return None
+
+        if mode == "romantic" and params.get("near_mountains"):
+            combo = _read_threshold("romantic_mountains")
+            if combo is not None:
+                return max(base, combo)
+
+        mode_val = _read_threshold(mode)
+        if mode_val is not None:
+            return max(base, mode_val)
+        return base
+
+    @classmethod
+    def _apply_travel_quality_gate(
+        cls,
+        ordered_ids: list[Any],
+        params: dict[str, Any],
+    ) -> tuple[list[Any], int, Optional[int]]:
+        if not ordered_ids:
+            return ordered_ids, 0, None
+        mode = str(params.get("travel_mode") or "").strip().lower()
+        if not mode:
+            return ordered_ids, 0, None
+
+        threshold = cls._travel_quality_threshold(params)
+        try:
+            qs = SearchOrchestrator.build_queryset(dict(params))
+            score_rows = qs.filter(id__in=ordered_ids).values_list("id", "travel_score")
+            score_by_id = {str(pk): float(score or 0) for pk, score in score_rows}
+        except Exception:
+            logger.exception("AI quality gate skipped due to scoring error")
+            return ordered_ids, 0, threshold
+
+        gated_ids = [pk for pk in ordered_ids if float(score_by_id.get(str(pk), 0.0)) >= float(threshold)]
+        removed = max(0, len(ordered_ids) - len(gated_ids))
+        return gated_ids, removed, threshold
+
+    @classmethod
     def _process_prompt(cls, session: AiTravelSession, prompt_row: AiTravelPrompt, text: str) -> AiTravelSession:
         model_name = getattr(settings, "OPENAI_MODEL_CHEAP", "") or getattr(
             settings,
@@ -1047,16 +1560,25 @@ class AISearchService:
         _parsed = normalized_search_params_from_llm(filter_part)
         search_params = _parsed[0]
         errs = _parsed[1]
+        normalization_warnings: list[str] = []
 
         summary_pl = ""
         if isinstance(llm_payload.get("summary_pl"), str):
             raw_summary = llm_payload["summary_pl"].strip()[:2000]
             summary_pl = _format_premium_summary(raw_summary, search_params)
         if errs:
-            msg = "; ".join(errs)
-            cls._mark_session_failed(session.pk, model_name, int(tokens or 0), cost_part or Decimal("0"), msg)
-            session.refresh_from_db()
-            return session
+            repaired_params, normalization_warnings = normalized_search_params_from_llm_lenient(filter_part)
+            if repaired_params:
+                search_params = repaired_params
+            else:
+                msg = "; ".join(errs)
+                cls._mark_session_failed(session.pk, model_name, int(tokens or 0), cost_part or Decimal("0"), msg)
+                session.refresh_from_db()
+                return session
+
+        seasonality_note = _seasonality_note_for_params(search_params)
+        if seasonality_note and seasonality_note not in summary_pl:
+            summary_pl = (summary_pl + " " + seasonality_note).strip() if summary_pl else seasonality_note
 
         search_params = _geocode_if_needed(search_params)
         relax_level = "strict"
@@ -1077,11 +1599,10 @@ class AISearchService:
             session.refresh_from_db()
             return session
 
-        ordered_ids = cls._permute_ordered_ids_for_prompt(
-            list(ordered_ids),
-            text,
-            str(session.id),
-        )
+        ordered_ids = list(ordered_ids)
+        ordered_ids, quality_removed, quality_threshold = cls._apply_travel_quality_gate(ordered_ids, search_params)
+        if not ordered_ids and quality_removed > 0:
+            relax_level = "no_results"
 
         if relax_level != "strict":
             extra = (
@@ -1097,16 +1618,16 @@ class AISearchService:
                 "Mogę zaproponować alternatywy po lekkim rozszerzeniu budżetu, lokalizacji albo udogodnień."
             ).strip()
 
-        payload_with_meta = dict(llm_payload)
-        payload_with_meta["_matching_strategy"] = relax_level
-        payload_with_meta["_result_count"] = len(ordered_ids)
-
-        max_store = getattr(settings, "AI_MAX_LISTING_IDS_PER_SESSION", 500)
-        id_strings = [str(u) for u in ordered_ids[:max_store]]
-        total = len(ordered_ids)
+        candidate_pool_limit = max(36, AI_RECOMMENDATION_LIMIT * 14)
+        candidate_ids = cls._merge_candidate_ids_with_prompt_retrieval(
+            ordered_ids,
+            prompt_text=text,
+            params=search_params,
+            pool_limit=candidate_pool_limit,
+        )
 
         stored_ids: list[UUID] = []
-        for lid_str in id_strings[:50]:
+        for lid_str in candidate_ids:
             try:
                 stored_ids.append(UUID(str(lid_str)))
             except (TypeError, ValueError):
@@ -1117,13 +1638,33 @@ class AISearchService:
             "host",
         )
         listing_by_id = {str(row.id): row for row in approved_qs}
-        ordered_listings = [listing_by_id[str(pk)] for pk in stored_ids if str(pk) in listing_by_id]
+        ordered_candidates = [listing_by_id[str(pk)] for pk in stored_ids if str(pk) in listing_by_id]
+        ordered_listings = cls._rerank_listings_by_prompt_relevance(
+            ordered_candidates,
+            prompt_text=text,
+            params=search_params,
+            limit=AI_RECOMMENDATION_LIMIT,
+        )
+
+        id_strings = [str(listing.id) for listing in ordered_listings]
+        total = len(ordered_listings)
+
+        payload_with_meta = dict(llm_payload)
+        payload_with_meta["_matching_strategy"] = relax_level
+        payload_with_meta["_result_count"] = total
+        if quality_threshold is not None:
+            payload_with_meta["_quality_gate_threshold"] = int(quality_threshold)
+            payload_with_meta["_quality_gate_removed"] = int(quality_removed)
+        if normalization_warnings:
+            payload_with_meta["_normalization_warnings"] = normalization_warnings
+        if errs:
+            payload_with_meta["_strict_validation_errors"] = errs
 
         explanation_map, extra_tokens, extra_cost = cls._generate_match_explanations(
             user_prompt=text,
             llm_summary=summary_pl,
             params=search_params,
-            listings=ordered_listings[:24],
+            listings=ordered_listings[:AI_RECOMMENDATION_LIMIT],
         )
         tokens = int(tokens or 0) + int(extra_tokens or 0)
         cost_part = (cost_part or Decimal("0")) + (extra_cost or Decimal("0"))
@@ -1148,10 +1689,7 @@ class AISearchService:
                 summary_pl=summary_pl,
             )
             rec_rows: list[AiRecommendation] = []
-            for rank, lid_str in enumerate(id_strings[:50]):
-                listing_obj = listing_by_id.get(str(lid_str))
-                if not listing_obj:
-                    continue
+            for rank, listing_obj in enumerate(ordered_listings[:AI_RECOMMENDATION_LIMIT]):
                 exp = explanation_map.get(str(listing_obj.id), {})
                 rec_rows.append(
                     AiRecommendation(

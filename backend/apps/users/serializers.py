@@ -144,6 +144,10 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
 
+class GoogleAuthSerializer(serializers.Serializer):
+    credential = serializers.CharField()
+
+
 class StayMapTokenRefreshSerializer(TokenRefreshSerializer):
     """Nowy access token z aktualnym polem is_host (middleware Next.js)."""
 

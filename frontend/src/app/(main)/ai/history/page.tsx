@@ -98,7 +98,7 @@ export default function AiHistoryPage() {
             {sessions.map((s) => (
               <li key={s.session_id}>
                 <Link
-                  href={`/ai?session_id=${s.session_id}`}
+                  href="/ai"
                   className="block rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-brand/40 hover:shadow-md"
                 >
                   <p className="font-bold text-brand-dark line-clamp-2">

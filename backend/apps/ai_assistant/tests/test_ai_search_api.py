@@ -172,3 +172,31 @@ def test_ai_search_follow_up_in_same_session(mock_llm, api_client, user_host):
     assert len(payload["messages"]) >= 3
     assert payload["assistant_reply"] == payload["latest_response"]
 
+
+@pytest.mark.django_db
+@override_settings(
+    OPENAI_API_KEY="sk-test-dummy",
+    AI_MATCH_EXPLANATION_USE_LLM=False,
+    AI_SEARCH_ASYNC_ENABLED=False,
+)
+@patch("apps.ai_assistant.services.AISearchService._call_llm")
+def test_ai_search_repairs_invalid_llm_filters_instead_of_failing(mock_llm, api_client, user_host):
+    mock_llm.return_value = (
+        {
+            "travel_mode": "romance",
+            "ordering": "best_match",
+            "summary_pl": "Dobieram oferty dla pary.",
+        },
+        12,
+        Decimal("0"),
+    )
+    api_client.force_authenticate(user=user_host)
+    res = api_client.post("/api/v1/ai/search/", {"prompt": "romantyczny wyjazd"}, format="json")
+    assert res.status_code == 201
+    data = res.json()["data"]
+    assert data["status"] == "complete"
+    assert isinstance(data.get("search_params"), dict)
+    assert data["search_params"].get("ordering") == "recommended"
+    assert data["search_params"].get("travel_mode") == "romantic"
+
+

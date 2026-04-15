@@ -267,6 +267,7 @@ export default async function ListingPage({
                     listingSlug={listing.slug}
                     basePrice={listing.base_price}
                     pricingRules={EMPTY_PRICING_RULES}
+                    applyTravelPeakExtras={listing.apply_pl_travel_peak_extras !== false}
                   />
                 </div>
               </AnimatedSection>

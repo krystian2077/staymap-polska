@@ -14,20 +14,21 @@ class TestPricingService:
         listing.base_price = Decimal("200")
         listing.cleaning_fee = Decimal("100")
         listing.save()
-        d0 = date.today() + timedelta(days=10)
+        d0 = date(2030, 3, 10)
         d1 = d0 + timedelta(days=3)
         r = PricingService.calculate(listing, d0, d1, guests=1, adults=1, children=0)
         assert r["nights"] == 3
         assert Decimal(r["accommodation_subtotal"]) == Decimal("600")
         assert Decimal(r["cleaning_fee"]) == Decimal("100")
-        assert Decimal(r["service_fee"]) == Decimal("90")
-        assert Decimal(r["total"]) == Decimal("790")
+        # Prowizja od (zakwaterowanie po rabacie + sprzątanie)
+        assert Decimal(r["service_fee"]) == Decimal("105.00")
+        assert Decimal(r["total"]) == Decimal("805.00")
 
     def test_extra_adults_and_children_surcharge(self, listing):
         listing.base_price = Decimal("100")
         listing.cleaning_fee = Decimal("0")
         listing.save()
-        d0 = date.today() + timedelta(days=14)
+        d0 = date(2030, 3, 12)
         d1 = d0 + timedelta(days=2)
 
         # 2 noce, 2 dorosłych + 1 dziecko:
@@ -53,7 +54,7 @@ class TestPricingService:
             min_nights=3,
             discount_percent=Decimal("10"),
         )
-        d0 = date.today() + timedelta(days=20)
+        d0 = date(2030, 3, 18)
         d1 = d0 + timedelta(days=3)
         r = PricingService.calculate(listing, d0, d1)
         assert Decimal(r["accommodation_subtotal"]) == Decimal("300")
@@ -64,7 +65,8 @@ class TestPricingService:
         listing.base_price = Decimal("100")
         listing.cleaning_fee = Decimal("0")
         listing.save()
-        d0 = date.today() + timedelta(days=40)
+        # Unikaj 1–3.V (święta narodowe) — wtedy wchodzi mnożnik świąteczny.
+        d0 = date(2030, 5, 6)
         d1 = d0 + timedelta(days=1)
         SeasonalPricingRule.objects.create(
             listing=listing,
@@ -80,7 +82,7 @@ class TestPricingService:
     def test_too_many_guests_raises(self, listing):
         listing.max_guests = 2
         listing.save()
-        d0 = date.today() + timedelta(days=5)
+        d0 = date(2030, 3, 5)
         d1 = d0 + timedelta(days=2)
         with pytest.raises(PricingError):
             PricingService.calculate(listing, d0, d1, guests=5)
@@ -88,13 +90,74 @@ class TestPricingService:
     def test_daily_rates_for_calendar(self, listing):
         listing.base_price = Decimal("100")
         listing.save()
-        d0 = date.today() + timedelta(days=60)
+        d0 = date(2030, 3, 10)
         d1 = d0 + timedelta(days=2)
         r = PricingService.daily_rates_for_calendar(listing, d0, d1)
         assert r["currency"] == "PLN"
         assert len(r["days"]) == 3
         assert r["days"][0]["date"] == d0.isoformat()
         assert Decimal(r["days"][0]["nightly_rate"]) == Decimal("100")
+        assert r["days"][0]["is_public_holiday"] is False
+        assert r["days"][0]["holiday_name"] is None
+
+    def test_default_seasonal_summer_when_enabled(self, listing, settings):
+        settings.DEFAULT_SEASONAL_PRICING_ENABLED = True
+        listing.base_price = Decimal("100")
+        listing.save()
+        d0 = date(2030, 7, 15)
+        r = PricingService.daily_rates_for_calendar(listing, d0, d0)
+        assert Decimal(r["days"][0]["seasonal_multiplier"]) == Decimal("1.12")
+        assert Decimal(r["days"][0]["nightly_rate"]) == Decimal("112.00")
+
+    def test_polish_holiday_in_calendar(self, listing):
+        listing.base_price = Decimal("100")
+        listing.save()
+        d0 = date(2030, 1, 1)
+        r = PricingService.daily_rates_for_calendar(listing, d0, d0)
+        assert r["days"][0]["is_public_holiday"] is True
+        assert r["days"][0]["is_pricing_peak"] is True
+        assert r["days"][0]["holiday_name"] == "Nowy Rok"
+        assert Decimal(r["days"][0]["holiday_multiplier"]) == Decimal("1.15")
+
+    def test_sylwester_extra_peak_calendar(self, listing):
+        listing.base_price = Decimal("100")
+        listing.save()
+        d0 = date(2030, 12, 31)
+        r = PricingService.daily_rates_for_calendar(listing, d0, d0)
+        assert r["days"][0]["is_public_holiday"] is False
+        assert r["days"][0]["is_pricing_peak"] is True
+        assert r["days"][0]["holiday_name"] == "Sylwester"
+        assert Decimal(r["days"][0]["holiday_multiplier"]) == Decimal("1.15")
+
+    def test_valentines_extra_peak_calendar(self, listing):
+        listing.base_price = Decimal("100")
+        listing.save()
+        d0 = date(2030, 2, 14)
+        r = PricingService.daily_rates_for_calendar(listing, d0, d0)
+        assert r["days"][0]["is_public_holiday"] is False
+        assert r["days"][0]["is_pricing_peak"] is True
+        assert r["days"][0]["holiday_name"] == "Walentynki"
+
+    def test_majowka_bridge_may2_calendar(self, listing):
+        listing.base_price = Decimal("100")
+        listing.save()
+        d0 = date(2030, 5, 2)
+        r = PricingService.daily_rates_for_calendar(listing, d0, d0)
+        assert r["days"][0]["is_public_holiday"] is False
+        assert r["days"][0]["is_pricing_peak"] is True
+        assert r["days"][0]["holiday_name"] == "Majówka (dzień mostowy)"
+
+    def test_listing_can_disable_extra_peaks(self, listing, settings):
+        settings.DEFAULT_SEASONAL_PRICING_ENABLED = False
+        listing.apply_pl_travel_peak_extras = False
+        listing.save()
+        listing.refresh_from_db()
+        d0 = date(2030, 12, 31)
+        r = PricingService.daily_rates_for_calendar(listing, d0, d0)
+        assert r["days"][0]["is_public_holiday"] is False
+        assert r["days"][0]["is_pricing_peak"] is False
+        assert Decimal(r["days"][0]["holiday_multiplier"]) == Decimal("1")
+        assert r["days"][0]["holiday_name"] is None
 
     def test_daily_calendar_range_too_long(self, listing):
         d0 = date.today()

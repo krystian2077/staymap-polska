@@ -187,8 +187,6 @@ function AIResultCard({ result, index }: { result: AIResult; index: number }) {
         : null;
   const short = (result.short_description || "").trim();
   const imageCount = Array.isArray(result.images) ? result.images.length : 0;
-  const explanation = (result.match_explanation || "").trim();
-  const highlights = (result.match_highlights || []).filter(Boolean).slice(0, 3);
   return (
     <Link
       href={`/listing/${result.slug}`}
@@ -261,31 +259,6 @@ function AIResultCard({ result, index }: { result: AIResult; index: number }) {
           ) : null}
         </div>
 
-        <div className="mb-4 overflow-hidden rounded-2xl border border-[#e9d5ff] bg-[linear-gradient(135deg,#faf5ff,#f5f3ff)]">
-          <div className="flex items-center gap-1.5 border-b border-[#ede9fe] px-4 py-2 text-[11px] font-bold uppercase tracking-wide text-[#6d28d9]">
-            <span aria-hidden>✨</span>
-            Uzasadnienie dopasowania
-          </div>
-          <div className="space-y-2.5 px-4 pb-3 pt-2.5">
-            {explanation ? (
-              <p className="line-clamp-4 text-[15px] leading-relaxed text-[#4c1d95]">{explanation}</p>
-            ) : result.match_reasons?.length ? (
-              <p className="text-[15px] leading-relaxed text-[#4c1d95]">{result.match_reasons.join(" · ")}</p>
-            ) : null}
-            {highlights.length ? (
-              <div className="flex flex-wrap gap-1.5">
-                {highlights.map((h) => (
-                  <span
-                    key={h}
-                    className="rounded-full border border-[#ddd6fe] bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-[#6d28d9]"
-                  >
-                    {h}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
 
         <div className="mt-auto flex items-center justify-between border-t border-[#edf2ef] pt-3 text-base">
           <span className="font-extrabold text-[#0a0f0d]">
@@ -691,8 +664,6 @@ function AiSearchContent() {
   const results = useAIStore((s) => s.results);
   const [visibleCount, setVisibleCount] = useState(6);
   const startSearch = useAIStore((s) => s.startSearch);
-  const loadSession = useAIStore((s) => s.loadSession);
-  const sessionHydratedRef = useRef<string | null>(null);
   const [pendingUserMessage, setPendingUserMessage] = useState("");
   const [heroParallax, setHeroParallax] = useState(0);
   const [visibleCardCount, setVisibleCardCount] = useState(0);
@@ -705,21 +676,11 @@ function AiSearchContent() {
   }, [error, reset]);
 
   useEffect(() => {
+    reset();
     setMounted(true);
-  }, []);
+  }, [reset]);
 
   useEffect(() => {
-    const sid = searchParams.get("session_id");
-    if (sid && mounted) {
-      if (sessionHydratedRef.current === sid) return;
-      const token = typeof window !== "undefined" ? getAccessToken() : null;
-      if (!token) return;
-      sessionHydratedRef.current = sid;
-      void loadSession(sid, token);
-      return;
-    }
-    sessionHydratedRef.current = null;
-
     const p = searchParams.get("prompt");
     if (p && mounted && !session && !loading && !polling && !error && searchStartedFor.current !== p) {
       searchStartedFor.current = p;
@@ -729,7 +690,7 @@ function AiSearchContent() {
         void startSearch(p, token);
       }
     }
-  }, [searchParams, mounted, session, loading, polling, error, setPrompt, startSearch, loadSession]);
+  }, [searchParams, mounted, session, loading, polling, error, setPrompt, startSearch]);
 
   useEffect(() => {
     if (!mounted || typeof window === "undefined") return;

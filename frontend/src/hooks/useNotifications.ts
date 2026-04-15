@@ -47,6 +47,10 @@ export function useNotifications(token: string | null = null) {
       ws = new WebSocket(`${base}/ws/notifications/?token=${encodeURIComponent(nextToken)}`);
 
       ws.onopen = () => {
+        if (disposed) {
+          ws?.close();
+          return;
+        }
         reconnectAttempt = 0;
       };
 
@@ -168,7 +172,10 @@ export function useNotifications(token: string | null = null) {
     return () => {
       disposed = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
-      ws?.close();
+      // Zamykaj tylko aktywne połączenie — close() w stanie CONNECTING daje ostrzeżenie w konsoli (np. React Strict Mode).
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
     };
   }, [token, setBookings, setConversations, addNotification]);
 

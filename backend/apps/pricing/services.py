@@ -10,7 +10,29 @@ from apps.common.exceptions import PricingError
 from apps.listings.models import Listing
 
 from .models import CustomDatePrice, HolidayPricingRule, LongStayDiscountRule, SeasonalPricingRule
-from .polish_holidays import is_polish_public_holiday
+from .polish_holidays import is_polish_public_holiday, polish_public_holiday_name
+from .polish_travel_peaks import extra_pricing_peak_name, is_extra_pricing_peak_day
+from .seasonality_defaults import default_seasonal_multiplier
+
+
+def _listing_use_travel_peak_extras(listing: Listing) -> bool:
+    return getattr(listing, "apply_pl_travel_peak_extras", True)
+
+
+def _is_pricing_peak_for_listing(listing: Listing, d: date) -> bool:
+    if is_polish_public_holiday(d):
+        return True
+    if _listing_use_travel_peak_extras(listing) and is_extra_pricing_peak_day(d):
+        return True
+    return False
+
+
+def _pricing_peak_day_name_for_listing(listing: Listing, d: date) -> str | None:
+    if is_polish_public_holiday(d):
+        return polish_public_holiday_name(d)
+    if _listing_use_travel_peak_extras(listing) and is_extra_pricing_peak_day(d):
+        return extra_pricing_peak_name(d)
+    return None
 
 
 def _service_fee_percent() -> Decimal:
@@ -193,7 +215,9 @@ class PricingService:
                 best = r
             elif r.priority == best.priority and r.multiplier > best.multiplier:
                 best = r
-        return best.multiplier if best else Decimal("1")
+        if best:
+            return best.multiplier
+        return default_seasonal_multiplier(d)
 
     @classmethod
     def _holiday_multiplier(cls, listing: Listing, d: date) -> Decimal:
@@ -207,7 +231,7 @@ class PricingService:
         )
         if rule:
             return rule.multiplier
-        if is_polish_public_holiday(d):
+        if _is_pricing_peak_for_listing(listing, d):
             return _default_holiday_multiplier()
         return Decimal("1")
 
@@ -237,6 +261,8 @@ class PricingService:
             seasonal = cls._seasonal_multiplier(listing, d)
             holiday = cls._holiday_multiplier(listing, d)
             nightly = (base * seasonal * holiday).quantize(Decimal("0.01"))
+            pub = is_polish_public_holiday(d)
+            peak = _is_pricing_peak_for_listing(listing, d)
             days.append(
                 {
                     "date": d.isoformat(),
@@ -244,6 +270,9 @@ class PricingService:
                     "base_price": str(base),
                     "seasonal_multiplier": str(seasonal),
                     "holiday_multiplier": str(holiday),
+                    "is_public_holiday": pub,
+                    "is_pricing_peak": peak,
+                    "holiday_name": _pricing_peak_day_name_for_listing(listing, d) if peak else None,
                 }
             )
             d += timedelta(days=1)

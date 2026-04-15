@@ -1,3 +1,13 @@
+import path from "path";
+import { fileURLToPath } from "url";
+import nextEnv from "@next/env";
+
+const { loadEnvConfig } = nextEnv;
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// Monorepo: główny `.env` leży w katalogu nadrzędnym — `npm run dev` z `frontend/` wczytuje tylko `frontend/.env*`.
+loadEnvConfig(path.join(__dirname, ".."));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {

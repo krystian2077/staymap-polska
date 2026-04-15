@@ -178,6 +178,18 @@ OPENAI_MODEL = env("OPENAI_MODEL", default="gpt-4o-mini")
 OPENAI_MAX_TOKENS = env.int("OPENAI_MAX_TOKENS", default=800)
 AI_SESSION_TTL_HOURS = env.int("AI_SESSION_TTL_HOURS", default=24)
 AI_MAX_LISTING_IDS_PER_SESSION = env.int("AI_MAX_LISTING_IDS_PER_SESSION", default=500)
+AI_TRAVEL_SCORE_MIN = env.int("AI_TRAVEL_SCORE_MIN", default=30)
+AI_TRAVEL_SCORE_MIN_BY_MODE = env.json(
+    "AI_TRAVEL_SCORE_MIN_BY_MODE",
+    default={
+        "romantic": 35,
+        "wellness": 35,
+        "mountains": 35,
+        "romantic_mountains": 45,
+    },
+)
+AI_CHAT_EMOJI_ENABLED = env.bool("AI_CHAT_EMOJI_ENABLED", default=True)
+AI_CHAT_EMOJI_RATE = env.float("AI_CHAT_EMOJI_RATE", default=0.30)
 
 COMPARE_SESSION_TTL_HOURS = env.int("COMPARE_SESSION_TTL_HOURS", default=48)
 COMPARE_MAX_LISTINGS = env.int("COMPARE_MAX_LISTINGS", default=3)
@@ -185,8 +197,20 @@ COMPARE_MAX_LISTINGS = env.int("COMPARE_MAX_LISTINGS", default=3)
 MAX_LISTING_IMAGES = env.int("MAX_LISTING_IMAGES", default=20)
 
 FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:3000")
+GOOGLE_OAUTH_CLIENT_ID = env("GOOGLE_OAUTH_CLIENT_ID", default="")
 PLATFORM_SERVICE_FEE_PERCENT = env.int("PLATFORM_SERVICE_FEE_PERCENT", default=15)
 DEFAULT_HOLIDAY_PRICE_MULTIPLIER = env("DEFAULT_HOLIDAY_PRICE_MULTIPLIER", default="1.15")
+# Gdy brak reguł SeasonalPricingRule w bazie: lato (15.06–31.08) i szczyt świąteczny (22.12–07.01).
+DEFAULT_SEASONAL_PRICING_ENABLED = env.bool("DEFAULT_SEASONAL_PRICING_ENABLED", default=True)
+DEFAULT_SEASONAL_SUMMER_MULTIPLIER = env("DEFAULT_SEASONAL_SUMMER_MULTIPLIER", default="1.12")
+DEFAULT_SEASONAL_WINTER_PEAK_MULTIPLIER = env("DEFAULT_SEASONAL_WINTER_PEAK_MULTIPLIER", default="1.10")
+# Domyślny sezon „wakacyjny” (miesiąc, dzień) — gdy brak reguł SeasonalPricingRule
+DEFAULT_SEASONAL_SUMMER_START = (6, 1)
+DEFAULT_SEASONAL_SUMMER_END = (9, 15)
+# Opcjonalne wyłączenie wybranych dodatkowych szczytów (poza GUS)
+PL_EXTRA_PEAK_INCLUDE_WOMENS_DAY = env.bool("PL_EXTRA_PEAK_INCLUDE_WOMENS_DAY", default=True)
+PL_EXTRA_PEAK_INCLUDE_ALL_SOULS = env.bool("PL_EXTRA_PEAK_INCLUDE_ALL_SOULS", default=True)
+PL_EXTRA_PEAK_INCLUDE_ANDRZEJKI = env.bool("PL_EXTRA_PEAK_INCLUDE_ANDRZEJKI", default=True)
 HOST_REQUEST_ACCEPT_HOURS = env.int("HOST_REQUEST_ACCEPT_HOURS", default=24)
 BOOKING_PAYMENT_TIMEOUT_H = env.int("BOOKING_PAYMENT_TIMEOUT_H", default=1)
 

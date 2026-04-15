@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from typing import Optional
 
 from django.conf import settings
@@ -154,9 +155,19 @@ def _session_payload(session: AiTravelSession, request=None) -> dict:
         }
         data["latest_response"] = interp.summary_pl or "Przygotowałem dopasowane propozycje."
         data["assistant_reply"] = data["latest_response"]
+        mode = str(data["filters"].get("travel_mode") or "").strip().lower()
+        mode_suggestions = {
+            "romantic": ["Pokaż bardziej kameralne i romantyczne opcje", "Dodaj oferty z kominkiem i jacuzzi"],
+            "family": ["Pokaż opcje bardziej przyjazne rodzinie", "Dodaj miejsca z dużą przestrzenią dla dzieci"],
+            "workation": ["Pokaż opcje z bardzo szybkim WiFi", "Dodaj miejsca z wygodnym biurkiem do pracy"],
+            "wellness": ["Pokaż mocniejsze opcje wellness", "Dodaj tylko obiekty z sauną i spa"],
+            "mountains": ["Pokaż tylko oferty z widokiem na góry", "Dodaj miejsca blisko szlaków"],
+            "lake": ["Pokaż tylko oferty blisko jeziora", "Dodaj miejsca z pomostem lub plażą"],
+        }
+
         suggestions: list[str] = []
-        if data["filters"].get("travel_mode"):
-            suggestions.append("Pokaż bardziej luksusowe opcje")
+        suggestions.extend(mode_suggestions.get(mode, []))
+        suggestions.append("Pokaż bardziej luksusowe opcje")
         if not data["filters"].get("near_lake"):
             suggestions.append("Dodaj miejsca blisko jeziora")
         if data["filters"].get("sauna"):
@@ -164,7 +175,15 @@ def _session_payload(session: AiTravelSession, request=None) -> dict:
         else:
             suggestions.append("Dodaj saunę lub jacuzzi")
         suggestions.append("Pokaż najtańsze warianty")
-        data["follow_up_suggestions"] = suggestions[:4]
+
+        unique: list[str] = []
+        for s in suggestions:
+            if s and s not in unique:
+                unique.append(s)
+        if unique:
+            shift = int(hashlib.sha256(str(session.id).encode("utf-8")).hexdigest(), 16) % len(unique)
+            unique = unique[shift:] + unique[:shift]
+        data["follow_up_suggestions"] = unique[:4]
 
         recs = list(
             AiRecommendation.objects.filter(interpretation=interp)
@@ -173,7 +192,7 @@ def _session_payload(session: AiTravelSession, request=None) -> dict:
                 "listing__location",
             )
             .prefetch_related("listing__images")
-            .order_by("rank", "id")[:24]
+            .order_by("rank", "id")[:6]
         )
 
         if recs:
@@ -186,7 +205,7 @@ def _session_payload(session: AiTravelSession, request=None) -> dict:
             )
         elif session.result_listing_ids:
             # Fallback: when recommendations were not persisted, render top listings from session ids.
-            id_list = list(session.result_listing_ids)[:24]
+            id_list = list(session.result_listing_ids)[:6]
             qs = (
                 Listing.objects.filter(
                     pk__in=id_list,
@@ -206,7 +225,7 @@ def _session_payload(session: AiTravelSession, request=None) -> dict:
         and session.result_listing_ids
         and session.status == AiTravelSession.Status.COMPLETE
     ):
-        id_list = list(session.result_listing_ids)[:24]
+        id_list = list(session.result_listing_ids)[:6]
         qs = (
             Listing.objects.filter(pk__in=id_list, status=Listing.Status.APPROVED)
             .select_related("location")
@@ -248,6 +267,7 @@ class AiSearchViewSet(ViewSet):
         ser = AiSearchCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         prompt = ser.validated_data["prompt"]
+        session_id = ser.validated_data["session_id"] if "session_id" in ser.validated_data else None
         AISearchService._require_api_key()
         async_enabled = bool(
             getattr(settings, "AI_SEARCH_ASYNC_ENABLED", not bool(getattr(settings, "DEBUG", False)))
@@ -256,13 +276,13 @@ class AiSearchViewSet(ViewSet):
             session = AISearchService.queue_async(
                 request.user,
                 prompt,
-                ser.validated_data.get("session_id"),
+                session_id,
             )
         else:
             session = AISearchService.run_sync(
                 request.user,
                 prompt,
-                ser.validated_data.get("session_id"),
+                session_id,
             )
         session.refresh_from_db()
         return Response(

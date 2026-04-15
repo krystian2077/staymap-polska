@@ -83,7 +83,12 @@ export interface AreaSummary {
 export interface PriceCalendarDay {
   date: string;
   price: number | null;
+  /** Mnożnik sezonu (domyślne reguły PL lub SeasonalPricingRule). */
   seasonal_multiplier: number;
+  /** Mnożnik świąt / długich weekendów (GUS + kalendarz podróży). */
+  holiday_multiplier: number;
+  /** seasonal × holiday — do kolorów i podpowiedzi (zgodnie z wyceną). */
+  effective_multiplier: number;
   is_holiday: boolean;
   holiday_name: string | null;
   is_booked: boolean;
@@ -185,6 +190,8 @@ export interface Listing {
   currency: string;
   cleaning_fee: number | null;
   service_fee_percent: number;
+  /** Gdy false — tylko święta GUS + reguły gospodarza; bez typowych „mostów” PL. */
+  apply_pl_travel_peak_extras?: boolean;
   check_in_time: string;
   check_out_time: string;
   cancellation_policy: "flexible" | "moderate" | "strict" | "non_refundable";

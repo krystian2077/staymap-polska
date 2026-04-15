@@ -21,8 +21,22 @@ import { useJsonGet } from "@/lib/hooks/useJsonGet";
 import type { PriceCalendarDay, PricingRule } from "@/types/listing";
 import { cn } from "@/lib/utils";
 
+type CalendarDayRow = {
+  date: string;
+  nightly_rate: string;
+  base_price: string;
+  seasonal_multiplier: string;
+  holiday_multiplier: string;
+  is_public_holiday?: boolean;
+  /** Święto GUS lub dzień szczytu (Sylwester, Walentynki, majówka, …) */
+  is_pricing_peak?: boolean;
+  holiday_name?: string | null;
+};
+
 type CalendarApi = {
   data?: {
+    days?: CalendarDayRow[];
+    currency?: string;
     prices?: Record<string, PriceCalendarDay>;
     rules?: PricingRule[];
   };
@@ -33,30 +47,23 @@ type Props = {
   listingSlug: string;
   basePrice: number;
   pricingRules: PricingRule[];
+  /** Z API oferty — czy stosować dodatkowe dni szczytu PL (mosty, Wigilia itd.). */
+  applyTravelPeakExtras?: boolean;
 };
 
 const WEEKDAYS = ["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"];
 
 
-export function PriceCalendar({ listingSlug, basePrice, pricingRules }: Props) {
+export function PriceCalendar({
+  listingSlug,
+  basePrice,
+  pricingRules,
+  applyTravelPeakExtras = true,
+}: Props) {
   const [cursor, setCursor] = useState(() => startOfMonth(new Date()));
   const [rangeStart, setRangeStart] = useState<string | null>(null);
   const [rangeEnd, setRangeEnd] = useState<string | null>(null);
   const [direction, setDirection] = useState(0);
-
-  const { data, isLoading } = useJsonGet<CalendarApi>(
-    listingSlug
-      ? `/api/v1/listings/${listingSlug}/price-calendar/?months=2`
-      : null
-  );
-
-  const prices = useMemo(() => data?.data?.prices ?? {}, [data]);
-  const rules = useMemo(() => {
-    const r = data?.data?.rules;
-    return r?.length ? r : pricingRules;
-  }, [data, pricingRules]);
-
-  const today = startOfDay(new Date());
 
   const monthStart = startOfMonth(cursor);
   const monthEnd = endOfMonth(cursor);
@@ -66,6 +73,52 @@ export function PriceCalendar({ listingSlug, basePrice, pricingRules }: Props) {
   const lastCell = new Date(monthEnd);
   const trailing = 6 - ((lastCell.getDay() + 6) % 7);
   lastCell.setDate(lastCell.getDate() + trailing);
+
+  const calendarUrl = useMemo(() => {
+    if (!listingSlug) return null;
+    const from = format(firstCell, "yyyy-MM-dd");
+    const to = format(lastCell, "yyyy-MM-dd");
+    return `/api/v1/listings/${listingSlug}/price-calendar/?from=${from}&to=${to}`;
+  }, [listingSlug, cursor]);
+
+  const { data, isLoading } = useJsonGet<CalendarApi>(calendarUrl);
+
+  const prices = useMemo(() => {
+    const preset = data?.data?.prices;
+    if (preset && Object.keys(preset).length) return preset;
+    const days = data?.data?.days;
+    if (!days?.length) return {};
+    const out: Record<string, PriceCalendarDay> = {};
+    for (const row of days) {
+      const rate = parseFloat(row.nightly_rate);
+      const seasonal = parseFloat(row.seasonal_multiplier);
+      const hol = parseFloat(row.holiday_multiplier);
+      const sm = Number.isFinite(seasonal) ? seasonal : 1;
+      const hm = Number.isFinite(hol) ? hol : 1;
+      const effective = sm * hm;
+      const peak =
+        Boolean(row.is_pricing_peak) ||
+        Boolean(row.is_public_holiday) ||
+        hm > 1;
+      out[row.date] = {
+        date: row.date,
+        price: Number.isFinite(rate) ? rate : null,
+        seasonal_multiplier: sm,
+        holiday_multiplier: hm,
+        effective_multiplier: effective,
+        is_holiday: peak,
+        holiday_name: row.holiday_name ?? null,
+        is_booked: false,
+      };
+    }
+    return out;
+  }, [data]);
+  const rules = useMemo(() => {
+    const r = data?.data?.rules;
+    return r?.length ? r : pricingRules;
+  }, [data, pricingRules]);
+
+  const today = startOfDay(new Date());
 
   const cells = eachDayOfInterval({ start: firstCell, end: lastCell });
 
@@ -117,13 +170,15 @@ export function PriceCalendar({ listingSlug, basePrice, pricingRules }: Props) {
     for (const d of stayDays) {
       const k = format(d, "yyyy-MM-dd");
       const cell = prices[k];
-      const p = cell?.price ?? basePrice * (cell?.seasonal_multiplier ?? 1);
-      subtotal += p;
       const sm = cell?.seasonal_multiplier ?? 1;
-      maxSeason = Math.max(maxSeason, sm);
+      const hm = cell?.holiday_multiplier ?? 1;
+      const eff = cell?.effective_multiplier ?? sm * hm;
+      const p = cell?.price ?? basePrice * eff;
+      subtotal += p;
+      maxSeason = Math.max(maxSeason, eff);
       if (cell?.is_holiday) {
         anyHoliday = true;
-        holidayMult = Math.max(holidayMult, sm);
+        holidayMult = Math.max(holidayMult, eff);
       }
     }
 
@@ -162,7 +217,23 @@ export function PriceCalendar({ listingSlug, basePrice, pricingRules }: Props) {
       <div className="mb-8">
         <h2 className="text-3xl font-black tracking-tight text-brand-dark">Kalendarz cen</h2>
         <p className="mt-2 text-[16px] text-gray-500">
-          Ceny zmieniają się zależnie od sezonu, polskich świąt i reguł cenowych gospodarza.
+          Cena za noc = baza × <strong className="text-gray-700">sezon</strong> ×{" "}
+          <strong className="text-gray-700">święta / długie weekendy</strong>. Kolory pokazują łączny mnożnik
+          (nie tylko sezon).
+        </p>
+        <p className="mt-2 text-[14px] leading-relaxed text-gray-600 rounded-2xl bg-gray-50 border border-black/[0.04] px-4 py-3">
+          {applyTravelPeakExtras ? (
+            <>
+              Używamy domyślnego <strong>sezonu</strong> (np. lato, okolice świąt) oraz kalendarza{" "}
+              <strong>świąt ustawowych i typowych dni podróży</strong> (m.in. majówka, Wielki Piątek, Wigilia,
+              Sylwester). Gospodarz może dodać własne reguły w panelu.
+            </>
+          ) : (
+            <>
+              Ta oferta ma wyłączone dodatkowe dni szczytu — stosowane są{" "}
+              <strong>święta ustawowe</strong> oraz własne reguły cenowe gospodarza.
+            </>
+          )}
         </p>
       </div>
 
@@ -213,11 +284,15 @@ export function PriceCalendar({ listingSlug, basePrice, pricingRules }: Props) {
                   const cell = prices[k];
                   const inMonth = isSameMonth(d, cursor);
                   const isPast = isBefore(d, today) && !isSameDay(d, today);
-                  const mult = cell?.seasonal_multiplier ?? 1;
+                  /** Jak w backendzie: sezon × święta (wcześniej UI patrzyło tylko na sezon). */
+                  const mult =
+                    cell?.effective_multiplier ??
+                    (cell?.seasonal_multiplier ?? 1) * (cell?.holiday_multiplier ?? 1);
                   const unavailable = Boolean(cell?.is_booked) || cell?.price === null;
                   const price = unavailable ? null : cell?.price ?? basePrice * mult;
-                  const highSeason = mult >= 1.3 || Boolean(cell?.is_holiday);
-                  const midSeason = mult > 1 && mult < 1.3;
+                  const highSeason =
+                    mult >= 1.28 || (Boolean(cell?.is_holiday) && mult > 1.02);
+                  const midSeason = mult > 1.02 && mult < 1.28 && !highSeason;
                   const isToday = isSameDay(d, today);
                   const isSel = k === rangeStart || k === rangeEnd || (rangeStart && rangeEnd && k > rangeStart && k < rangeEnd && inMonth);
                   const isEdge = k === rangeStart || k === rangeEnd;
@@ -228,6 +303,16 @@ export function PriceCalendar({ listingSlug, basePrice, pricingRules }: Props) {
                     <div key={k} className="p-0.5">
                       <button
                         type="button"
+                        title={
+                          [
+                            cell?.holiday_name,
+                            mult > 1.01
+                              ? `Sezon ×${(cell?.seasonal_multiplier ?? 1).toFixed(2)} · święta/długi weekend ×${(cell?.holiday_multiplier ?? 1).toFixed(2)} · łącznie ×${mult.toFixed(2)}`
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" — ") || undefined
+                        }
                         disabled={!!(isPast || unavailable || isLoading)}
                         onClick={() => pickDay(k, !isPast && !unavailable && !isLoading)}
                         className={cn(
@@ -267,13 +352,13 @@ export function PriceCalendar({ listingSlug, basePrice, pricingRules }: Props) {
 
           <div className="mt-2 flex flex-wrap gap-6 px-8 py-5 bg-white/50 border-t border-black/[0.03] text-[13px] font-bold text-gray-500">
             <span className="flex items-center gap-2.5">
-              <span className="h-3 w-3 rounded-full bg-red-500 shadow-sm" /> Sezon wysoki
+              <span className="h-3 w-3 rounded-full bg-red-500 shadow-sm" /> Szczyt (łączny mnożnik wysoki lub święto)
             </span>
             <span className="flex items-center gap-2.5">
-              <span className="h-3 w-3 rounded-full bg-amber-500 shadow-sm" /> Weekend / Święto
+              <span className="h-3 w-3 rounded-full bg-amber-500 shadow-sm" /> Podwyższony sezon / mniejszy szczyt
             </span>
             <span className="flex items-center gap-2.5">
-              <span className="h-3 w-3 rounded-full bg-brand shadow-sm" /> Cena standardowa
+              <span className="h-3 w-3 rounded-full bg-brand shadow-sm" /> Bez dodatkowego mnożnika
             </span>
             <span className="flex items-center gap-2.5">
               <span className="h-3 w-3 rounded-full bg-gray-300 shadow-sm" /> Termin zajęty
@@ -281,7 +366,7 @@ export function PriceCalendar({ listingSlug, basePrice, pricingRules }: Props) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
           {/* Selected Range Card */}
           <div className="rounded-[2.5rem] bg-white border border-black/[0.06] p-8 shadow-sm ring-1 ring-black/[0.02] flex flex-col">
             <div className="mb-6 flex items-center gap-4">
@@ -309,7 +394,7 @@ export function PriceCalendar({ listingSlug, basePrice, pricingRules }: Props) {
                   </div>
                   {breakdown.maxSeason > 1 && (
                     <div className="flex justify-between text-[15px]">
-                      <span className="text-gray-500 font-medium">Mnożnik sezonowy</span>
+                      <span className="text-gray-500 font-medium">Najwyższy mnożnik (sezon × święta)</span>
                       <span className="font-bold text-amber-500">×{breakdown.maxSeason.toFixed(2)}</span>
                     </div>
                   )}
@@ -330,32 +415,6 @@ export function PriceCalendar({ listingSlug, basePrice, pricingRules }: Props) {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Pricing Rules */}
-          <div className="rounded-[2.5rem] bg-gray-50/50 border border-black/[0.04] p-8 flex flex-col">
-            <h3 className="mb-6 text-sm font-black uppercase tracking-wider text-brand-dark">Reguły cenowe</h3>
-            {rules.length === 0 ? (
-              <p className="text-[14px] text-gray-400 font-medium">Brak dodatkowych reguł.</p>
-            ) : (
-              <ul className="space-y-4 flex-grow">
-                {rules.map((rule, i) => (
-                  <li key={`${rule.name}-${i}`} className="flex items-center justify-between text-[14px]">
-                    <div className="flex items-center gap-3">
-                      <div className={cn("h-2.5 w-2.5 rounded-full shadow-sm", 
-                        rule.type === "seasonal" ? "bg-red-500" : 
-                        rule.type === "holiday" ? "bg-amber-500" : "bg-brand")} 
-                      />
-                      <span className="font-bold text-brand-dark">{rule.name}</span>
-                    </div>
-                    <span className="font-black text-gray-400 bg-white px-2 py-0.5 rounded-lg border border-black/[0.03]">
-                      {rule.multiplier ? `${rule.multiplier}×` : ""}
-                      {rule.discount_percent ? `−${rule.discount_percent}%` : ""}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
 
           {/* Price Tip */}

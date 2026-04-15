@@ -18,7 +18,7 @@ class ListingImageInline(admin.TabularInline):
 @admin.register(Listing)
 class ListingAdmin(admin.ModelAdmin):
     list_display = ("title", "slug", "host", "status", "base_price", "currency", "created_at")
-    list_filter = ("status", "booking_mode", "currency")
+    list_filter = ("status", "booking_mode", "currency", "apply_pl_travel_peak_extras")
     search_fields = ("title", "slug", "host__user__email")
     inlines = [ListingLocationInline, ListingImageInline]
     raw_id_fields = ("host",)
