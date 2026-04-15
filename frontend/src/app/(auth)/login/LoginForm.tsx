@@ -94,15 +94,15 @@ export function LoginForm() {
   const regHref = next !== "/" ? `/register?next=${encodeURIComponent(next)}` : "/register";
 
   return (
-    <div className="animate-scale-in w-full max-w-[430px] rounded-[22px] border border-gray-200 bg-white p-9 shadow-[0_16px_48px_rgba(0,0,0,.08)]">
-      <div className="mb-6 text-center">
+    <div className="animate-scale-in w-full max-w-[430px] rounded-[20px] border border-gray-200 bg-white p-4 shadow-[0_16px_48px_rgba(0,0,0,.08)] sm:rounded-[22px] sm:p-9">
+      <div className="mb-5 text-center sm:mb-6">
         <Link href="/" className="inline-flex items-baseline text-xl font-extrabold">
           <span className="text-brand-dark">StayMap</span>
           <span className="text-brand">.</span>
         </Link>
       </div>
-      <h1 className="text-center text-[25px] font-extrabold tracking-tight text-text">Witaj z powrotem</h1>
-      <p className="mb-6 text-center text-sm text-text-muted">Zaloguj się do swojego konta</p>
+      <h1 className="text-center text-[23px] font-extrabold tracking-tight text-text sm:text-[25px]">Witaj z powrotem</h1>
+      <p className="mb-5 text-center text-sm text-text-muted sm:mb-6">Zaloguj się do swojego konta</p>
 
       {formError && (
         <div className="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm font-medium text-red-600">
@@ -111,10 +111,10 @@ export function LoginForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5 sm:space-y-4">
         <div>
           <label className="mb-1.5 block text-[13px] font-semibold text-text">E-mail</label>
-          <input type="email" className="input" autoComplete="email" {...register("email")} />
+          <input type="email" className="input min-h-[46px]" autoComplete="email" {...register("email")} />
           {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
         </div>
         <div>
@@ -125,13 +125,13 @@ export function LoginForm() {
           <div className="relative">
             <input
               type={showPw ? "text" : "password"}
-              className="input pr-10"
+              className="input min-h-[46px] pr-12"
               autoComplete="current-password"
               {...register("password")}
             />
             <button
               type="button"
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-text-muted"
+              className="absolute right-2 top-1/2 min-h-[34px] -translate-y-1/2 rounded-md px-2 text-xs font-semibold text-text-muted"
               onClick={() => setShowPw(!showPw)}
             >
               {showPw ? "Ukryj" : "Pokaż"}
@@ -139,7 +139,7 @@ export function LoginForm() {
           </div>
           {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>}
         </div>
-        <button type="submit" disabled={isSubmitting} className="btn-primary mt-1 w-full py-3 text-[15px]">
+        <button type="submit" disabled={isSubmitting} className="btn-primary mt-1 w-full py-3 text-[15px] sm:py-3.5">
           {isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
               <LoadingSpinner className="h-5 w-5 text-white" />
@@ -151,7 +151,7 @@ export function LoginForm() {
         </button>
       </form>
 
-      <div className="my-6 flex items-center gap-3 text-xs text-text-muted">
+      <div className="my-5 flex items-center gap-3 text-xs text-text-muted sm:my-6">
         <span className="h-px flex-1 bg-gray-200" />
         lub
         <span className="h-px flex-1 bg-gray-200" />
@@ -164,7 +164,7 @@ export function LoginForm() {
       >
         {isGoogleSubmitting ? "Łączenie z Google…" : "Kontynuuj z Google"}
       </button>
-      <p className="mt-6 text-center text-sm text-text-muted">
+      <p className="mt-5 text-center text-sm text-text-muted sm:mt-6">
         Nie masz konta?{" "}
         <Link href={regHref} className="font-bold text-brand hover:underline">
           Zarejestruj się

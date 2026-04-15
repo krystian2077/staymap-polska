@@ -266,9 +266,9 @@ function ReviewModal({
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-2.5 backdrop-blur-sm sm:items-center sm:p-4"
     >
-      <div className="w-full max-w-lg rounded-[28px] border border-brand-dark/[.08] bg-white p-7 shadow-[0_40px_100px_-30px_rgba(15,23,42,0.45)] dark:border-white/20 dark:bg-[var(--bg2)] sm:p-8">
+      <div className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-[22px] border border-brand-dark/[.08] bg-white p-4 shadow-[0_40px_100px_-30px_rgba(15,23,42,0.45)] dark:border-white/20 dark:bg-[var(--bg2)] sm:max-h-none sm:rounded-[28px] sm:p-8">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand">Recenzja pobytu</p>
@@ -291,7 +291,7 @@ function ReviewModal({
           </button>
         </div>
 
-        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
+        <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4 sm:space-y-5">
           <div>
             <p className="mb-2 text-sm font-bold text-brand-dark dark:text-white">Ogólna ocena *</p>
             <StarPicker value={rating} onChange={setRating} />
@@ -329,18 +329,18 @@ function ReviewModal({
             <p className="mt-1 text-right text-[11px] text-text-muted">{content.length}/4000</p>
           </div>
 
-          <div className="flex flex-wrap gap-3 pt-1">
+          <div className="flex flex-col gap-2.5 pt-1 sm:flex-row sm:flex-wrap sm:gap-3">
             <button
               type="submit"
               disabled={submitting || rating === 0}
-              className="flex-1 rounded-xl bg-gradient-to-r from-brand to-[#15803d] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:-translate-y-px hover:from-[#15803d] hover:to-[#166534] disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl bg-gradient-to-r from-brand to-[#15803d] px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:-translate-y-px hover:from-[#15803d] hover:to-[#166534] disabled:cursor-not-allowed disabled:opacity-60 sm:flex-1"
             >
               {submitting ? "Publikowanie..." : "Opublikuj recenzję"}
             </button>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-brand-dark/[.1] bg-white px-5 py-3 text-sm font-bold text-brand-dark transition hover:-translate-y-px hover:bg-brand-surface dark:border-white/20 dark:bg-[var(--bg3)] dark:text-white dark:hover:bg-[var(--bg)]"
+              className="w-full rounded-xl border border-brand-dark/[.1] bg-white px-5 py-3 text-sm font-bold text-brand-dark transition hover:-translate-y-px hover:bg-brand-surface dark:border-white/20 dark:bg-[var(--bg3)] dark:text-white dark:hover:bg-[var(--bg)] sm:w-auto"
             >
               Anuluj
             </button>
@@ -489,15 +489,15 @@ export function BookingsPageClient() {
         />
       )}
 
-      <div className="mx-auto max-w-5xl px-4 py-12">
-        <div className="relative overflow-hidden rounded-[32px] border border-brand-dark/[.08] bg-gradient-to-br from-brand-dark via-[#0f5f2e] to-[#15803d] p-7 text-white shadow-[0_35px_90px_-45px_rgba(21,128,61,0.65)] sm:p-8">
+      <div className="mx-auto max-w-5xl px-3 py-6 sm:px-4 sm:py-12">
+        <div className="relative overflow-hidden rounded-[24px] border border-brand-dark/[.08] bg-gradient-to-br from-brand-dark via-[#0f5f2e] to-[#15803d] p-5 text-white shadow-[0_35px_90px_-45px_rgba(21,128,61,0.65)] sm:rounded-[32px] sm:p-8">
           <div className="pointer-events-none absolute -right-8 -top-10 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
           <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">Twoje konto</p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight">Moje rezerwacje</h1>
-          <p className="mt-2 max-w-2xl text-sm text-white/85">Zarządzaj pobytami, sprawdzaj szczegóły, anuluj rezerwację i skontaktuj się bezpośrednio z gospodarzem.</p>
+          <h1 className="mt-2 text-[28px] font-black tracking-tight sm:text-3xl">Moje rezerwacje</h1>
+          <p className="mt-2 max-w-2xl text-[13px] text-white/85 sm:text-sm">Zarządzaj pobytami, sprawdzaj szczegóły, anuluj rezerwację i skontaktuj się bezpośrednio z gospodarzem.</p>
         </div>
 
-        <ul className="mt-8 space-y-5">
+        <ul className="mt-5 space-y-4 sm:mt-8 sm:space-y-5">
           {sortedRows.map((b) => (
             (() => {
               const nights = nightsCount(b.check_in, b.check_out);
@@ -508,7 +508,7 @@ export function BookingsPageClient() {
               return (
             <li
               key={b.id}
-              className="group overflow-hidden rounded-[26px] border border-brand-dark/[.08] bg-white p-5 shadow-[0_20px_45px_-36px_rgba(15,23,42,0.45)] transition-all duration-300 hover:-translate-y-[2px] hover:shadow-[0_28px_70px_-34px_rgba(15,23,42,0.45)] dark:border-white/15 dark:bg-[var(--bg2)] dark:shadow-[0_24px_52px_-28px_rgba(0,0,0,.6)] sm:p-6"
+              className="group overflow-hidden rounded-[20px] border border-brand-dark/[.08] bg-white p-4 shadow-[0_20px_45px_-36px_rgba(15,23,42,0.45)] transition-all duration-300 hover:-translate-y-[2px] hover:shadow-[0_28px_70px_-34px_rgba(15,23,42,0.45)] dark:border-white/15 dark:bg-[var(--bg2)] dark:shadow-[0_24px_52px_-28px_rgba(0,0,0,.6)] sm:rounded-[26px] sm:p-6"
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
@@ -529,7 +529,7 @@ export function BookingsPageClient() {
                   </div>
                   <Link
                     href={`/listing/${b.listing_slug}`}
-                    className="line-clamp-2 text-[22px] font-black leading-tight tracking-tight text-brand-dark transition-colors hover:text-brand dark:text-white dark:hover:text-brand-light"
+                    className="line-clamp-2 text-[19px] font-black leading-tight tracking-tight text-brand-dark transition-colors hover:text-brand dark:text-white dark:hover:text-brand-light sm:text-[22px]"
                   >
                     {b.listing_title}
                   </Link>
@@ -540,7 +540,7 @@ export function BookingsPageClient() {
                     {splitInfo ? <span>🧾 Podział: {splitInfo}</span> : null}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-brand-dark/[.08] bg-[#f8faf9] px-4 py-3 text-right shadow-inner dark:border-white/15 dark:bg-[var(--bg3)] sm:min-w-[170px]">
+                <div className="w-full rounded-2xl border border-brand-dark/[.08] bg-[#f8faf9] px-4 py-3 text-left shadow-inner dark:border-white/15 dark:bg-[var(--bg3)] sm:w-auto sm:min-w-[170px] sm:text-right">
                   <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Do zapłaty</p>
                   <p className="mt-1 text-2xl font-black tracking-tight text-brand-dark dark:text-white">
                     {b.final_amount} {b.currency}
@@ -558,7 +558,7 @@ export function BookingsPageClient() {
                 </p>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2.5">
+              <div className="mt-4 grid grid-cols-1 gap-2.5 sm:flex sm:flex-wrap">
                 <button
                   type="button"
                   onClick={() => setExpandedId((prev) => (prev === b.id ? null : b.id))}
@@ -571,7 +571,7 @@ export function BookingsPageClient() {
                   type="button"
                   disabled={isBusy || !canCancel}
                   onClick={() => void onCancel(b)}
-                  className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-700 transition hover:-translate-y-px hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold text-red-700 transition hover:-translate-y-px hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isBusy ? "Anulowanie..." : "Anuluj"}
                 </button>
@@ -580,7 +580,7 @@ export function BookingsPageClient() {
                   type="button"
                   disabled={isBusy}
                   onClick={() => void onMessageHost(b)}
-                  className="rounded-xl bg-gradient-to-r from-brand to-[#15803d] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:-translate-y-px hover:from-[#15803d] hover:to-[#166534] disabled:cursor-not-allowed disabled:opacity-60"
+                   className="rounded-xl bg-gradient-to-r from-brand to-[#15803d] px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:-translate-y-px hover:from-[#15803d] hover:to-[#166534] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isBusy ? "Otwieranie..." : "Napisz do gospodarza"}
                 </button>

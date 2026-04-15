@@ -11,6 +11,8 @@ import { topTravelModeFromListing } from "@/lib/destinationMode";
 import { publicMediaUrl } from "@/lib/mediaUrl";
 import { buildSearchURL } from "@/lib/searchUrl";
 import { MODE_EMOJI, TRAVEL_MODE_LABELS } from "@/lib/travelModes";
+import { CompareListingCard } from "@/components/compare/CompareListingCard";
+import { buildCompareRows, winnerListingId } from "@/lib/compareRows";
 import { cn } from "@/lib/utils";
 import type { Listing } from "@/types/listing";
 import type { SavedSearch, WishlistItem } from "@/types/ai";
@@ -65,9 +67,10 @@ function WishlistCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.9 }}
       className={cn(
-        "group relative cursor-pointer overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-sm transition-all duration-500 hover:border-brand-border/50 hover:shadow-xl hover:shadow-brand/5 dark:border-white/15 dark:bg-[var(--bg2)] dark:shadow-[0_16px_36px_-20px_rgba(0,0,0,.45)]",
+        "group relative flex cursor-pointer flex-col overflow-hidden rounded-[20px] border border-gray-100/90 bg-white shadow-[0_8px_32px_rgba(10,46,26,0.06)] transition-all duration-500 hover:border-brand-border/55 hover:shadow-[0_20px_48px_rgba(10,46,26,0.1)] dark:border-white/15 dark:bg-[var(--bg2)] dark:shadow-[0_16px_36px_-20px_rgba(0,0,0,.45)] max-sm:flex-row max-sm:rounded-[20px]",
         removing && "pointer-events-none scale-95 opacity-50",
-        isSelected && "ring-2 ring-brand ring-offset-2"
+        isSelected &&
+          "ring-2 ring-brand ring-offset-[3px] ring-offset-[#eef6f1] shadow-[0_8px_28px_rgba(22,163,74,0.18)] dark:ring-offset-[var(--background)]"
       )}
       onClick={() => router.push(`/listing/${listing.slug}`)}
       role="button"
@@ -76,7 +79,7 @@ function WishlistCard({
         if (e.key === "Enter") router.push(`/listing/${listing.slug}`);
       }}
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-brand-surface">
+      <div className="relative aspect-[4/3] max-sm:aspect-auto max-sm:h-[132px] max-sm:w-[118px] max-sm:min-w-[118px] max-sm:max-w-[118px] max-sm:shrink-0 overflow-hidden bg-brand-surface sm:w-full">
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -94,7 +97,7 @@ function WishlistCard({
 
         <span
           className={cn(
-            "absolute left-4 top-4 rounded-full px-3 py-1 text-[11px] font-black uppercase tracking-wider shadow-lg backdrop-blur-md",
+            "absolute left-2 top-2 max-w-[calc(100%-3rem)] truncate rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider shadow-lg backdrop-blur-md sm:left-4 sm:top-4 sm:max-w-none sm:px-3 sm:py-1 sm:text-[11px]",
             typeBadgeClass(typeName)
           )}
         >
@@ -103,7 +106,7 @@ function WishlistCard({
 
         <button
           type="button"
-          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-lg text-rose-600 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-white active:scale-95 dark:bg-[var(--bg3)]/90"
+          className="absolute right-2 top-2 flex min-h-[40px] min-w-[40px] items-center justify-center rounded-full bg-white/90 text-base text-rose-600 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-white active:scale-95 dark:bg-[var(--bg3)]/90 sm:right-4 sm:top-4 sm:min-h-[44px] sm:min-w-[44px] sm:text-lg"
           aria-label="Usuń z ulubionych"
           onClick={(e) => {
             e.stopPropagation();
@@ -116,7 +119,7 @@ function WishlistCard({
         <button
           type="button"
           className={cn(
-            "absolute bottom-4 right-4 flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black shadow-lg backdrop-blur-md transition-all active:scale-95",
+            "absolute bottom-2 right-2 flex max-w-[calc(100%-1rem)] items-center justify-center gap-1 rounded-full px-2.5 py-1.5 text-[10px] font-black shadow-lg backdrop-blur-md transition-all active:scale-95 sm:bottom-4 sm:right-4 sm:gap-2 sm:px-4 sm:py-2 sm:text-xs",
             isSelected
               ? "bg-brand text-white"
               : "bg-white/90 text-brand-dark hover:bg-white dark:bg-[var(--bg3)] dark:text-white"
@@ -126,41 +129,42 @@ function WishlistCard({
             onToggleSelect(listing.id);
           }}
         >
-          {isSelected ? "✓ Wybrano" : "+ Porównaj"}
+          <span className="sm:hidden">{isSelected ? "✓" : "+"}</span>
+          <span className="hidden sm:inline">{isSelected ? "✓ Wybrano" : "+ Porównaj"}</span>
         </button>
 
-        <span className="absolute bottom-4 left-4 text-[10px] font-bold text-white/90 drop-shadow-md">
+        <span className="absolute bottom-2 left-2 text-[9px] font-bold text-white/90 drop-shadow-md sm:bottom-4 sm:left-4 sm:text-[10px]">
           {formatDate(item.created_at)}
         </span>
       </div>
 
-      <div className="p-5">
+      <div className="flex min-w-0 flex-1 flex-col justify-between p-3 sm:p-5">
         <div className="mb-2 flex items-start justify-between gap-2">
-          <h3 className="line-clamp-2 text-base font-black leading-tight text-brand-dark transition-colors group-hover:text-brand dark:text-white dark:group-hover:text-brand-light">
+          <h3 className="line-clamp-3 text-sm font-black leading-tight text-brand-dark transition-colors group-hover:text-brand dark:text-white dark:group-hover:text-brand-light sm:line-clamp-2 sm:text-base">
             {listing.title}
           </h3>
           {listing.average_rating != null && (
-            <div className="flex shrink-0 items-center gap-1 rounded-lg bg-brand-surface px-2 py-1 text-xs font-black text-brand-dark dark:bg-[var(--bg3)] dark:text-white">
+            <div className="flex shrink-0 items-center gap-1 rounded-lg bg-brand-surface px-1.5 py-0.5 text-[10px] font-black text-brand-dark dark:bg-[var(--bg3)] dark:text-white sm:px-2 sm:py-1 sm:text-xs">
               ⭐ {Number(listing.average_rating).toFixed(1)}
             </div>
           )}
         </div>
         
-        <p className="mb-4 flex items-center gap-1.5 text-[13px] font-medium text-text-muted dark:text-white/70">
+        <p className="mb-3 flex items-center gap-1.5 text-[12px] font-medium text-text-muted dark:text-white/70 sm:mb-4 sm:text-[13px]">
           <span className="text-sm">📍</span>
-          {city}, {region}
+          <span className="line-clamp-1">{city}, {region}</span>
         </p>
 
-        <div className="flex items-center justify-between border-t border-gray-50 pt-4 dark:border-white/15">
+        <div className="mt-auto flex items-center justify-between border-t border-gray-50 pt-3 dark:border-white/15 sm:pt-4">
           <div>
-            <span className="block text-[11px] font-black uppercase tracking-widest text-text-muted">Cena za noc</span>
-            <span className="text-lg font-black text-brand-dark dark:text-white">
+            <span className="block text-[10px] font-black uppercase tracking-widest text-text-muted sm:text-[11px]">Za noc</span>
+            <span className="text-base font-black text-brand-dark dark:text-white sm:text-lg">
               {listing.base_price} {listing.currency}
             </span>
           </div>
           <button
             type="button"
-            className="rounded-full bg-brand-dark px-6 py-2.5 text-xs font-black text-white transition-all hover:bg-brand hover:shadow-lg hover:shadow-brand/20 active:scale-95"
+            className="rounded-full bg-brand-dark px-4 py-2 text-[11px] font-black text-white transition-all hover:bg-brand hover:shadow-lg hover:shadow-brand/20 active:scale-95 sm:px-6 sm:py-2.5 sm:text-xs"
             onClick={(e) => {
               e.stopPropagation();
               router.push(`/listing/${listing.slug}`);
@@ -183,161 +187,47 @@ function ComparisonDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const rows = useMemo(() => buildCompareRows(listings), [listings]);
+  const winnerId = useMemo(() => winnerListingId(listings), [listings]);
+
   if (listings.length === 0) return null;
-
-  const features = [
-    { label: "Cena za noc", getValue: (l: Listing) => `${l.base_price} ${l.currency}` },
-    { label: "Ocena", getValue: (l: Listing) => l.average_rating != null ? `⭐ ${Number(l.average_rating).toFixed(1)} (${l.review_count})` : "Brak ocen" },
-    { label: "Typ", getValue: (l: Listing) => l.listing_type?.name || "Obiekt 🏠" },
-    { label: "Lokalizacja", getValue: (l: Listing) => l.location?.city || "Polska" },
-    { label: "Goście", getValue: (l: Listing) => `Max ${l.max_guests || 2} os.` },
-    { label: "Pokoje / Łóżka", getValue: (l: Listing) => `${l.bedrooms || 1} syp. / ${l.beds || 1} łóżek` },
-    { label: "Łazienki", getValue: (l: Listing) => `${l.bathrooms || 1} łaz.` },
-    { label: "Klimat", getValue: (l: Listing) => {
-      if (!l.destination_score_cache) return "Uniwersalny";
-      const scores = [
-        { key: 'romantic', label: 'Romantyczny' },
-        { key: 'outdoor', label: 'Aktywny' },
-        { key: 'nature', label: 'Natura' },
-        { key: 'quiet', label: 'Spokojny' },
-        { key: 'family', label: 'Rodzinny' },
-        { key: 'wellness', label: 'Relaks' },
-        { key: 'workation', label: 'Praca zdalna' }
-      ];
-      
-      const scoreCache = (l.destination_score_cache ?? {}) as Record<string, number>;
-      const top = scores
-        .map(s => ({ label: s.label, score: scoreCache[s.key] ?? 0 }))
-        .filter(s => s.score >= 8)
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 2);
-
-      return top.length > 0 ? (
-        <div className="flex flex-wrap gap-1">
-          {top.map(t => (
-            <span key={t.label} className="rounded-full bg-brand-surface px-2 py-0.5 text-[10px] font-bold text-brand-dark border border-brand/10">
-              {t.label}
-            </span>
-          ))}
-        </div>
-      ) : "Zrównoważony";
-    }},
-    { label: "Atuty", getValue: (l: Listing) => {
-      const pluses = [];
-      if (Number(l.average_rating) >= 4.8) pluses.push("Wybitna ocena 🏆");
-      else if (Number(l.average_rating) >= 4.5) pluses.push("Świetna ocena ⭐");
-      
-      if (l.is_pet_friendly) pluses.push("Przyjazny zwierzętom 🐾");
-      if (l.review_count > 20) pluses.push("Bardzo popularna 🔥");
-      else if (l.review_count > 5) pluses.push("Sprawdzona oferta ✅");
-      
-      if (l.booking_mode === "instant") pluses.push("Natychmiastowa rezerwacja ⚡");
-      if (!l.cleaning_fee || l.cleaning_fee === 0) pluses.push("Brak opłaty za sprzątanie ✨");
-      
-      if (l.amenities?.some(a => a.name.toLowerCase().includes("wifi"))) pluses.push("Szybkie WiFi 📶");
-      if (l.amenities?.some(a => a.name.toLowerCase().includes("parking"))) pluses.push("Parking 🚗");
-      if (l.amenities?.some(a => a.name.toLowerCase().includes("klimatyzacja"))) pluses.push("Klimatyzacja ❄️");
-      
-      return (
-        <div className="flex flex-wrap gap-1">
-          {pluses.length > 0 ? pluses.map(p => (
-            <span key={p} className="rounded bg-green-50 px-2 py-0.5 text-[10px] font-bold text-green-700 border border-green-100">
-              {p}
-            </span>
-          )) : <span className="text-gray-400">---</span>}
-        </div>
-      );
-    }},
-    { label: "Udogodnienia", getValue: (l: Listing) => (
-      <div className="flex flex-wrap gap-1">
-        {l.amenities && l.amenities.length > 0 ? (
-          <>
-            {l.amenities.slice(0, 10).map(a => (
-              <span key={a.id} className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">
-                {a.name}
-              </span>
-            ))}
-            {l.amenities.length > 10 && <span className="text-[10px] text-gray-400 font-bold">+{l.amenities.length - 10}</span>}
-          </>
-        ) : (
-          <span className="text-gray-400 italic">Podstawowe</span>
-        )}
-      </div>
-    )},
-    { label: "Okolica", getValue: (l: Listing) => (
-      <p className="line-clamp-3 text-[11px] leading-relaxed text-text-muted italic">
-        {l.area_summary || "Brak szczegółowego opisu okolicy."}
-      </p>
-    )}
-  ];
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm animate-in fade-in duration-300" />
-        <Dialog.Content className="fixed left-1/2 top-[12vh] z-[101] flex max-h-[78vh] w-[95vw] max-w-7xl -translate-x-1/2 flex-col rounded-[32px] bg-white p-0 shadow-2xl animate-in zoom-in-95 duration-300 focus:outline-none overflow-hidden border border-gray-100 dark:border-white/15 dark:bg-[var(--bg2)] dark:shadow-[0_24px_60px_-20px_rgba(0,0,0,.55)]">
-          <div className="flex items-center justify-between border-b border-gray-100 px-8 py-6 dark:border-white/15">
-            <div>
-              <Dialog.Title className="text-2xl font-black text-brand-dark dark:text-white">Porównaj oferty</Dialog.Title>
-              <Dialog.Description className="text-sm font-medium text-text-muted dark:text-white/70">
-                Porównujesz {listings.length} wybrane miejsca
+        <Dialog.Overlay className="fixed inset-0 z-[600] bg-black/60 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 dark:bg-black/70" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-[601] flex max-h-[min(85dvh,var(--sheet-max-h,min(92dvh,800px)))] w-[min(calc(100vw-1.25rem),26rem)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[24px] border border-gray-200/90 bg-white shadow-[0_24px_80px_rgba(10,46,26,0.18)] outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 dark:border-white/15 dark:bg-[var(--bg2)] dark:shadow-[0_24px_80px_rgba(0,0,0,0.45)] md:max-h-[min(82vh,880px)] md:w-[min(92vw,520px)] md:rounded-[28px]">
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-100 px-4 py-4 dark:border-white/15 md:px-6 md:py-5">
+            <div className="min-w-0">
+              <Dialog.Title className="text-lg font-black text-brand-dark dark:text-white md:text-2xl">
+                Porównaj oferty
+              </Dialog.Title>
+              <Dialog.Description className="text-xs font-medium text-text-muted dark:text-white/70 md:text-sm">
+                {listings.length} miejsc · te same metryki co w porównywarce
               </Dialog.Description>
             </div>
-            <Dialog.Close className="rounded-full bg-gray-100 p-2 text-gray-500 transition-colors hover:bg-gray-200 dark:bg-[var(--bg3)] dark:text-white/70 dark:hover:bg-[var(--bg)]">
+            <Dialog.Close className="tap-target flex shrink-0 items-center justify-center rounded-full bg-gray-100 p-2 text-gray-500 transition-colors hover:bg-gray-200 dark:bg-[var(--bg3)] dark:text-white/70 dark:hover:bg-[var(--bg)]">
               ✕
             </Dialog.Close>
           </div>
 
-          <div className="flex-1 overflow-auto px-8 py-6">
-            <div className="grid" style={{ gridTemplateColumns: `140px repeat(${listings.length}, minmax(200px, 1fr))` }}>
-              {/* Header: Images & Titles */}
-              <div className="sticky left-0 bg-white dark:bg-[var(--bg2)]" />
-              {listings.map(l => (
-                <div key={l.id} className="border-l border-gray-50 px-4 pb-6 first:border-l-0 dark:border-white/10">
-                  <div className="relative aspect-video mb-4 overflow-hidden rounded-2xl bg-brand-surface shadow-inner group">
-                    {(() => {
-                      const img = l.images?.find(i => i.is_cover)?.display_url ?? l.images?.[0]?.display_url;
-                      const src = publicMediaUrl(img);
-                      if (src) {
-                        return (
-                          <img 
-                            src={src} 
-                            alt="" 
-                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          />
-                        );
-                      }
-                      return (
-                        <div className="flex h-full items-center justify-center text-4xl">
-                          {l.listing_type?.icon ?? "🏠"}
-                        </div>
-                      );
-                    })()}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
-                  </div>
-                  <h4 className="min-h-[2.5rem] line-clamp-2 text-[13px] font-black leading-tight text-brand-dark dark:text-white">{l.title}</h4>
-                </div>
-              ))}
-
-              {/* Rows */}
-              {features.map((f, idx) => (
-                <div key={f.label} className={cn("contents group", idx % 2 === 0 ? "bg-white dark:bg-[var(--bg2)]" : "bg-gray-50/50 dark:bg-[var(--bg3)]")}>
-                  <div className={cn("sticky left-0 flex items-center border-t border-gray-100 py-4 text-xs font-black uppercase tracking-wider text-text-muted dark:border-white/10 dark:text-white/65", idx % 2 === 0 ? "bg-white dark:bg-[var(--bg2)]" : "bg-gray-50 dark:bg-[var(--bg3)]")}>
-                    {f.label}
-                  </div>
-                  {listings.map(l => (
-                    <div key={l.id} className="flex items-center border-t border-gray-100 px-4 py-4 text-sm font-bold text-brand-dark dark:border-white/10 dark:text-white">
-                      {f.getValue(l)}
-                    </div>
-                  ))}
-                </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 md:px-6">
+            <div className="space-y-4">
+              {listings.map((l, i) => (
+                <CompareListingCard
+                  key={l.id}
+                  listing={l}
+                  columnIndex={i}
+                  rows={rows}
+                  winnerId={winnerId}
+                />
               ))}
             </div>
           </div>
-          
-          <div className="border-t border-gray-100 bg-gray-50 px-8 py-6 text-center dark:border-white/10 dark:bg-[var(--bg3)]">
-            <Dialog.Close className="btn-primary rounded-full px-12">
-              Zamknij porównanie
+
+          <div className="shrink-0 border-t border-gray-100 bg-gray-50 px-4 py-4 dark:border-white/10 dark:bg-[var(--bg3)] md:px-6">
+            <Dialog.Close className="btn-primary mx-auto flex min-h-[48px] w-full max-w-sm items-center justify-center rounded-full px-8 md:px-12">
+              Zamknij
             </Dialog.Close>
           </div>
         </Dialog.Content>
@@ -485,8 +375,8 @@ export default function WishlistPage() {
   const toggleSelectCompare = useCallback((id: string) => {
     setSelectedCompareIds((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
-      if (prev.length >= 4) {
-        toast.error("Możesz porównać maksymalnie 4 oferty");
+      if (prev.length >= 3) {
+        toast.error("Możesz porównać maksymalnie 3 oferty");
         return prev;
       }
       return [...prev, id];
@@ -571,41 +461,44 @@ export default function WishlistPage() {
   const saved = savedPayload?.data ?? [];
 
   return (
-      <div className="min-h-screen bg-[#fafbfc] pb-20 dark:bg-[var(--background)]">
-      <div className="mx-auto max-w-[1400px] px-6 py-12 sm:px-10 lg:py-16">
-        <header className="mb-10 flex flex-wrap items-end justify-between gap-6">
-          <div>
+      <div className="min-h-screen bg-[linear-gradient(180deg,#f7faf8_0%,#eef6f1_42%,#fafcfb_100%)] pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] dark:bg-[var(--background)]">
+      <div className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 sm:py-12 md:px-10 lg:py-16">
+        <header className="mb-8 flex flex-col gap-5 sm:mb-10 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-6">
+          <div className="min-w-0">
             <motion.div 
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-brand"
+              className="mb-2 flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-brand sm:mb-3 sm:text-sm sm:tracking-widest"
             >
-              <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+              <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-brand shadow-[0_0_12px_rgba(22,163,74,0.6)]" />
               Twoja kolekcja
             </motion.div>
-            <h1 className="text-[clamp(32px,5vw,48px)] font-black leading-tight tracking-tight text-brand-dark dark:text-white">
-              Moje <span className="bg-gradient-to-r from-brand to-rose-500 bg-clip-text text-transparent">Ulubione</span>
+            <h1 className="text-[clamp(26px,7vw,48px)] font-black leading-[1.05] tracking-tight text-brand-dark dark:text-white">
+              Moje{" "}
+              <span className="bg-gradient-to-r from-[#15803d] via-[#22c55e] to-rose-500 bg-clip-text text-transparent">
+                Ulubione
+              </span>
             </h1>
-            <p className="mt-3 text-lg font-medium text-text-muted dark:text-white/70">
-              {items.length} zapisanych ofert gotowych do odkrycia.
+            <p className="mt-2 max-w-md text-[15px] font-medium leading-snug text-text-muted dark:text-white/70 sm:mt-3 sm:text-lg">
+              {items.length} zapisanych ofert — wybierz dwie lub trzy, by je porównać.
             </p>
           </div>
-          <div className="flex gap-3">
-            <button type="button" className="btn-secondary flex items-center gap-2 rounded-full border-gray-200 bg-white px-6 font-black text-brand-dark shadow-sm hover:border-brand-border dark:border-white/20 dark:bg-[var(--bg2)] dark:text-white" onClick={() => toast.success("Kolekcje będą dostępne już wkrótce!")}>
+          <div className="hidden sm:flex sm:gap-3">
+            <button type="button" className="btn-secondary flex items-center gap-2 rounded-full border-gray-200 bg-white px-6 font-black text-brand-dark shadow-[0_4px_24px_rgba(10,46,26,0.06)] hover:border-brand-border dark:border-white/20 dark:bg-[var(--bg2)] dark:text-white" onClick={() => toast.success("Kolekcje będą dostępne już wkrótce!")}>
               📋 Stwórz kolekcję
             </button>
           </div>
         </header>
 
-        <div className="mb-10 flex gap-2 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mb-8 flex snap-x snap-mandatory gap-2 overflow-x-auto pb-2 [-webkit-overflow-scrolling:touch] [scrollbar-width:none] sm:mb-10 sm:flex-wrap sm:overflow-visible sm:pb-0 [&::-webkit-scrollbar]:hidden">
           <button
             type="button"
             onClick={() => setFilterMode("all")}
             className={cn(
-              "shrink-0 rounded-full px-6 py-3 text-sm font-black transition-all",
+              "snap-start shrink-0 rounded-2xl px-4 py-2.5 text-[13px] font-black transition-all sm:rounded-full sm:px-6 sm:py-3 sm:text-sm",
               filterMode === "all" 
-                ? "bg-brand-dark text-white shadow-lg shadow-brand-dark/20" 
-                : "bg-white text-text-muted hover:bg-brand-surface hover:text-brand dark:bg-[var(--bg2)] dark:text-white/70 dark:hover:text-white"
+                ? "bg-brand-dark text-white shadow-[0_8px_28px_rgba(10,46,26,0.28)] ring-2 ring-brand-dark/20" 
+                : "border border-gray-200/90 bg-white/90 text-text-muted shadow-sm hover:border-brand/30 hover:text-brand dark:border-white/15 dark:bg-[var(--bg2)] dark:text-white/70 dark:hover:text-white"
             )}
           >
             Wszystkie ({items.length})
@@ -616,15 +509,15 @@ export default function WishlistPage() {
               type="button"
               onClick={() => setFilterMode(mode)}
               className={cn(
-                "flex shrink-0 items-center gap-2 rounded-full px-6 py-3 text-sm font-black transition-all",
+                "flex snap-start shrink-0 items-center gap-2 rounded-2xl px-4 py-2.5 text-[13px] font-black transition-all sm:rounded-full sm:px-6 sm:py-3 sm:text-sm",
                 filterMode === mode 
-                  ? "bg-brand-dark text-white shadow-lg shadow-brand-dark/20" 
-                  : "bg-white text-text-muted hover:bg-brand-surface hover:text-brand dark:bg-[var(--bg2)] dark:text-white/70 dark:hover:text-white"
+                  ? "bg-brand-dark text-white shadow-[0_8px_28px_rgba(10,46,26,0.28)] ring-2 ring-brand-dark/20" 
+                  : "border border-gray-200/90 bg-white/90 text-text-muted shadow-sm hover:border-brand/30 hover:text-brand dark:border-white/15 dark:bg-[var(--bg2)] dark:text-white/70 dark:hover:text-white"
               )}
             >
               <span>{MODE_EMOJI[mode] ?? "✨"}</span>
-              <span>{TRAVEL_MODE_LABELS[mode] ?? mode}</span>
-              <span className="opacity-50">({n})</span>
+              <span className="max-[380px]:hidden sm:inline">{TRAVEL_MODE_LABELS[mode] ?? mode}</span>
+              <span className="opacity-60">({n})</span>
             </button>
           ))}
         </div>
@@ -653,7 +546,7 @@ export default function WishlistPage() {
             </Link>
           </motion.div>
         ) : (
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 xl:grid-cols-4">
             <AnimatePresence mode="popLayout">
               {filteredItems.map((it) => (
                 <WishlistCard
@@ -746,11 +639,18 @@ export default function WishlistPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-8 left-1/2 z-50 flex -translate-x-1/2 items-center gap-6 rounded-full border border-white/20 bg-brand-dark/90 px-8 py-4 shadow-2xl backdrop-blur-xl"
+            className="fixed left-1/2 z-[190] flex w-[min(100%-1.25rem,28rem)] -translate-x-1/2 flex-col items-stretch gap-3 rounded-[22px] border border-white/15 bg-[#0a2e1a]/95 px-4 py-3.5 shadow-[0_12px_48px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:bottom-8 sm:w-auto sm:max-w-none sm:flex-row sm:items-center sm:gap-6 sm:rounded-full sm:px-8 sm:py-4"
+            style={{ bottom: "max(1rem, env(safe-area-inset-bottom))" }}
           >
+            <div className="text-center sm:hidden">
+              <p className="text-[13px] font-black text-white">
+                Porównanie · {selectedCompareIds.length} / 3
+              </p>
+              <p className="text-[10px] font-semibold text-white/55">Min. 2 oferty, max. 3</p>
+            </div>
             <div className="hidden sm:block">
-              <p className="text-sm font-black text-white">Wybrano: {selectedCompareIds.length} / 4</p>
-              <p className="text-[10px] font-bold text-white/60">Wybierz do 4 ofert by je porównać</p>
+              <p className="text-sm font-black text-white">Wybrano: {selectedCompareIds.length} / 3</p>
+              <p className="text-[10px] font-bold text-white/60">Wybierz do 3 ofert by je porównać</p>
             </div>
             <div className="flex -space-x-3">
               {selectedListings.map(l => (

@@ -31,7 +31,7 @@ export function StatsStrip() {
   }, []);
 
   return (
-    <section className="bg-[#0a2e1a] px-6 py-[72px] md:px-12">
+    <section className="bg-[#0a2e1a] px-4 py-14 sm:px-6 sm:py-[72px] md:px-12">
       <div ref={ref} className="mx-auto grid w-full max-w-[1000px] grid-cols-2 gap-y-8 md:grid-cols-4">
         {STATS.map((stat, index) => (
           <div

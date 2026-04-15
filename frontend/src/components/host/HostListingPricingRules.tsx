@@ -250,10 +250,10 @@ export function HostListingPricingRules({ listingId, currency }: Props) {
                 </div>
               )}
 
-              <SeasonalForm onSubmit={(b) => void createRule(b)} />
-              <HolidayDateForm onSubmit={(b) => void createRule(b)} />
-              <CustomPriceForm currency={currency} onSubmit={(b) => void createRule(b)} />
-              <LongStayForm onSubmit={(b) => void createRule(b)} />
+              <SeasonalForm onSubmit={async (b) => { await createRule(b); }} />
+              <HolidayDateForm onSubmit={async (b) => { await createRule(b); }} />
+              <CustomPriceForm currency={currency} onSubmit={async (b) => { await createRule(b); }} />
+              <LongStayForm onSubmit={async (b) => { await createRule(b); }} />
 
               <RulesLists
                 payload={payload}

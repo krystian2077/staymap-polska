@@ -22,11 +22,11 @@ export function Footer() {
     <footer
       aria-label="Stopka serwisu"
       data-testid="home-footer"
-      className="relative overflow-hidden border-t border-[#e4ebe7] bg-[linear-gradient(180deg,#f6faf7_0%,#f8faf9_36%,#f8faf9_100%)] px-6 py-12 max-[380px]:px-4 md:px-12 md:py-14"
+      className="relative overflow-hidden border-t border-[#e4ebe7] bg-[linear-gradient(180deg,#f6faf7_0%,#f8faf9_36%,#f8faf9_100%)] px-4 py-10 sm:px-6 sm:py-12 md:px-10 md:py-14 xl:px-12"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(22,163,74,.28),transparent)]" />
-      <div className="mx-auto w-full max-w-[1240px] rounded-[24px] border border-[#e4ebe7] bg-white/72 px-6 py-7 shadow-[0_10px_34px_rgba(10,15,13,.06)] backdrop-blur-md md:px-8 md:py-8">
-        <div className="grid gap-8 sm:gap-9 lg:grid-cols-[1.25fr_.85fr_.85fr]">
+      <div className="mx-auto w-full max-w-[1240px] rounded-[20px] border border-[#e4ebe7] bg-white/72 px-4 py-6 shadow-[0_10px_34px_rgba(10,15,13,.06)] backdrop-blur-md sm:rounded-[24px] sm:px-6 sm:py-7 md:px-8 md:py-8">
+        <div className="grid gap-8 sm:gap-9 md:grid-cols-2 xl:grid-cols-[1.25fr_.85fr_.85fr]">
           <div>
             <Link
               href="/"
@@ -35,7 +35,7 @@ export function Footer() {
               <span className="text-[26px] font-black tracking-[-.9px] text-[#0a2e1a] sm:text-[30px]">StayMap</span>
               <span className="ml-0.5 text-[30px] leading-none text-[#16a34a] sm:text-[34px]">.</span>
             </Link>
-            <p className="mt-4 max-w-[420px] text-[16px] leading-8 text-[#3d4f45]">
+            <p className="mt-4 max-w-[420px] text-[15px] leading-7 text-[#3d4f45] sm:text-[16px] sm:leading-8">
               Premium noclegi w Polsce - od Mazur i Bałtyku po Tatry, z wyszukiwaniem wspieranym
               AI i profesjonalnym wsparciem gospodarzy.
             </p>
@@ -81,7 +81,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-col gap-3 border-t border-[#e4ebe7] pt-5 text-xs text-[#7a8f84] sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-8 flex flex-col gap-3 border-t border-[#e4ebe7] pt-5 text-center text-xs text-[#7a8f84] sm:flex-row sm:items-center sm:justify-between sm:text-left">
           <p>© {new Date().getFullYear()} StayMap Polska. Wszystkie prawa zastrzeżone.</p>
           <p>Projekt i technologia: Forest Premium Design System</p>
         </div>

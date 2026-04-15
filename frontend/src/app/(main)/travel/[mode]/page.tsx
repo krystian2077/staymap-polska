@@ -154,7 +154,7 @@ export default async function TravelModePage({ params }: { params: { mode: strin
   return (
     <div className="min-h-screen bg-white dark:bg-[var(--background)]">
       {/* Hero Section */}
-      <section className={`relative overflow-hidden bg-gradient-to-br ${meta.bgColor} py-20 dark:from-[var(--bg2)] dark:to-[var(--bg)] md:py-32`}>
+      <section className={`relative overflow-hidden bg-gradient-to-br ${meta.bgColor} py-14 dark:from-[var(--bg2)] dark:to-[var(--bg)] sm:py-20 md:py-32`}>
         {/* Animated Background Decorative Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div
@@ -163,7 +163,7 @@ export default async function TravelModePage({ params }: { params: { mode: strin
           <div className={`absolute -right-32 -bottom-32 h-72 w-72 rounded-full bg-gradient-to-r ${meta.gradient} opacity-15 blur-3xl`} />
         </div>
 
-        <div className="relative z-10 mx-auto max-w-[1360px] px-6 text-center md:px-12">
+        <div className="relative z-10 mx-auto max-w-[1360px] px-4 text-center sm:px-6 md:px-12">
           {/* Back Button */}
           <div className="mb-8 flex justify-center">
             <Link
@@ -176,7 +176,7 @@ export default async function TravelModePage({ params }: { params: { mode: strin
           </div>
 
           {/* Main Emoji */}
-          <div className="mb-8 inline-block animate-bounce text-[120px] drop-shadow-2xl">
+          <div className="mb-8 inline-block animate-bounce text-[clamp(72px,22vw,120px)] drop-shadow-2xl motion-reduce:animate-none">
             {meta.emoji}
           </div>
 
@@ -196,11 +196,11 @@ export default async function TravelModePage({ params }: { params: { mode: strin
           </p>
 
           {/* Benefits Pills */}
-          <div className="mt-12 flex flex-wrap justify-center gap-3">
+          <div className="mt-10 flex flex-wrap justify-center gap-3 sm:mt-12">
             {meta.benefits.map((benefit) => (
               <div
                 key={benefit}
-                className={`inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 font-bold text-gray-900 shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1 dark:border dark:border-white/20 dark:bg-[var(--bg3)] dark:text-white dark:shadow-[0_12px_30px_-18px_rgba(0,0,0,.55)]`}
+                className={`inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white px-4 py-2.5 font-bold text-gray-900 shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5 dark:border dark:border-white/20 dark:bg-[var(--bg3)] dark:text-white dark:shadow-[0_12px_30px_-18px_rgba(0,0,0,.55)] motion-reduce:hover:translate-y-0`}
               >
                 <span>✨</span>
                 <span>{benefit}</span>
@@ -211,7 +211,7 @@ export default async function TravelModePage({ params }: { params: { mode: strin
       </section>
 
       {/* Listings Grid */}
-      <main className="mx-auto max-w-[1360px] px-6 py-20 md:px-12 md:py-28">
+      <main className="mx-auto max-w-[1360px] px-4 py-14 sm:px-6 sm:py-20 md:px-12 md:py-28">
         {/* Header */}
         <div className="mb-16 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
           <div>
@@ -239,7 +239,7 @@ export default async function TravelModePage({ params }: { params: { mode: strin
 
         {/* Listings Grid or Empty State */}
         {listings.length > 0 ? (
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-6 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3 xl:grid-cols-4">
             {listings.map((listing, idx: number) => (
               <div key={listing.id} style={{ animationDelay: `${idx * 0.08}s` }} className="animate-fade-up">
                 <ListingCard listing={listing} />
@@ -288,7 +288,7 @@ export default async function TravelModePage({ params }: { params: { mode: strin
       </main>
 
       {/* Bottom CTA Section */}
-      <section className="relative overflow-hidden bg-gradient-to-r from-brand via-emerald-500 to-brand px-6 py-20 text-center md:px-12 md:py-28">
+      <section className="relative overflow-hidden bg-gradient-to-r from-brand via-emerald-500 to-brand px-4 py-16 text-center sm:px-6 sm:py-20 md:px-12 md:py-28">
         <div className="relative z-10 mx-auto max-w-2xl">
           <h2 className="mb-6 text-[clamp(28px,5vw,48px)] font-black leading-tight text-white">
             Jeszcze nie wiesz, jaki tryb pasuje do Ciebie?

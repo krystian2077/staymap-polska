@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { format, isToday, isYesterday } from "date-fns";
 import { pl } from "date-fns/locale";
 import toast from "react-hot-toast";
@@ -41,7 +41,7 @@ function statusTime(iso?: string): string {
   return isToday(d) ? format(d, "HH:mm") : format(d, "d MMM", { locale: pl });
 }
 
-export default function GuestMessagesPage() {
+function GuestMessagesPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const convFromQuery = searchParams.get("conv");
@@ -169,9 +169,9 @@ export default function GuestMessagesPage() {
   };
 
   return (
-    <div className="mx-auto mt-16 grid h-[calc(100vh-224px)] max-h-[calc(100dvh-224px)] max-w-[1400px] overflow-hidden rounded-[32px] border border-brand-dark/[.08] bg-white shadow-[0_30px_80px_-32px_rgba(15,23,42,0.35)] md:grid-cols-[340px_1fr]">
-      <div className="flex min-h-0 flex-col border-brand-dark/[.06] bg-gradient-to-b from-[#f8fbfa] via-white to-[#f2f7f4] md:border-r">
-        <div className="border-b border-brand-dark/[.06] bg-gradient-to-br from-brand-dark via-[#0f5f2e] to-[#15803d] px-4 py-4 text-white">
+    <div className="mx-auto mt-2 grid h-[calc(100dvh-var(--nav-h)-0.5rem)] max-w-[1400px] overflow-hidden rounded-[18px] border border-brand-dark/[.08] bg-white shadow-[0_24px_60px_-34px_rgba(15,23,42,0.35)] sm:mt-4 sm:h-[calc(100dvh-var(--nav-h)-1rem)] sm:rounded-[26px] md:mt-8 md:h-[calc(100dvh-170px)] md:max-h-[calc(100dvh-170px)] md:grid-cols-[340px_1fr] md:rounded-[32px] md:shadow-[0_30px_80px_-32px_rgba(15,23,42,0.35)]">
+      <div className={cn("flex min-h-0 flex-col border-brand-dark/[.06] bg-gradient-to-b from-[#f8fbfa] via-white to-[#f2f7f4] md:border-r", activeConv ? "hidden md:flex" : "flex")}>
+        <div className="border-b border-brand-dark/[.06] bg-gradient-to-br from-brand-dark via-[#0f5f2e] to-[#15803d] px-4 py-3.5 text-white sm:py-4">
           <div className="flex items-center gap-2">
             <h1 className="text-base font-black tracking-tight">Wiadomości</h1>
             {unreadTotal > 0 ? (
@@ -248,12 +248,20 @@ export default function GuestMessagesPage() {
         </ul>
       </div>
 
-      <div className="relative flex min-h-0 flex-col overflow-hidden bg-gradient-to-b from-[#f4faf7] via-[#f8fafc] to-[#f8fbff]">
+      <div className={cn("relative min-h-0 flex-col overflow-hidden bg-gradient-to-b from-[#f4faf7] via-[#f8fafc] to-[#f8fbff]", activeConv ? "flex" : "hidden md:flex")}>
         <div className="pointer-events-none absolute -left-16 -top-16 h-48 w-48 rounded-full bg-emerald-100/60 blur-3xl" />
         <div className="pointer-events-none absolute -right-10 bottom-20 h-44 w-44 rounded-full bg-blue-100/50 blur-3xl" />
         {activeConv ? (
           <>
-            <div className="flex items-center gap-3 border-b border-brand-dark/[.06] bg-white/90 px-5 py-4 backdrop-blur">
+            <div className="flex items-center gap-2.5 border-b border-brand-dark/[.06] bg-white/90 px-3.5 py-3.5 backdrop-blur sm:gap-3 sm:px-5 sm:py-4">
+              <button
+                type="button"
+                onClick={() => setActiveConv(null)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-brand-dark/[.08] bg-white text-brand-dark md:hidden"
+                aria-label="Wróć do listy rozmów"
+              >
+                ←
+              </button>
               <div className="h-9 w-9 overflow-hidden rounded-full bg-brand-muted">
                 {activeConv.host.avatar_url ? (
                   <Image src={activeConv.host.avatar_url} alt="" width={38} height={38} className="object-cover" unoptimized />
@@ -276,7 +284,7 @@ export default function GuestMessagesPage() {
               </div>
             </div>
 
-            <div className="relative z-[1] flex flex-1 flex-col gap-2.5 overflow-y-auto px-4 py-4">
+            <div className="relative z-[1] flex flex-1 flex-col gap-2.5 overflow-y-auto px-3.5 py-3.5 sm:px-4 sm:py-4">
               {activeMessages.map((m, idx) => {
                 const d = new Date(m.created_at);
                 const prev = activeMessages[idx - 1];
@@ -291,7 +299,7 @@ export default function GuestMessagesPage() {
                     <div className={cn("flex gap-2", m.sender_id === meId ? "flex-row-reverse" : "flex-row")}>
                       <div
                         className={cn(
-                          "max-w-[78%] rounded-2xl px-3.5 py-2.5 text-[13px] shadow-[0_8px_24px_-18px_rgba(15,23,42,0.35)]",
+                          "max-w-[86%] rounded-2xl px-3 py-2.5 text-[13px] shadow-[0_8px_24px_-18px_rgba(15,23,42,0.35)] sm:max-w-[78%] sm:px-3.5",
                           m.sender_id === meId
                             ? "rounded-br-sm bg-gradient-to-br from-brand-dark to-[#0f5f2e] text-white"
                             : "rounded-bl-sm bg-white text-text ring-1 ring-black/[.04]"
@@ -319,10 +327,10 @@ export default function GuestMessagesPage() {
               <div ref={bottomRef} />
             </div>
 
-            <div className="border-t border-brand-dark/[.06] bg-white/95 px-4 py-3 backdrop-blur">
-              <div className="flex items-end gap-2.5 rounded-[22px] border border-brand-dark/[.08] bg-white px-2.5 py-2 shadow-[0_12px_24px_-22px_rgba(15,23,42,0.45)]">
+            <div className="border-t border-brand-dark/[.06] bg-white/95 px-3.5 py-2.5 backdrop-blur sm:px-4 sm:py-3" style={{ paddingBottom: "calc(0.65rem + var(--mobile-safe-bottom))" }}>
+              <div className="flex items-end gap-2 rounded-[18px] border border-brand-dark/[.08] bg-white px-2 py-1.5 shadow-[0_12px_24px_-22px_rgba(15,23,42,0.45)] sm:gap-2.5 sm:rounded-[22px] sm:px-2.5 sm:py-2">
                 <textarea
-                  className="input max-h-[96px] min-h-[44px] flex-1 resize-none border-0 bg-transparent p-2 text-[13px] shadow-none focus:border-transparent focus:ring-0"
+                  className="input max-h-[108px] min-h-[44px] flex-1 resize-none border-0 bg-transparent p-2 text-[13px] shadow-none focus:border-transparent focus:ring-0"
                   rows={2}
                   value={input}
                   onChange={(e) => {
@@ -342,7 +350,7 @@ export default function GuestMessagesPage() {
                 <button
                   type="button"
                   disabled={!input.trim()}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-[#15803d] text-white shadow-sm transition hover:-translate-y-px hover:from-[#15803d] hover:to-[#166534] disabled:opacity-40"
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-[#15803d] text-white shadow-sm transition hover:-translate-y-px hover:from-[#15803d] hover:to-[#166534] disabled:opacity-40"
                   onClick={() => void onSend()}
                   aria-label="Wyślij"
                 >
@@ -352,7 +360,7 @@ export default function GuestMessagesPage() {
             </div>
           </>
         ) : (
-          <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+            <div className="flex flex-1 flex-col items-center justify-center px-5 text-center sm:px-6">
             <div className="max-w-[520px] rounded-3xl border border-brand-dark/[.06] bg-white px-10 py-12 shadow-[0_24px_50px_-34px_rgba(15,23,42,0.45)]">
               <span className="mb-4 block text-[44px]">💬</span>
               <p className="text-lg font-extrabold tracking-tight text-brand-dark">Wybierz rozmowę z listy</p>
@@ -365,3 +373,16 @@ export default function GuestMessagesPage() {
   );
 }
 
+export default function GuestMessagesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[calc(100dvh-var(--nav-h))] items-center justify-center bg-[var(--bg2)]">
+          <div className="h-10 w-10 animate-spin rounded-full border-2 border-brand-border border-t-brand" />
+        </div>
+      }
+    >
+      <GuestMessagesPageInner />
+    </Suspense>
+  );
+}

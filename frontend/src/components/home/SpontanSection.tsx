@@ -69,7 +69,7 @@ function OfferPopup({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6"
+      className="fixed inset-0 z-[600] flex items-end justify-center p-0 sm:items-center sm:p-6"
       onClick={(e) => {
         if (e.target === e.currentTarget) onDismiss();
       }}

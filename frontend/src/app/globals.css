@@ -35,6 +35,39 @@
   --scroll-thumb-end: #15803d;
   --scroll-thumb-hover-start: #22c55e;
   --scroll-thumb-hover-end: #166534;
+  --nav-h: 76px;
+  --mobile-safe-bottom: max(env(safe-area-inset-bottom), 0px);
+  /* Dolna nawigacja gościa (tylko mobile); ustawiane w GuestMobileNav */
+  --guest-mobile-nav-pad: 0px;
+  --guest-nav-bottom-offset: 0px;
+  /* Minimalny cel dotykowy (Apple HIG ~44pt) — używaj na krytycznych CTA */
+  --tap-min: 44px;
+  --radius-card-mobile: 16px;
+  /* Dolne arkusze (mobile): przewidywalna wysokość z safe area */
+  --sheet-max-h: min(92dvh, calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)));
+}
+
+@layer components {
+  /* Uchwyt do bottom sheet (Radix Dialog) — dodaj jako pierwszy element w treści */
+  .bottom-sheet-handle {
+    @apply mx-auto mb-2 mt-1 h-1 w-10 shrink-0 rounded-full bg-gray-300/90 dark:bg-white/25;
+  }
+  .tap-target {
+    min-height: var(--tap-min);
+    min-width: var(--tap-min);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-slide-up-bar,
+  .animate-ai-slide-up,
+  .animate-dot-bounce,
+  .animate-float-heart {
+    animation: none !important;
+  }
 }
 
 /* Ciemny motyw tylko przy klasie `dark` na <html> (przełącznik + localStorage). Domyślnie jasny. */
@@ -89,6 +122,17 @@ body {
   font-family: var(--font-dm), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+}
+
+a,
+button,
+input,
+select,
+textarea,
+[role="button"],
+[role="switch"] {
+  touch-action: manipulation;
 }
 
 /* Globalny scrollbar w stylu StayMap: subtelny track + brandowy thumb. */
@@ -143,6 +187,42 @@ body {
   * {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+@media (min-width: 640px) {
+  :root {
+    --nav-h: 82px;
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --nav-h: 88px;
+  }
+}
+
+@media (max-width: 768px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  button,
+  [role="button"],
+  [role="switch"],
+  a[role="button"] {
+    min-height: 44px;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    border-radius: 0.9rem;
   }
 }
 
@@ -518,12 +598,17 @@ body {
 }
 
 .DialogOverlay {
-  background-color: rgba(10, 46, 26, 0.35);
+  background-color: rgba(10, 46, 26, 0.42);
   position: fixed;
   inset: 0;
   animation: overlayShow 300ms cubic-bezier(0.16, 1, 0.3, 1);
-  z-index: 1000;
-  backdrop-filter: blur(8px);
+  z-index: 600;
+  backdrop-filter: blur(10px);
+}
+
+html.dark .DialogOverlay {
+  background-color: rgba(0, 0, 0, 0.58);
+  backdrop-filter: blur(12px);
 }
 .DialogContent {
   background-color: white;
@@ -539,9 +624,45 @@ body {
   max-height: 94vh;
   padding: 0;
   animation: contentShow 300ms cubic-bezier(0.16, 1, 0.3, 1);
-  z-index: 1001;
+  z-index: 601;
   overflow: hidden;
   outline: none;
+}
+
+@media (max-width: 1024px) {
+  .DialogContent {
+    width: min(100vw - 1rem, 1000px);
+    height: min(92dvh, 860px);
+    max-height: 92dvh;
+    border-radius: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .DialogOverlay {
+    backdrop-filter: blur(8px);
+  }
+
+  .DialogContent {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    transform: none;
+    width: 100vw;
+    height: min(92dvh, calc(100dvh - env(safe-area-inset-bottom, 0px)));
+    max-height: min(92dvh, calc(100dvh - env(safe-area-inset-bottom, 0px)));
+    border-radius: 22px 22px 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .sf {
+    padding: 0.85rem 1rem;
+  }
+
+  .sf--active {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
 }
 
 html.dark .DialogContent {

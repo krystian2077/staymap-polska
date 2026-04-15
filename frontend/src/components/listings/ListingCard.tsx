@@ -118,7 +118,7 @@ export function ListingCard({
     return (
       <div
         className={cn(
-          "group relative mb-0.5 flex cursor-pointer gap-4 rounded-[20px] border-[1.5px] bg-white p-3.5",
+          "group relative mb-0.5 flex cursor-pointer gap-3 rounded-[20px] border-[1.5px] bg-white p-3 max-[420px]:flex-col sm:gap-4 sm:p-3.5",
           "transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
           selected
             ? "border-brand bg-brand-surface shadow-[0_8px_24px_rgba(22,163,74,0.12)] z-[2] scale-[1.02]"
@@ -142,7 +142,7 @@ export function ListingCard({
         )}
         <Link
           href={`/listing/${listing.slug}`}
-          className="relative h-[92px] w-[92px] shrink-0 overflow-hidden rounded-[16px] bg-brand-surface/20 shadow-inner"
+          className="relative h-[92px] w-[92px] shrink-0 overflow-hidden rounded-[16px] bg-brand-surface/20 shadow-inner max-[420px]:h-[180px] max-[420px]:w-full"
           onClick={(e) => {
             e.stopPropagation();
             cacheListing();
@@ -158,7 +158,7 @@ export function ListingCard({
           ) : (
             <div className="flex h-full items-center justify-center text-3xl bg-brand-surface/30">{emoji}</div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
           {availabilityBadge ? (
             <span
               className="absolute bottom-1.5 left-1.5 right-1.5 truncate rounded-lg px-2 py-0.5 text-center text-[9px] font-bold text-white shadow-sm backdrop-blur-md"
@@ -195,7 +195,7 @@ export function ListingCard({
               )}
             </p>
           </div>
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-3 max-[420px]:mt-2 max-[420px]:flex-wrap">
             <div className="flex flex-col">
               <span className="text-[11px] font-medium text-text-muted leading-none mb-0.5">od</span>
               <span className="text-[16px] font-black text-text tracking-tight">
@@ -206,7 +206,7 @@ export function ListingCard({
             <Link
               href={`/listing/${listing.slug}`}
               className={cn(
-                "rounded-xl px-4 py-2 text-[12px] font-bold transition-all duration-300",
+                "min-h-10 rounded-xl px-4 py-2 text-[12px] font-bold transition-all duration-300 max-[420px]:w-full",
                 selected
                   ? "bg-brand text-white shadow-[0_4px_12px_rgba(22,163,74,0.3)]"
                   : "bg-brand-surface text-brand-dark hover:bg-brand hover:text-white hover:shadow-md active:scale-95",
@@ -241,7 +241,7 @@ export function ListingCard({
           aria-hidden
         />
       ) : null}
-      <div className="relative h-[210px] overflow-hidden">
+      <div className="relative h-[190px] overflow-hidden sm:h-[210px]">
         {coverSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -296,7 +296,7 @@ export function ListingCard({
                 type="button"
                 onClick={heartClick}
                 className={cn(
-                  "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm transition-colors",
+                  "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-base transition-colors",
                   liked
                     ? "border-rose-200 bg-rose-50 text-rose-600"
                     : "border-gray-200 bg-white text-gray-400 hover:border-rose-200 hover:text-rose-600"
@@ -313,7 +313,7 @@ export function ListingCard({
                 disabled={compareFull}
                 title={compareFull ? "Max 3 oferty" : inCompare ? "W porównaniu" : "Porównaj"}
                 className={cn(
-                  "flex min-w-0 flex-1 items-center justify-center gap-1 rounded-full border px-2 py-1.5 text-[11px] font-bold transition-colors sm:flex-initial sm:px-3",
+                  "flex min-h-9 min-w-0 flex-1 items-center justify-center gap-1 rounded-full border px-2.5 py-1.5 text-[11px] font-bold transition-colors sm:flex-initial sm:px-3",
                   inCompare
                     ? "border-brand-border bg-[#dcfce7] text-brand-dark"
                     : "border-gray-200 bg-white text-gray-500 hover:border-brand-border hover:bg-brand-surface hover:text-brand-dark",

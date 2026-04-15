@@ -2,7 +2,7 @@ import { HeroSearchBar } from "@/components/home/HeroSearchBar";
 
 export function HeroSection() {
   return (
-    <section className="relative flex min-h-[calc(100vh-72px)] items-center justify-center overflow-hidden bg-white px-6 pb-[100px] pt-[80px] text-center md:px-12">
+    <section className="relative flex min-h-0 items-center justify-center overflow-hidden bg-white px-4 pb-14 pt-8 text-center sm:px-6 sm:pb-24 sm:pt-14 md:min-h-[calc(100dvh-var(--nav-h))] md:px-10 md:pb-[100px] md:pt-[80px] xl:px-12">
 
       <div className="relative z-[5] w-full max-w-[960px]">
         <style>{`
@@ -106,22 +106,34 @@ export function HeroSection() {
             animation: dotPulse 2.5s ease-in-out infinite 0.9s;
             transition: all 0.3s ease;
           }
+          @media (max-width: 768px) {
+            .badge-premium-natural {
+              animation: slideInDown 0.6s cubic-bezier(0.23, 1, 0.320, 1);
+            }
+            .badge-premium-natural:hover {
+              transform: none;
+            }
+            .badge-text-premium,
+            .badge-dot-premium {
+              animation: none;
+            }
+          }
         `}</style>
-        <div className="badge-premium-natural mx-auto inline-flex items-center gap-3 rounded-full border border-[#10b981]/35 px-8 py-3.5 text-[14px] font-semibold uppercase tracking-[.08em]">
-          <span className="badge-dot-premium h-3 w-3 rounded-full bg-gradient-to-br from-[#10b981] via-[#059669] to-[#047857]" />
+        <div className="badge-premium-natural mx-auto inline-flex flex-wrap items-center justify-center gap-2 rounded-full border border-[#10b981]/35 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[.08em] sm:gap-3 sm:px-8 sm:py-3.5 sm:text-[14px]">
+          <span className="badge-dot-premium h-2.5 w-2.5 rounded-full bg-gradient-to-br from-[#10b981] via-[#059669] to-[#047857] sm:h-3 sm:w-3" />
           <span className="badge-text-premium font-bold tracking-wide">Odkryj Polskę od nowa</span>
           <span className="text-[#9ca3af] font-light">·</span>
           <span className="badge-text-premium text-[#4b5563]">2 400+ ofert</span>
         </div>
 
-        <h1 className="a1 mb-[10px] mt-16 text-[clamp(52px,9vw,96px)] font-black leading-[.98] tracking-[-4px] text-[#0a2e1a]">
+        <h1 className="a1 mb-2 mt-6 text-[clamp(32px,9vw,96px)] font-black leading-[.98] tracking-[-1.5px] text-[#0a2e1a] sm:mb-[10px] sm:mt-14 sm:tracking-[-4px] md:mt-16">
           <span className="hero-gradient-text">Znajdź nocleg</span>
-          <span className="mt-2 block text-[clamp(24px,4vw,42px)] font-light tracking-[-1px] text-[#3d4f45]">
+          <span className="mt-2 block text-[clamp(18px,5.5vw,42px)] font-light tracking-[-0.5px] text-[#3d4f45] sm:tracking-[-1px]">
             w sercu polskiej natury
           </span>
         </h1>
 
-        <p className="a2 mx-auto mb-14 mt-[22px] max-w-[520px] text-[18px] font-normal leading-[1.75] text-[#3d4f45]">
+        <p className="a2 mx-auto mb-6 mt-3 max-w-[560px] text-[15px] font-normal leading-[1.6] text-[#3d4f45] sm:mb-14 sm:mt-[22px] sm:text-[18px] sm:leading-[1.75]">
           Domki, chaty i apartamenty w najpiękniejszych miejscach.
           <br />
           Wyszukaj na mapie, zarezerwuj i ciesz się chwilą.

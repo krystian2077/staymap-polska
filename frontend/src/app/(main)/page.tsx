@@ -299,10 +299,10 @@ export default async function HomePage() {
   return (
     <>
       <HeroSection />
-      <div className="-mt-[7.5rem] mb-12 sm:-mt-[9.5rem] sm:mb-14">
+      <div className="-mt-8 mb-6 px-4 sm:-mt-[9.5rem] sm:mb-14 sm:px-0">
         <MarqueeTicker />
       </div>
-      <div className="space-y-14 pb-8 sm:space-y-16 sm:pb-10 lg:space-y-20 lg:pb-12">
+      <div className="space-y-12 pb-10 sm:space-y-16 sm:pb-10 lg:space-y-20 lg:pb-12">
         <AiSection />
         <FeaturedListings listings={listings} />
         <StatsStrip />

@@ -7,19 +7,67 @@ import { api } from "@/lib/api";
 import { clearAuthTokens, getAccessToken } from "@/lib/authStorage";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useMessagingStore } from "@/lib/store/messagingStore";
+import { shouldShowGuestMobileNav } from "@/lib/guestMobileNav";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
-type NavItem = { label: string; href: string; ai?: boolean };
+type NavIcon = "search" | "compass" | "heart" | "route" | "host" | "sparkles";
+
+type NavItem = { label: string; href: string; ai?: boolean; icon: NavIcon };
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Wyszukaj", href: "/search" },
-  { label: "Discovery", href: "/discovery" },
-  { label: "Ulubione", href: "/wishlist" },
-  { label: "Tryby Podróży", href: "/travel" },
-  { label: "Zostań gospodarzem", href: "/host" },
-  { label: "✨ StayMap AI", href: "/ai", ai: true },
+  { label: "Wyszukaj", href: "/search", icon: "search" },
+  { label: "Discovery", href: "/discovery", icon: "compass" },
+  { label: "Ulubione", href: "/wishlist", icon: "heart" },
+  { label: "Tryby Podróży", href: "/travel", icon: "route" },
+  { label: "Zostań gospodarzem", href: "/host", icon: "host" },
+  { label: "StayMap AI", href: "/ai", ai: true, icon: "sparkles" },
 ];
+
+function NavMenuIcon({ name, className }: { name: NavIcon; className?: string }) {
+  const cls = cn("h-5 w-5 shrink-0", className);
+  switch (name) {
+    case "search":
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+      );
+    case "compass":
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v3m0 12v3M3 12h3m12 0h3m-2.05-6.95l-2.12 2.12M8.17 8.17L6.05 6.05m0 11.9l2.12-2.12m7.66-7.66l2.12-2.12" />
+        </svg>
+      );
+    case "heart":
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
+        </svg>
+      );
+    case "route":
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 20.25l6.75-6.75M10.5 3.75L3 7.5v9l7.5 3.75L18 16.5V7.5l-7.5-3.75z" />
+        </svg>
+      );
+    case "host":
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+        </svg>
+      );
+    case "sparkles":
+      return (
+        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+        </svg>
+      );
+    default:
+      return null;
+  }
+}
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
@@ -39,6 +87,8 @@ export function Navbar() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
+  /** Mobile + dolny pasek gościa: niższy header (jak Airbnb), bez dublowania z tabami */
+  const [guestMobileShell, setGuestMobileShell] = useState(false);
   const drawerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -48,6 +98,38 @@ export function Navbar() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const sync = () => {
+      setGuestMobileShell(mq.matches && shouldShowGuestMobileNav(pathname));
+    };
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia("(max-width: 767px)");
+    const applyNavH = () => {
+      if (!mq.matches) {
+        document.documentElement.style.removeProperty("--nav-h");
+        return;
+      }
+      if (guestMobileShell) {
+        document.documentElement.style.setProperty("--nav-h", scrolled ? "54px" : "58px");
+      } else {
+        document.documentElement.style.setProperty("--nav-h", scrolled ? "72px" : "76px");
+      }
+    };
+    applyNavH();
+    mq.addEventListener("change", applyNavH);
+    return () => {
+      mq.removeEventListener("change", applyNavH);
+      document.documentElement.style.removeProperty("--nav-h");
+    };
+  }, [guestMobileShell, scrolled]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -146,7 +228,7 @@ export function Navbar() {
       document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("touchstart", onPointerDown);
     };
-  }, [menuOpen]);
+  }, [menuOpen, userDropdownOpen]);
 
   const displayName = useMemo(() => {
     if (!user) return "";
@@ -178,18 +260,24 @@ export function Navbar() {
    return (
      <header
        className={cn(
-         "sticky top-0 z-[500] h-[88px] border-b border-gray-200 bg-white shadow-[0_6px_24px_-12px_rgba(0,0,0,0.18)] transition-all duration-500",
+         "sticky top-0 z-[500] border-b border-gray-200 bg-white shadow-[0_6px_24px_-12px_rgba(0,0,0,0.18)] transition-all duration-500",
          "dark:border-brand-border dark:bg-[var(--bg2)] dark:shadow-[0_6px_24px_-12px_rgba(0,0,0,0.45)]",
-         scrolled && "h-[80px] shadow-[0_10px_28px_-14px_rgba(0,0,0,0.24)]"
+         guestMobileShell
+           ? "h-[58px] sm:h-[62px] xl:h-[88px]"
+           : "h-[76px] sm:h-[82px] xl:h-[88px]",
+         scrolled &&
+           (guestMobileShell
+             ? "h-[54px] shadow-[0_10px_28px_-14px_rgba(0,0,0,0.24)] sm:h-[58px] xl:h-[80px]"
+             : "h-[72px] shadow-[0_10px_28px_-14px_rgba(0,0,0,0.24)] sm:h-[76px] xl:h-[80px]")
        )}
      >
-       <div className="mx-auto flex h-full w-full max-w-[1560px] items-center justify-between px-4 md:px-8 lg:px-10 xl:px-12">
-         <Link href="/" className="group flex items-end leading-none transition-all duration-300 hover:scale-[1.03] active:scale-95">
-           <span className="text-[28px] font-[900] tracking-[-1.2px] text-[#0a2e1a] sm:text-[30px] dark:text-[var(--brand-dark)]">StayMap</span>
-           <span className="ml-0.5 text-[32px] leading-none text-[#16a34a] transition-all duration-500 group-hover:ml-1.5 group-hover:scale-150 sm:text-[36px] dark:text-brand">.</span>
+        <div className="mx-auto flex h-full w-full max-w-[1560px] items-center justify-between px-4 sm:px-6 lg:px-8 xl:px-12">
+          <Link href="/" className="group flex items-end leading-none transition-all duration-300 hover:scale-[1.03] active:scale-95">
+            <span className="text-[24px] font-[900] tracking-[-1px] text-[#0a2e1a] sm:text-[28px] xl:text-[30px] dark:text-[var(--brand-dark)]">StayMap</span>
+            <span className="ml-0.5 text-[28px] leading-none text-[#16a34a] transition-all duration-500 group-hover:ml-1.5 group-hover:scale-150 sm:text-[32px] xl:text-[36px] dark:text-brand">.</span>
          </Link>
 
-          <nav className="hidden h-full flex-nowrap items-center gap-[8px] md:flex lg:gap-[12px]" aria-label="Nawigacja główna">
+          <nav className="hidden h-full flex-nowrap items-center gap-[8px] xl:flex xl:gap-[12px]" aria-label="Nawigacja główna">
            {navItems.map((item) => (
              <Link key={item.href} href={item.href} className={linkClass(item.href, item.ai)}>
                {item.label}
@@ -200,7 +288,7 @@ export function Navbar() {
            ))}
          </nav>
 
-         <div className="hidden items-center gap-4 md:flex">
+         <div className="hidden items-center gap-4 xl:flex">
            <ThemeToggle />
            {!authReady ? (
              <div className="h-12 w-[240px] animate-pulse rounded-full bg-[#f2f7f4]" aria-hidden />
@@ -292,7 +380,7 @@ export function Navbar() {
 
          <button
            type="button"
-           className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#e4ebe7] bg-white text-[#0a2e1a] shadow-md transition-all duration-300 active:scale-95 md:hidden hover:border-[#16a34a]/30 hover:shadow-lg dark:border-brand-border dark:bg-[var(--bg3)] dark:text-[var(--foreground)]"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#e4ebe7] bg-white text-[#0a2e1a] shadow-md transition-all duration-300 active:scale-95 sm:h-12 sm:w-12 xl:hidden hover:border-[#16a34a]/30 hover:shadow-lg dark:border-brand-border dark:bg-[var(--bg3)] dark:text-[var(--foreground)]"
            aria-label="Otwórz menu"
            aria-expanded={menuOpen}
            aria-controls="mobile-main-nav"
@@ -310,96 +398,169 @@ export function Navbar() {
          </button>
        </div>
 
+       {menuOpen ? (
+         <button
+           type="button"
+           tabIndex={-1}
+           aria-hidden
+           className="fixed inset-0 z-[498] bg-black/65 backdrop-blur-md xl:hidden"
+           onClick={() => setMenuOpen(false)}
+         />
+       ) : null}
+
        <div
          ref={drawerRef}
          id="mobile-main-nav"
          className={cn(
-           "absolute left-4 right-4 top-[88px] z-[499] overflow-hidden rounded-[28px] border border-[#e4ebe7] bg-white/98 p-4 shadow-[0_28px_56px_-12px_rgba(10,15,13,.2)] backdrop-blur-xl transition-all duration-500 md:hidden dark:border-brand-border dark:bg-[var(--bg2)]/98",
-           scrolled && "top-[80px]",
-           menuOpen ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-4 opacity-0"
+           "fixed inset-x-0 bottom-0 z-[499] flex max-h-[calc(100dvh-var(--nav-h,76px))] flex-col xl:hidden",
+           "rounded-t-[22px] border-x border-t border-[#dfe8e2] bg-white shadow-[0_-12px_48px_rgba(10,15,13,.18)] ring-1 ring-black/[0.06] transition-transform duration-300 ease-out dark:border-brand-border dark:bg-[var(--bg2)] dark:ring-white/[0.08]",
+           "top-[var(--nav-h,76px)]",
+           menuOpen ? "translate-y-0" : "pointer-events-none translate-y-full opacity-0"
          )}
+         style={{ overscrollBehavior: "contain" }}
          aria-hidden={!menuOpen}
        >
-         <div className="flex flex-col gap-2">
-           <div className="mb-1 flex items-center justify-end border-b border-[#e4ebe7] pb-3 dark:border-brand-border">
+         <div className="flex shrink-0 flex-col items-center border-b border-[#e4ebe7] bg-[#fafcfb] px-4 pb-3 pt-2 dark:border-brand-border dark:bg-[var(--bg3)]">
+           <div className="mb-3 h-1 w-10 shrink-0 rounded-full bg-[#c5cdc8] dark:bg-zinc-500" aria-hidden />
+           <div className="flex w-full items-center justify-between gap-3">
+             <p className="text-[11px] font-black uppercase tracking-[0.12em] text-[#0a2e1a] dark:text-zinc-100">
+               Ustawienia
+             </p>
              <ThemeToggle />
            </div>
+         </div>
+
+         <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain bg-white px-3 pb-[max(12px,env(safe-area-inset-bottom))] pt-3 dark:bg-[var(--bg2)]">
+           <p className="px-3 pb-1 text-[11px] font-black uppercase tracking-[0.12em] text-[#0a2e1a] dark:text-zinc-100">
+             Platforma
+           </p>
            {navItems.map((item) => (
              <Link
                key={item.href}
                href={item.href}
                onClick={() => setMenuOpen(false)}
                className={cn(
-                  "flex items-center rounded-[16px] px-5 py-4 text-[16px] font-bold transition-all duration-300",
-                  item.ai
-                    ? "text-[#7c3aed] hover:text-[#6d28d9] hover:scale-105 active:scale-95"
-                    : "text-[#3d4f45] hover:bg-[#f2f7f4] hover:text-[#0a0f0d]",
-                  isActive(pathname, item.href) && !item.ai && "bg-[#f0fdf4] text-[#16a34a] font-extrabold"
-                )}
+                 "flex min-h-[48px] items-center gap-3 rounded-[16px] px-4 py-3 text-[16px] font-bold transition-all duration-300",
+                 item.ai
+                   ? "text-[#6d28d9] hover:bg-violet-50 hover:text-[#5b21b6] active:scale-[0.99] dark:text-violet-300 dark:hover:bg-violet-950/50"
+                   : "text-[#0f1f18] hover:bg-[#eef6f0] hover:text-[#0a0f0d] dark:text-zinc-100 dark:hover:bg-zinc-800",
+                 isActive(pathname, item.href) &&
+                   !item.ai &&
+                   "bg-[#ecfdf3] text-[#15803d] font-extrabold dark:bg-emerald-950/70 dark:text-emerald-300"
+               )}
              >
+               <NavMenuIcon
+                 name={item.icon}
+                 className={
+                   item.ai
+                     ? "text-[#7c3aed] dark:text-violet-300"
+                     : "text-[#1e4d32] dark:text-zinc-300"
+                 }
+               />
                {item.label}
              </Link>
            ))}
 
            {!authReady ? (
-             <div className="h-24 animate-pulse rounded-[16px] bg-[#f2f7f4]" />
+             <div className="mt-3 h-24 animate-pulse rounded-[16px] bg-[#eef4f0] dark:bg-zinc-800" />
            ) : !user ? (
-             <div className="mt-4 grid grid-cols-2 gap-3">
+             <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-3">
                <Link
                  href="/login"
                  onClick={() => setMenuOpen(false)}
-                 className="flex h-14 items-center justify-center rounded-[16px] border border-[#e4ebe7] text-[15px] font-bold text-[#3d4f45] transition-all duration-200 hover:bg-[#f2f7f4]"
+                 className="flex min-h-[48px] items-center justify-center rounded-[16px] border border-[#cfd9d2] text-[15px] font-bold text-[#0f1f18] transition-all duration-200 hover:bg-[#eef6f0] dark:border-brand-border dark:text-zinc-100 dark:hover:bg-zinc-800"
                >
                  Zaloguj się
                </Link>
                <Link
                  href="/register"
                  onClick={() => setMenuOpen(false)}
-                 className="flex h-14 items-center justify-center rounded-[16px] bg-gradient-to-r from-[#16a34a] to-[#15803d] text-[15px] font-bold text-white transition-all duration-200 hover:shadow-md"
+                 className="flex min-h-[48px] items-center justify-center rounded-[16px] bg-gradient-to-r from-[#16a34a] to-[#15803d] text-[15px] font-bold text-white transition-all duration-200 hover:shadow-md"
                >
                  Rejestracja
                </Link>
              </div>
            ) : (
-             <div className="mt-4 flex flex-col gap-2 rounded-[20px] bg-[#f8faf9] p-3">
-               <div className="px-4 py-2.5 text-[12px] font-[900] uppercase tracking-wider text-[#3d4f45]/50">
-                 Twoje konto
+             <div className="mt-4 flex flex-col gap-1 rounded-[20px] border border-[#e4ebe7] bg-[#f5faf7] p-3 dark:border-zinc-700 dark:bg-[var(--bg3)]">
+               <div className="px-3 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-[#0a2e1a] dark:text-zinc-100">
+                 Konto
                </div>
                <Link
                  href="/account"
                  onClick={() => setMenuOpen(false)}
-                 className="flex items-center gap-3.5 rounded-[14px] px-4 py-3.5 text-[15px] font-bold text-[#3d4f45] transition-all duration-200 hover:bg-white"
+                 className="flex min-h-[48px] items-center gap-3 rounded-[14px] px-3 py-3 text-[15px] font-bold text-[#0f1f18] transition-all duration-200 hover:bg-white dark:text-zinc-100 dark:hover:bg-zinc-800/90"
                >
-                 ⚙️ Moje konto
+                 <svg
+                   className="h-5 w-5 shrink-0 text-[#1e4d32] dark:text-zinc-300"
+                   fill="none"
+                   viewBox="0 0 24 24"
+                   stroke="currentColor"
+                   strokeWidth={2}
+                   aria-hidden
+                 >
+                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                 </svg>
+                 Moje konto
                </Link>
                <Link
                  href="/bookings"
                  onClick={() => setMenuOpen(false)}
-                 className="flex items-center gap-3.5 rounded-[14px] px-4 py-3.5 text-[15px] font-bold text-[#3d4f45] transition-all duration-200 hover:bg-white"
+                 className="flex min-h-[48px] items-center gap-3 rounded-[14px] px-3 py-3 text-[15px] font-bold text-[#0f1f18] transition-all duration-200 hover:bg-white dark:text-zinc-100 dark:hover:bg-zinc-800/90"
                >
-                 📅 Moje rezerwacje
+                 <svg
+                   className="h-5 w-5 shrink-0 text-[#1e4d32] dark:text-zinc-300"
+                   fill="none"
+                   viewBox="0 0 24 24"
+                   stroke="currentColor"
+                   strokeWidth={2}
+                   aria-hidden
+                 >
+                   <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0021 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5a2.25 2.25 0 002.25-2.25m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5a2.25 2.25 0 012.25 2.25v7.5" />
+                 </svg>
+                 Moje rezerwacje
                </Link>
-                {!user.is_host ? (
-                  <Link
-                    href="/messages"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-3.5 rounded-[14px] px-4 py-3.5 text-[15px] font-bold text-[#3d4f45] transition-all duration-200 hover:bg-white"
-                  >
-                    💬 Wiadomości{unreadTotal > 0 ? ` (${unreadTotal})` : ""}
-                  </Link>
-                ) : null}
+               {!user.is_host ? (
+                 <Link
+                   href="/messages"
+                   onClick={() => setMenuOpen(false)}
+                   className="flex min-h-[48px] items-center gap-3 rounded-[14px] px-3 py-3 text-[15px] font-bold text-[#0f1f18] transition-all duration-200 hover:bg-white dark:text-zinc-100 dark:hover:bg-zinc-800/90"
+                 >
+                   <svg
+                     className="h-5 w-5 shrink-0 text-[#1e4d32] dark:text-zinc-300"
+                     fill="none"
+                     viewBox="0 0 24 24"
+                     stroke="currentColor"
+                     strokeWidth={2}
+                     aria-hidden
+                   >
+                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 0112 18.75a5.972 5.972 0 01-1.635-.337 9.764 9.764 0 01-2.555.337c-4.97 0-9-3.694-9-8.25s4.03-8.25 9-8.25 9 3.694 9 8.25z" />
+                   </svg>
+                   Wiadomości{unreadTotal > 0 ? ` (${unreadTotal})` : ""}
+                 </Link>
+               ) : null}
                <button
                  type="button"
                  onClick={() => {
                    logout();
-                    clearAuthTokens();
+                   clearAuthTokens();
                    router.replace("/");
                    router.refresh();
                    setMenuOpen(false);
                  }}
-                 className="mt-2 flex items-center gap-3.5 rounded-[14px] border border-[#e4ebe7] bg-white px-4 py-3.5 text-[15px] font-bold text-[#dc2626] transition-all duration-200 hover:bg-[#fef2f2]"
+                 className="mt-1 flex min-h-[48px] items-center gap-3 rounded-[14px] border border-[#fecaca] bg-white px-3 py-3 text-[15px] font-bold text-[#b91c1c] transition-all duration-200 hover:bg-red-50 dark:border-red-900/50 dark:bg-[var(--bg2)] dark:text-red-400 dark:hover:bg-red-950/50"
                >
-                 🚪 Wyloguj się
+                 <svg
+                   className="h-5 w-5 shrink-0"
+                   fill="none"
+                   viewBox="0 0 24 24"
+                   stroke="currentColor"
+                   strokeWidth={2}
+                   aria-hidden
+                 >
+                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+                 </svg>
+                 Wyloguj się
                </button>
              </div>
            )}

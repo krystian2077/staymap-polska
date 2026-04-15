@@ -365,8 +365,8 @@ export function SearchMap({
     setPopupPin(null);
     setPopupPos(null);
 
-    for (const [i, p] of pins.entries()) {
-      if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) continue;
+    pins.forEach((p, i) => {
+      if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return;
       const priceNum = parseFloat(p.price);
       const priceLabel = !Number.isNaN(priceNum) ? `${Math.round(priceNum).toLocaleString("pl-PL")} zł` : formatPinPrice(p.price);
       const enterDelayMs = Math.min(i * 16, 220);
@@ -400,7 +400,7 @@ export function SearchMap({
 
       cluster.addLayer(marker);
       markersRef.current.set(p.id, marker);
-    }
+    });
 
     const lat = center?.lat;
     const lng = center?.lng;

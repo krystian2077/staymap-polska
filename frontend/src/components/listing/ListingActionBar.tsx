@@ -218,8 +218,8 @@ export function ListingActionBar({ listingId, listingTitle, slug, latitude, long
 
       <Dialog.Root open={authOpen} onOpenChange={setAuthOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-[200] bg-black/40" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-[201] w-[min(92vw,380px)] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-[#e5e7eb] bg-white p-6 shadow-xl">
+          <Dialog.Overlay className="fixed inset-0 z-[600] bg-black/45 backdrop-blur-sm" />
+          <Dialog.Content className="fixed inset-x-0 bottom-0 z-[601] mx-auto w-full max-w-[min(92vw,380px)] rounded-t-2xl border border-[#e5e7eb] bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl outline-none sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-6">
             <Dialog.Title className="text-lg font-extrabold text-brand-dark">
               Zaloguj się
             </Dialog.Title>

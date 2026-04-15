@@ -160,8 +160,8 @@ export function LastMinute({ items }: { items: SimilarListing[] }) {
   const scrollDuration = `${Math.max(26, cards.length * 6)}s`;
 
   return (
-    <section className="mx-auto w-full max-w-[1240px] px-6 pb-20 md:px-12">
-      <div className="relative overflow-hidden rounded-[28px] border border-[#9f7aea]/25 bg-[linear-gradient(125deg,#1a0d3d_0%,#2d1264_36%,#190f38_100%)] px-6 py-10 shadow-[0_28px_80px_rgba(76,29,149,.28)] md:px-[52px] md:py-12">
+    <section className="mx-auto w-full max-w-[1240px] px-4 pb-16 sm:px-6 md:px-12 md:pb-20">
+      <div className="relative overflow-hidden rounded-[28px] border border-[#9f7aea]/25 bg-[linear-gradient(125deg,#1a0d3d_0%,#2d1264_36%,#190f38_100%)] px-5 py-9 shadow-[0_28px_80px_rgba(76,29,149,.28)] sm:px-6 sm:py-10 md:px-[52px] md:py-12">
         <div
           className="pointer-events-none absolute inset-0"
           style={{

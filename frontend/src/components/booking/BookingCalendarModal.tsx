@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toISODateString } from "@/lib/dates";
 import { formatDate } from "@/lib/utils/dates";
 import type { BusyRange } from "./calendarUtils";
+import { MODAL_CONTENT_WRAPPER_CLASS, MODAL_OVERLAY_CLASS, modalSurfaceClass } from "@/lib/modalLayers";
 import { datesFromBlockedAndBusy } from "./calendarUtils";
 
 interface BookingCalendarModalProps {
@@ -71,19 +72,21 @@ export function BookingCalendarModal({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-md"
+                className={MODAL_OVERLAY_CLASS}
               />
             </Dialog.Overlay>
             <Dialog.Content asChild>
-              <div className="fixed inset-0 z-[101] flex items-center justify-center p-4 md:p-8">
+              <div className={MODAL_CONTENT_WRAPPER_CLASS}>
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                  transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                  className="relative w-full max-w-[1150px] overflow-hidden rounded-[3rem] bg-white shadow-[0_40px_100px_rgba(0,0,0,0.3)]"
+                  initial={{ opacity: 0, y: 28 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 28 }}
+                  transition={{ type: "spring", damping: 26, stiffness: 300 }}
+                  className={modalSurfaceClass(
+                    "relative flex max-w-[1150px] flex-col overflow-hidden lg:flex-row lg:rounded-[2.5rem]"
+                  )}
                 >
-                  <div className="flex flex-col lg:flex-row">
+                  <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
                     {/* Sidebar with selection info */}
                     <div className="w-full shrink-0 border-b border-gray-100 bg-gray-50/50 p-6 lg:p-8 lg:w-72 lg:border-b-0 lg:border-r">
                       <div className="space-y-8">
@@ -153,7 +156,7 @@ export function BookingCalendarModal({
                     </div>
 
                     {/* Main Calendar Area */}
-                    <div className="flex-1 p-4 sm:p-6 md:p-10">
+                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 md:p-10">
                       <div className="flex items-center justify-between mb-8">
                         <h2 className="text-2xl font-black tracking-tight text-brand-dark">Wybierz daty</h2>
                         <Dialog.Close className="rounded-full bg-gray-50 p-2.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-500">

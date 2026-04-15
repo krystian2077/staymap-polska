@@ -115,18 +115,18 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-full items-center justify-center">
-      <div className="animate-scale-in w-full max-w-[430px] rounded-[22px] border border-gray-200 bg-white p-9 shadow-[0_16px_48px_rgba(0,0,0,.08)]">
-        <div className="mb-6 text-center">
+    <div className="flex min-h-full items-start justify-center pb-[calc(1.2rem+var(--mobile-safe-bottom))] pt-1.5 sm:items-center">
+      <div className="animate-scale-in w-full max-w-[430px] rounded-[20px] border border-gray-200 bg-white p-4 shadow-[0_16px_48px_rgba(0,0,0,.08)] sm:rounded-[22px] sm:p-9">
+        <div className="mb-5 text-center sm:mb-6">
           <Link href="/" className="inline-flex items-baseline text-xl font-extrabold">
             <span className="text-brand-dark">StayMap</span>
             <span className="text-brand">.</span>
           </Link>
         </div>
-        <h1 className="text-center text-[25px] font-extrabold tracking-tight text-text">
+        <h1 className="text-center text-[23px] font-extrabold tracking-tight text-text sm:text-[25px]">
           Utwórz konto
         </h1>
-        <p className="mb-6 text-center text-sm text-text-muted">
+        <p className="mb-5 text-center text-sm text-text-muted sm:mb-6">
           Dołącz do tysięcy podróżników w Polsce
         </p>
 
@@ -136,18 +136,18 @@ export default function RegisterPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-3.5 sm:space-y-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-[13px] font-semibold">Imię</label>
-              <input className="input" {...register("first_name")} />
+              <input className="input min-h-[46px]" {...register("first_name")} />
               {errors.first_name && (
                 <p className="mt-1 text-xs text-red-600">{errors.first_name.message}</p>
               )}
             </div>
             <div>
               <label className="mb-1.5 block text-[13px] font-semibold">Nazwisko</label>
-              <input className="input" {...register("last_name")} />
+              <input className="input min-h-[46px]" {...register("last_name")} />
               {errors.last_name && (
                 <p className="mt-1 text-xs text-red-600">{errors.last_name.message}</p>
               )}
@@ -155,7 +155,7 @@ export default function RegisterPage() {
           </div>
           <div>
             <label className="mb-1.5 block text-[13px] font-semibold">E-mail</label>
-            <input type="email" className="input" autoComplete="email" {...register("email")} />
+            <input type="email" className="input min-h-[46px]" autoComplete="email" {...register("email")} />
             {errors.email && (
               <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>
             )}
@@ -164,7 +164,7 @@ export default function RegisterPage() {
             <label className="mb-1.5 block text-[13px] font-semibold">Hasło</label>
             <input
               type="password"
-              className="input"
+              className="input min-h-[46px]"
               autoComplete="new-password"
               {...register("password")}
             />
@@ -182,7 +182,7 @@ export default function RegisterPage() {
               <p className="mt-1 text-xs text-red-600">{errors.password.message}</p>
             )}
           </div>
-          <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3">
+          <button type="submit" disabled={isSubmitting} className="btn-primary w-full py-3 sm:py-3.5">
             {isSubmitting ? (
               <span className="flex items-center justify-center gap-2">
                 <LoadingSpinner className="h-5 w-5 text-white" />
@@ -193,7 +193,7 @@ export default function RegisterPage() {
             )}
           </button>
         </form>
-        <div className="my-6 flex items-center gap-3 text-xs text-text-muted">
+        <div className="my-5 flex items-center gap-3 text-xs text-text-muted sm:my-6">
           <span className="h-px flex-1 bg-gray-200" />
           lub
           <span className="h-px flex-1 bg-gray-200" />
@@ -206,13 +206,13 @@ export default function RegisterPage() {
         >
           {isGoogleSubmitting ? "Łączenie z Google…" : "Kontynuuj z Google"}
         </button>
-        <p className="mt-3 text-center text-[11px] leading-relaxed text-text-muted">
+        <p className="mt-4 text-center text-[11px] leading-relaxed text-text-muted">
           Rejestrując się akceptujesz{" "}
           <span className="cursor-not-allowed text-brand opacity-80">Regulamin</span> i{" "}
           <span className="cursor-not-allowed text-brand opacity-80">Politykę prywatności</span> StayMap
           Polska.
         </p>
-        <p className="mt-4 text-center text-sm text-text-muted">
+        <p className="mt-5 text-center text-sm text-text-muted">
           Masz już konto?{" "}
           <Link href="/login" className="font-bold text-brand hover:underline">
             Zaloguj się

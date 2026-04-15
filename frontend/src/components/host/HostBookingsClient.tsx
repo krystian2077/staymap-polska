@@ -60,17 +60,17 @@ export function HostBookingsClient({
   };
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
-      <div className="mb-10">
+    <div className="mx-auto max-w-7xl p-3.5 sm:p-6 lg:p-10">
+      <div className="mb-7 sm:mb-10">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
         >
-          <p className="text-[12px] font-extrabold uppercase tracking-[.25em] text-brand mb-1.5">Zarządzanie</p>
-          <h1 className="text-4xl font-black text-brand-dark tracking-tight">{title}</h1>
+          <p className="mb-1.5 text-[11px] font-extrabold uppercase tracking-[.2em] text-brand sm:text-[12px] sm:tracking-[.25em]">Zarządzanie</p>
+          <h1 className="text-[30px] font-black tracking-tight text-brand-dark sm:text-4xl">{title}</h1>
         </motion.div>
         
-        <div className="mt-8 flex flex-wrap gap-3 border-b border-brand-dark/5 pb-8">
+        <div className="mt-5 flex flex-wrap gap-2 border-b border-brand-dark/5 pb-5 sm:mt-8 sm:gap-3 sm:pb-8">
           {([
             ["/host/bookings", undefined, "Wszystkie"],
             ["/host/bookings/pending", "pending", "Oczekujące"],
@@ -80,7 +80,7 @@ export function HostBookingsClient({
               key={href}
               href={href}
               className={cn(
-                "relative rounded-xl px-6 py-2.5 text-sm font-bold transition-all duration-300",
+                "relative rounded-xl px-4 py-2.5 text-[13px] font-bold transition-all duration-300 sm:px-6 sm:text-sm",
                 statusFilter === sf
                   ? "bg-brand text-white shadow-lg shadow-brand/20 ring-1 ring-brand/10"
                   : "bg-white text-brand-dark/60 hover:text-brand-dark hover:bg-brand-surface/40 hover:shadow-sm ring-1 ring-black/[.03] dark:bg-[var(--bg3)] dark:text-[var(--text2)] dark:ring-brand-border/50"
@@ -123,7 +123,7 @@ export function HostBookingsClient({
           </p>
         </motion.div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3.5 sm:space-y-4">
           <AnimatePresence mode="popLayout">
             {bookings.map((b, idx) => {
               const st = STATUS_LABELS[b.status] ?? { label: b.status, cls: "bg-gray-100 text-gray-600" };
@@ -137,10 +137,10 @@ export function HostBookingsClient({
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0, transition: { delay: idx * 0.05 } }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className={cn(CARD, "group p-6 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] hover:ring-brand/10 sm:flex-row sm:items-center flex flex-col gap-6")}
+                  className={cn(CARD, "group flex flex-col gap-4 p-4 transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] hover:ring-brand/10 sm:flex-row sm:items-center sm:gap-6 sm:p-6")}
                 >
-                  <div className="flex items-center gap-5 flex-1">
-                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-brand-muted text-lg font-black text-brand-dark ring-4 ring-brand/5 group-hover:scale-105 transition-transform duration-500">
+                  <div className="flex flex-1 items-center gap-3.5 sm:gap-5">
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-brand-muted text-base font-black text-brand-dark ring-4 ring-brand/5 transition-transform duration-500 group-hover:scale-105 sm:h-14 sm:w-14 sm:text-lg">
                       {b.guest.avatar_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={b.guest.avatar_url} alt="" className="h-full w-full object-cover" />
@@ -150,13 +150,13 @@ export function HostBookingsClient({
                     </div>
                     
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="text-lg font-black text-brand-dark tracking-tight">
+                      <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                        <span className="text-base font-black tracking-tight text-brand-dark sm:text-lg">
                           {b.guest.first_name} {b.guest.last_name}
                         </span>
                         <span className={cn("rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider", st.cls)}>{st.label}</span>
                       </div>
-                      <p className="mt-1.5 text-sm font-medium text-text-muted flex flex-wrap items-center gap-x-3">
+                      <p className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] font-medium text-text-muted sm:gap-x-3 sm:text-sm">
                         <Link href={`/listing/${b.listing.slug}`} className="font-bold text-brand hover:underline">
                           {b.listing.title}
                         </Link>
@@ -165,7 +165,7 @@ export function HostBookingsClient({
                         <span className="opacity-30">|</span>
                         <span>{nights} {nights === 1 ? "noc" : "nocy"}</span>
                       </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-4 text-xs">
+                      <div className="mt-2 flex flex-wrap items-center gap-3 text-xs sm:gap-4">
                         <span className="flex items-center gap-1.5 font-bold text-brand-dark">👥 {b.guests_count} gości</span>
                         <span className="h-1.5 w-1.5 rounded-full bg-brand/20" />
                         <span className="text-sm font-black text-brand">{b.final_amount} {b.currency}</span>
@@ -178,19 +178,19 @@ export function HostBookingsClient({
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+                   <div className="grid w-full grid-cols-1 gap-2 sm:flex sm:w-auto sm:shrink-0 sm:flex-wrap sm:justify-end">
                     {b.status === "pending" && (
                       <>
                         <button
                           type="button"
-                          className="h-11 px-5 rounded-xl bg-red-50 text-sm font-black text-red-500 transition-all hover:bg-red-500 hover:text-white hover:shadow-lg hover:shadow-red-200 active:scale-95"
+                          className="h-11 rounded-xl bg-red-50 px-5 text-sm font-black text-red-500 transition-all hover:bg-red-500 hover:text-white hover:shadow-lg hover:shadow-red-200 active:scale-95"
                           onClick={() => { if (confirm("Odrzucić rezerwację?")) void patchStatus(b.id, "rejected"); }}
                         >
                           Odrzuć
                         </button>
                         <button
                           type="button"
-                          className="btn-primary h-11 px-6 text-sm font-black rounded-xl shadow-brand-lg"
+                          className="btn-primary h-11 rounded-xl px-6 text-sm font-black shadow-brand-lg"
                           onClick={() => void patchStatus(b.id, "confirmed")}
                         >
                           Akceptuj
@@ -200,7 +200,7 @@ export function HostBookingsClient({
                     {b.conversation_id && (
                       <Link 
                         href={`/host/messages?conv=${encodeURIComponent(b.conversation_id)}`} 
-                        className="flex h-11 items-center gap-2 rounded-xl bg-white border border-black/[0.05] px-5 text-sm font-black text-brand-dark transition-all hover:bg-brand-surface hover:text-brand hover:shadow-md active:scale-95 dark:bg-[var(--bg3)] dark:border-brand-border/60 dark:text-[var(--foreground)] dark:hover:bg-[var(--bg2)]"
+                        className="flex h-11 items-center justify-center gap-2 rounded-xl border border-black/[0.05] bg-white px-5 text-sm font-black text-brand-dark transition-all hover:bg-brand-surface hover:text-brand hover:shadow-md active:scale-95 dark:border-brand-border/60 dark:bg-[var(--bg3)] dark:text-[var(--foreground)] dark:hover:bg-[var(--bg2)]"
                       >
                         💬 Wiadomość
                       </Link>

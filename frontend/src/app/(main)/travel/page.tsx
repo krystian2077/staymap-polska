@@ -152,7 +152,7 @@ const cardVariants = {
     },
   }),
   hover: {
-    y: -12,
+    y: -6,
     transition: {
       duration: 0.3,
       ease: "easeOut",
@@ -197,7 +197,7 @@ export default function TravelPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
-        className="relative z-10 overflow-hidden bg-gradient-to-b from-white via-brand-50 to-white px-6 py-20 dark:from-[var(--bg2)] dark:via-[var(--bg)] dark:to-[var(--bg2)] md:px-12 md:py-28"
+        className="relative z-10 overflow-hidden bg-gradient-to-b from-white via-brand-50 to-white px-4 py-16 dark:from-[var(--bg2)] dark:via-[var(--bg)] dark:to-[var(--bg2)] sm:px-6 sm:py-20 md:px-12 md:py-28"
       >
         <div className="mx-auto max-w-[1360px]">
           {/* Badge */}
@@ -280,7 +280,7 @@ export default function TravelPage() {
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: "-100px" }}
-        className="relative z-10 mx-auto max-w-[1360px] px-6 py-20 md:px-12 md:py-28"
+        className="relative z-10 mx-auto max-w-[1360px] px-4 py-16 sm:px-6 sm:py-20 md:px-12 md:py-28"
       >
         <motion.div variants={itemVariants} className="mb-16 text-center">
           <h2 className="mb-4 text-[clamp(32px,5vw,48px)] font-black leading-tight tracking-tight text-brand-dark dark:text-white">
@@ -294,7 +294,7 @@ export default function TravelPage() {
 
         <motion.div
           variants={containerVariants}
-          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+          className="grid gap-7 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3"
         >
           {TRAVEL_MODES.map((mode, idx) => (
             <motion.div

@@ -164,7 +164,7 @@ export function HostLayoutClient({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
+      <div className="flex min-h-[calc(100dvh-var(--nav-h))] items-center justify-center">
         <LoadingSpinner />
       </div>
     );
@@ -175,15 +175,15 @@ export function HostLayoutClient({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="relative w-full max-w-[100vw]">
+    <div className="relative w-full max-w-[100vw] overflow-x-clip">
       <div
         className="grid grid-cols-1 md:grid-cols-[340px_1fr]"
-        style={{ minHeight: "calc(100vh - 64px)" }}
+        style={{ minHeight: "calc(100dvh - var(--nav-h))" }}
       >
         <div className="hidden md:block">
           <HostSidebar activeItem={activeItem} />
         </div>
-        <main className="min-w-0 bg-[#f8fafc] pb-[72px] text-text dark:bg-[var(--background)] dark:text-[var(--foreground)] md:pb-0">
+        <main className="min-w-0 bg-[#f8fafc] pb-[calc(78px+var(--mobile-safe-bottom))] text-text dark:bg-[var(--background)] dark:text-[var(--foreground)] md:pb-0">
           {children}
         </main>
       </div>

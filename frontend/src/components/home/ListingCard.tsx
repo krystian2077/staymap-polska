@@ -44,11 +44,11 @@ export function ListingCard({ listing, badge = "Polecane", badgeColor = "#16a34a
   return (
     <Link
       href={`/listing/${listing.slug}`}
-      className="group block overflow-hidden rounded-[22px] border border-[#e4ebe7] bg-white shadow-[0_10px_30px_-24px_rgba(10,15,13,.3)] transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-[7px] hover:border-[#bbf7d0] hover:shadow-[0_26px_70px_-24px_rgba(10,15,13,.35)]"
+      className="group block overflow-hidden rounded-[18px] border border-[#e4ebe7] bg-white shadow-[0_10px_30px_-24px_rgba(10,15,13,.3)] transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)] sm:rounded-[22px] sm:hover:-translate-y-[7px] sm:hover:border-[#bbf7d0] sm:hover:shadow-[0_26px_70px_-24px_rgba(10,15,13,.35)]"
       style={{ animation: `fadeUp .65s ${index * 0.08}s cubic-bezier(.16,1,.3,1) both` }}
       onClick={cacheListing}
     >
-      <div className="relative flex h-[224px] items-center justify-center overflow-hidden" style={{ background: "linear-gradient(145deg,#dff8e9,#bcefd4)" }}>
+      <div className="relative flex h-[196px] items-center justify-center overflow-hidden sm:h-[224px]" style={{ background: "linear-gradient(145deg,#dff8e9,#bcefd4)" }}>
         {cover ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={cover} alt="" className="h-full w-full object-cover transition-transform duration-500 ease-[cubic-bezier(.16,1,.3,1)] group-hover:scale-[1.08]" />
@@ -67,22 +67,22 @@ export function ListingCard({ listing, badge = "Polecane", badgeColor = "#16a34a
             e.stopPropagation();
             setLiked((v) => !v);
           }}
-          className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full border border-white/40 bg-white/90 text-sm backdrop-blur-md transition-transform hover:scale-110"
+          className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border border-white/40 bg-white/90 text-sm backdrop-blur-md transition-transform sm:h-9 sm:w-9 sm:hover:scale-110"
           aria-label="Ulubione"
         >
           <span className={cn(liked && "animate-[heartbeat_.4s_ease]")}>{liked ? "❤️" : "🤍"}</span>
         </button>
       </div>
 
-      <div className="px-5 pb-5 pt-4">
-        <h3 className="mb-1.5 line-clamp-2 text-[15px] font-bold leading-[1.32] text-[#0a0f0d]">{listing.title}</h3>
-        <p className="mb-3.5 flex items-center gap-1 text-[12px] text-[#6e8378]">
+      <div className="px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4">
+        <h3 className="mb-1.5 line-clamp-2 text-[14px] font-bold leading-[1.32] text-[#0a0f0d] sm:text-[15px]">{listing.title}</h3>
+        <p className="mb-3 flex items-center gap-1 text-[12px] text-[#6e8378] sm:mb-3.5">
           <span>📍</span>
           {location}
         </p>
         <div className="flex items-center justify-between">
           <p>
-            <span className="text-[17px] font-extrabold text-[#0a0f0d]">{Number(listing.base_price).toFixed(0)} zł</span>
+            <span className="text-[16px] font-extrabold text-[#0a0f0d] sm:text-[17px]">{Number(listing.base_price).toFixed(0)} zł</span>
             <span className="ml-1 text-[12px] text-[#7a8f84]">/ noc</span>
           </p>
           <p className="flex items-center gap-1 text-[13px] font-bold text-[#0a0f0d]">

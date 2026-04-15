@@ -163,7 +163,7 @@ export function SearchFiltersBar({ params, onRemove, className }: Props) {
               damping: 30,
             }}
             className={cn(
-              "group flex shrink-0 items-center gap-2 rounded-full border border-brand/20 bg-white py-2 pl-3.5 pr-2.5 shadow-sm transition-all hover:border-brand/40 active:scale-[0.98]",
+              "group flex min-h-[44px] shrink-0 items-center gap-2 rounded-full border border-brand/20 bg-white py-2 pl-3.5 pr-2.5 shadow-sm transition-all hover:border-brand/40 active:scale-[0.98]",
             )}
           >
             {chip.icon && (
@@ -178,7 +178,7 @@ export function SearchFiltersBar({ params, onRemove, className }: Props) {
               type="button"
               onClick={() => handleRemove(chip)}
               aria-label={`Usuń filtr: ${chip.label}`}
-              className="ml-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-surface text-brand-dark/40 transition-all hover:bg-red-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-500/20 active:scale-90"
+              className="ml-1 flex min-h-9 min-w-9 shrink-0 items-center justify-center rounded-full bg-brand-surface text-brand-dark/40 transition-all hover:bg-red-500 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-500/20 active:scale-90"
             >
               <svg
                 width="12"
@@ -203,7 +203,7 @@ export function SearchFiltersBar({ params, onRemove, className }: Props) {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             onClick={handleClearAll}
-            className="flex shrink-0 items-center gap-1.5 rounded-full border border-brand/20 bg-white px-4 py-2 text-[13px] font-bold text-brand-dark transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-500 active:scale-95"
+            className="flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full border border-brand/20 bg-white px-4 py-2 text-[13px] font-bold text-brand-dark transition-all hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-500 active:scale-95"
           >
             <svg
               width="14"

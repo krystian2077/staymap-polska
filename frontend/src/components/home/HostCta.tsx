@@ -5,10 +5,10 @@ export function HostCta() {
     <section
       aria-labelledby="host-cta-heading"
       data-testid="home-host-cta-section"
-      className="px-6 pb-0 pt-0 max-[380px]:px-4 md:px-12"
+      className="px-4 pb-0 pt-0 sm:px-6 md:px-12"
     >
       <div className="mx-auto max-w-[1240px]">
-        <div className="group relative overflow-hidden rounded-[32px] border border-[#14532d] bg-[linear-gradient(135deg,#052e16_0%,#0a2e1a_45%,#14532d_100%)] px-6 py-10 shadow-[0_24px_70px_rgba(10,46,26,.22)] transition-all duration-500 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-1 hover:shadow-[0_32px_90px_rgba(10,46,26,.3)] md:px-10 md:py-12 motion-reduce:transform-none motion-reduce:transition-none">
+        <div className="group relative overflow-hidden rounded-[32px] border border-[#14532d] bg-[linear-gradient(135deg,#052e16_0%,#0a2e1a_45%,#14532d_100%)] px-5 py-9 shadow-[0_24px_70px_rgba(10,46,26,.22)] transition-all duration-500 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-1 hover:shadow-[0_32px_90px_rgba(10,46,26,.3)] sm:px-6 sm:py-10 md:px-10 md:py-12 motion-reduce:transform-none motion-reduce:transition-none">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_760px_220px_at_18%_0%,rgba(74,222,128,.24),transparent_70%),radial-gradient(ellipse_480px_240px_at_100%_100%,rgba(22,163,74,.18),transparent_72%),linear-gradient(180deg,rgba(255,255,255,.04),transparent)] transition-opacity duration-500 group-hover:opacity-90" />
           <div className="pointer-events-none absolute -left-20 top-8 h-52 w-52 rounded-full bg-[#22c55e]/10 blur-[90px] transition-transform duration-700 ease-[cubic-bezier(.16,1,.3,1)] group-hover:translate-x-8 group-hover:-translate-y-2" />
           <div className="pointer-events-none absolute -right-16 bottom-0 h-64 w-64 rounded-full bg-[#4ade80]/10 blur-[100px] transition-transform duration-700 ease-[cubic-bezier(.16,1,.3,1)] group-hover:-translate-x-8 group-hover:-translate-y-2" />

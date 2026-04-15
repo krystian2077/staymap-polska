@@ -390,7 +390,7 @@ export function HeroSearchBar() {
   }
 
   return (
-    <div className="relative mx-auto mb-[52px] w-full max-w-[1020px]">
+    <div className="relative mx-auto mb-10 w-full max-w-[1020px] sm:mb-[52px]">
       <div className="mb-6 flex items-center justify-center gap-6">
         <button
           onClick={() => setIsAiMode(false)}
@@ -440,14 +440,14 @@ export function HeroSearchBar() {
 
         <div
           className={cn(
-            "group relative rounded-[32px] border border-[rgba(228,235,231,0.6)] bg-white transition-all duration-300 focus-within:shadow-[0_12px_48px_rgba(10,15,13,0.15)]",
+            "group relative overflow-hidden rounded-[24px] border border-[rgba(228,235,231,0.6)] bg-white transition-all duration-300 focus-within:shadow-[0_12px_48px_rgba(10,15,13,0.15)] sm:rounded-[32px]",
             isAiMode
               ? "shadow-[0_3px_12px_rgba(124,58,237,0.03),0_8px_32px_rgba(124,58,237,0.08)]"
               : "shadow-[0_3px_12px_rgba(10,15,13,0.03),0_8px_32px_rgba(10,15,13,0.08)]"
           )}
         >
           {isAiMode ? (
-            <div className="flex items-center px-8 py-3">
+            <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:px-8 sm:py-3">
               <div className="flex-1">
                 <input
                   type="text"
@@ -455,13 +455,13 @@ export function HeroSearchBar() {
                   onChange={(e) => setAiPrompt(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && runSearch()}
                   placeholder="Opisz swój wymarzony wyjazd, np. 'Domek z sauną blisko lasu dla 4 osób...'"
-                  className="w-full bg-transparent py-4 text-[17px] font-bold text-[#0a2e1a] placeholder:text-[#7a8f84] focus:outline-none"
+                  className="w-full bg-transparent py-1 text-[16px] font-bold text-[#0a2e1a] placeholder:text-[#7a8f84] focus:outline-none sm:py-4 sm:text-[17px]"
                 />
               </div>
               <button
                 type="button"
                 onClick={runSearch}
-                className="flex h-[52px] items-center gap-3 rounded-full bg-[#7c3aed] px-8 font-black text-white shadow-lg transition-all hover:bg-[#6d28d9]"
+                className="flex min-h-[48px] w-full shrink-0 items-center justify-center gap-3 rounded-2xl bg-[#7c3aed] px-6 text-[15px] font-black text-white shadow-lg transition-all hover:bg-[#6d28d9] sm:h-[52px] sm:w-auto sm:rounded-full sm:px-8"
               >
                 <span>Szukaj z AI</span>
                 <svg
@@ -480,56 +480,82 @@ export function HeroSearchBar() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1.2fr_1fr_1fr_auto]">
-              <button
-                type="button"
-                onClick={() => setOpen("location")}
-                className={cn("sf", open === "location" ? "sf--active" : "hover:after:bg-white")}
-              >
-                <span className="sfl">Gdzie</span>
-                <span className={location ? "sfv" : "sfv ph"}>{location || "Wyszukaj kierunki"}</span>
-              </button>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1.2fr_1fr_1fr_auto]">
+                <button
+                  type="button"
+                  onClick={() => setOpen("location")}
+                  className={cn(
+                    "sf max-md:rounded-none max-md:border-b max-md:border-[rgba(228,235,231,.8)] max-md:border-r-0 max-md:py-3.5 first:rounded-t-[24px] md:first:rounded-l-[26px]",
+                    open === "location" ? "sf--active" : "hover:after:bg-white"
+                  )}
+                >
+                  <span className="sfl">Gdzie</span>
+                  <span className={location ? "sfv" : "sfv ph"}>{location || "Wyszukaj kierunki"}</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setOpen("dates")}
-                className={cn("sf", open === "dates" ? "sf--active" : "hover:after:bg-white")}
-              >
-                <span className="sfl">Kiedy</span>
-                <span className={checkIn && checkOut ? "sfv" : "sfv ph"}>{datesLabel}</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setOpen("dates")}
+                  className={cn(
+                    "sf max-md:rounded-none max-md:border-b max-md:border-[rgba(228,235,231,.8)] max-md:border-r-0 max-md:py-3.5",
+                    open === "dates" ? "sf--active" : "hover:after:bg-white"
+                  )}
+                >
+                  <span className="sfl">Kiedy</span>
+                  <span className={checkIn && checkOut ? "sfv" : "sfv ph"}>{datesLabel}</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setOpen("guests")}
-                className={cn("sf", open === "guests" ? "sf--active" : "hover:after:bg-white")}
-              >
-                <span className="sfl">Goście</span>
-                <span className={guestsCount ? "sfv" : "sfv ph"}>{guestsCount ? `${guestsCount} osób` : "Ile osób?"}</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setOpen("guests")}
+                  className={cn(
+                    "sf max-md:rounded-none max-md:border-b max-md:border-[rgba(228,235,231,.8)] max-md:border-r-0 max-md:py-3.5",
+                    open === "guests" ? "sf--active" : "hover:after:bg-white"
+                  )}
+                >
+                  <span className="sfl">Goście</span>
+                  <span className={guestsCount ? "sfv" : "sfv ph"}>{guestsCount ? `${guestsCount} osób` : "Ile osób?"}</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setOpen("mode")}
-                className={cn("sf border-r-0", open === "mode" ? "sf--active" : "hover:after:bg-white")}
-              >
-                <span className="sfl">Tryb podróży</span>
-                <span className={modeMeta ? "sfv" : "sfv ph"}>{modeMeta ? `${modeMeta.emoji} ${modeMeta.label}` : "Dowolny styl"}</span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setOpen("mode")}
+                  className={cn(
+                    "sf border-r-0 max-md:rounded-none max-md:border-b-0 max-md:border-r-0 max-md:py-3.5",
+                    open === "mode" ? "sf--active" : "hover:after:bg-white"
+                  )}
+                >
+                  <span className="sfl">Tryb podróży</span>
+                  <span className={modeMeta ? "sfv" : "sfv ph"}>{modeMeta ? `${modeMeta.emoji} ${modeMeta.label}` : "Dowolny styl"}</span>
+                </button>
 
-              <div className="flex items-center px-3 py-2 md:pl-0.5 md:pr-2.5 md:py-2">
+                <div className="hidden items-center px-3 py-2 md:flex md:pl-0.5 md:pr-2.5 md:py-2">
+                  <button
+                    type="button"
+                    onClick={runSearch}
+                    className="sbtn flex h-[48px] w-[48px] items-center justify-center rounded-full bg-[#16a34a] text-white shadow-lg transition-all hover:bg-[#15803d] lg:w-auto lg:px-6 lg:gap-2"
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" className="h-[20px] w-[20px]" stroke="currentColor" strokeWidth="3">
+                      <path d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                    <span className="hidden lg:inline">Szukaj</span>
+                  </button>
+                </div>
+              </div>
+              <div className="border-t border-[rgba(228,235,231,0.85)] p-3 md:hidden dark:border-[var(--brand-border)]">
                 <button
                   type="button"
                   onClick={runSearch}
-                  className="sbtn flex h-[48px] w-[48px] items-center justify-center rounded-full bg-[#16a34a] text-white shadow-lg transition-all hover:bg-[#15803d] lg:w-auto lg:px-6 lg:gap-2"
+                  className="sbtn flex min-h-[48px] w-full items-center justify-center gap-2 rounded-2xl bg-[#16a34a] px-4 text-[15px] font-extrabold text-white shadow-lg transition-all hover:bg-[#15803d]"
                 >
-                  <svg viewBox="0 0 24 24" fill="none" className="h-[20px] w-[20px]" stroke="currentColor" strokeWidth="3">
+                  <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 shrink-0" stroke="currentColor" strokeWidth="3">
                     <path d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
-                  <span className="hidden lg:inline">Szukaj</span>
+                  Szukaj
                 </button>
               </div>
-            </div>
+            </>
           )}
         </div>
 
@@ -542,8 +568,83 @@ export function HeroSearchBar() {
             </Dialog.Description>
             <div className="flex flex-col h-full overflow-hidden">
               {/* Modal Header/Mini SearchBar */}
-              <div className="border-b border-[#e4ebe7] bg-[#f8faf9] p-4 flex-shrink-0">
-                <div className="mx-auto flex w-full max-w-[1080px] items-center gap-3">
+              <div className="border-b border-[#e4ebe7] bg-[#f8faf9] flex-shrink-0 p-3 pt-[max(0.75rem,env(safe-area-inset-top,0px))] dark:border-[var(--brand-border)] dark:bg-[var(--bg3)] sm:p-4 sm:pt-4 lg:pt-4">
+                {/* Mobile: step label + horizontal scroll chips + full-width Szukaj */}
+                <div className="mx-auto w-full max-w-[1080px] lg:hidden">
+                  {open && (
+                    <>
+                      <div className="mb-3 flex items-start gap-2">
+                        {open !== "location" && (
+                          <motion.button
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            whileTap={{ scale: 0.95 }}
+                            type="button"
+                            onClick={() => {
+                              const order: OpenDropdown[] = ["location", "dates", "guests", "mode"];
+                              const idx = order.indexOf(open);
+                              if (idx > 0) setOpenWithDirection(order[idx - 1]);
+                            }}
+                            className="mt-0.5 flex h-11 min-h-[44px] w-11 min-w-[44px] shrink-0 items-center justify-center rounded-full border border-[#e4ebe7] bg-white text-[#0a2e1a] shadow-sm transition-all hover:border-[#16a34a] hover:text-[#16a34a] dark:border-[var(--brand-border)] dark:bg-[var(--bg2)] dark:text-zinc-100"
+                          >
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <path d="M15 18l-6-6 6-6" />
+                            </svg>
+                          </motion.button>
+                        )}
+                        <div className="min-w-0 flex-1 pt-0.5">
+                          <p className="text-[10px] font-black uppercase tracking-wider text-[#5c7368] dark:text-zinc-400">
+                            Krok {(["location", "dates", "guests", "mode"] as const).indexOf(open) + 1} z 4
+                          </p>
+                          <p className="truncate text-base font-bold text-[#0a2e1a] dark:text-zinc-100">
+                            {open === "location" && "Cel podróży"}
+                            {open === "dates" && "Terminy"}
+                            {open === "guests" && "Liczba gości"}
+                            {open === "mode" && "Styl wyszukiwania"}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="-mx-1 flex gap-2 overflow-x-auto pb-1 pl-1 pr-2 [-webkit-overflow-scrolling:touch] snap-x snap-mandatory scrollbar-hide">
+                        {(
+                          [
+                            { key: "location" as const, label: "Gdzie", value: location || "Wybierz cel" },
+                            { key: "dates" as const, label: "Kiedy", value: datesLabel },
+                            { key: "guests" as const, label: "Goście", value: guestsCount ? `${guestsCount} osób` : "Ilu gości?" },
+                            { key: "mode" as const, label: "Tryb", value: modeMeta ? `${modeMeta.emoji} ${modeMeta.label}` : "Styl" },
+                          ] as const
+                        ).map((step) => (
+                          <button
+                            key={step.key}
+                            type="button"
+                            onClick={() => setOpenWithDirection(step.key)}
+                            className={cn(
+                              "min-h-[72px] min-w-[min(42vw,160px)] shrink-0 snap-start rounded-2xl border px-3 py-2.5 text-left transition-all",
+                              open === step.key
+                                ? "border-[#16a34a] bg-[#dcfce7] shadow-inner dark:border-[#22c55e] dark:bg-emerald-950/50"
+                                : "border-[#e4ebe7] bg-white hover:border-[#16a34a]/40 dark:border-[var(--brand-border)] dark:bg-[var(--bg2)]"
+                            )}
+                          >
+                            <span className="block text-[9px] font-black uppercase tracking-wider text-[#5c7368] dark:text-zinc-400">{step.label}</span>
+                            <span className="line-clamp-2 text-[13px] font-bold leading-tight text-[#0a2e1a] dark:text-zinc-100">{step.value}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={runSearch}
+                        className="mt-3 flex min-h-[48px] w-full items-center justify-center gap-2 rounded-full bg-[#16a34a] px-4 text-[15px] font-bold text-white shadow-md transition-colors hover:bg-[#15803d] active:scale-[0.99]"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5 shrink-0" stroke="currentColor" strokeWidth="3">
+                          <path d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        Szukaj
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Desktop: single horizontal pill */}
+                <div className="mx-auto hidden w-full max-w-[1080px] items-center gap-3 lg:flex">
                   {open && open !== "location" && (
                     <motion.button
                       initial={{ opacity: 0, scale: 0.8 }}
@@ -555,60 +656,60 @@ export function HeroSearchBar() {
                         const idx = order.indexOf(open);
                         if (idx > 0) setOpenWithDirection(order[idx - 1]);
                       }}
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#e4ebe7] bg-white text-[#0a2e1a] shadow-sm hover:border-[#16a34a] hover:text-[#16a34a] transition-all"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#e4ebe7] bg-white text-[#0a2e1a] shadow-sm hover:border-[#16a34a] hover:text-[#16a34a] transition-all dark:border-[var(--brand-border)] dark:bg-[var(--bg2)] dark:text-zinc-100"
                     >
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <path d="M15 18l-6-6 6-6" />
                       </svg>
                     </motion.button>
                   )}
-                  <div className="flex flex-1 items-center gap-2 rounded-full border border-[#e4ebe7] bg-white p-1.5 shadow-sm">
+                  <div className="flex flex-1 items-center gap-2 rounded-full border border-[#e4ebe7] bg-white p-1.5 shadow-sm dark:border-[var(--brand-border)] dark:bg-[var(--bg2)]">
                     <button
                       onClick={() => setOpenWithDirection("location")}
                       className={cn(
                         "flex-1 rounded-full px-5 py-2.5 text-left transition-all",
-                        open === "location" ? "bg-[#dcfce7] shadow-inner" : "hover:bg-[#f0fdf4]"
+                        open === "location" ? "bg-[#dcfce7] shadow-inner dark:bg-emerald-950/50" : "hover:bg-[#f0fdf4] dark:hover:bg-white/5"
                       )}
                     >
-                      <span className="block text-[9px] font-black uppercase tracking-wider text-[#7a8f84]">Gdzie</span>
-                      <span className="block truncate text-[13px] font-bold text-[#0a2e1a]">{location || "Wybierz cel"}</span>
+                      <span className="block text-[9px] font-black uppercase tracking-wider text-[#7a8f84] dark:text-zinc-400">Gdzie</span>
+                      <span className="block truncate text-[13px] font-bold text-[#0a2e1a] dark:text-zinc-100">{location || "Wybierz cel"}</span>
                     </button>
-                    <div className="h-8 w-px bg-[#e4ebe7]" />
+                    <div className="h-8 w-px bg-[#e4ebe7] dark:bg-[var(--brand-border)]" />
                     <button
                       onClick={() => setOpenWithDirection("dates")}
                       className={cn(
                         "flex-1 rounded-full px-5 py-2.5 text-left transition-all",
-                        open === "dates" ? "bg-[#dcfce7] shadow-inner" : "hover:bg-[#f0fdf4]"
+                        open === "dates" ? "bg-[#dcfce7] shadow-inner dark:bg-emerald-950/50" : "hover:bg-[#f0fdf4] dark:hover:bg-white/5"
                       )}
                     >
-                      <span className="block text-[9px] font-black uppercase tracking-wider text-[#7a8f84]">Kiedy</span>
-                      <span className="block truncate text-[13px] font-bold text-[#0a2e1a]">{datesLabel}</span>
+                      <span className="block text-[9px] font-black uppercase tracking-wider text-[#7a8f84] dark:text-zinc-400">Kiedy</span>
+                      <span className="block truncate text-[13px] font-bold text-[#0a2e1a] dark:text-zinc-100">{datesLabel}</span>
                     </button>
-                    <div className="h-8 w-px bg-[#e4ebe7]" />
+                    <div className="h-8 w-px bg-[#e4ebe7] dark:bg-[var(--brand-border)]" />
                     <button
                       onClick={() => setOpenWithDirection("guests")}
                       className={cn(
                         "flex-1 rounded-full px-5 py-2.5 text-left transition-all",
-                        open === "guests" ? "bg-[#dcfce7] shadow-inner" : "hover:bg-[#f0fdf4]"
+                        open === "guests" ? "bg-[#dcfce7] shadow-inner dark:bg-emerald-950/50" : "hover:bg-[#f0fdf4] dark:hover:bg-white/5"
                       )}
                     >
-                      <span className="block text-[9px] font-black uppercase tracking-wider text-[#7a8f84]">Goście</span>
-                      <span className="block truncate text-[13px] font-bold text-[#0a2e1a]">{guestsCount ? `${guestsCount} osób` : "Ilu gości?"}</span>
+                      <span className="block text-[9px] font-black uppercase tracking-wider text-[#7a8f84] dark:text-zinc-400">Goście</span>
+                      <span className="block truncate text-[13px] font-bold text-[#0a2e1a] dark:text-zinc-100">{guestsCount ? `${guestsCount} osób` : "Ilu gości?"}</span>
                     </button>
-                    <div className="h-8 w-px bg-[#e4ebe7]" />
+                    <div className="h-8 w-px bg-[#e4ebe7] dark:bg-[var(--brand-border)]" />
                     <button
                       onClick={() => setOpenWithDirection("mode")}
                       className={cn(
                         "flex-1 rounded-full px-5 py-2.5 text-left transition-all",
-                        open === "mode" ? "bg-[#dcfce7] shadow-inner" : "hover:bg-[#f0fdf4]"
+                        open === "mode" ? "bg-[#dcfce7] shadow-inner dark:bg-emerald-950/50" : "hover:bg-[#f0fdf4] dark:hover:bg-white/5"
                       )}
                     >
-                      <span className="block text-[9px] font-black uppercase tracking-wider text-[#7a8f84]">Tryb</span>
-                      <span className="block truncate text-[13px] font-bold text-[#0a2e1a]">{modeMeta ? `${modeMeta.emoji} ${modeMeta.label}` : "Styl"}</span>
+                      <span className="block text-[9px] font-black uppercase tracking-wider text-[#7a8f84] dark:text-zinc-400">Tryb</span>
+                      <span className="block truncate text-[13px] font-bold text-[#0a2e1a] dark:text-zinc-100">{modeMeta ? `${modeMeta.emoji} ${modeMeta.label}` : "Styl"}</span>
                     </button>
                     <button
                       onClick={runSearch}
-                      className="flex h-11 w-11 items-center justify-center rounded-full bg-[#16a34a] text-white shadow-md hover:bg-[#15803d]"
+                      className="flex h-11 w-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-[#16a34a] text-white shadow-md hover:bg-[#15803d]"
                     >
                       <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" stroke="currentColor" strokeWidth="3">
                         <path d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" strokeLinecap="round" strokeLinejoin="round" />
@@ -618,7 +719,7 @@ export function HeroSearchBar() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-8 scrollbar-hide relative min-h-0">
+              <div className="flex-1 overflow-y-auto px-4 py-5 scrollbar-hide relative min-h-0 md:px-6 md:py-6 lg:p-8">
                 <AnimatePresence mode="wait" custom={direction}>
                 {open === "location" && (
                   <motion.div

@@ -202,7 +202,7 @@ export default function HostDashboardPage() {
   }, [month]);
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
+    <div className="mx-auto max-w-7xl px-4 py-5 sm:p-6 lg:p-10">
       <header className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <motion.div 
           initial={{ opacity: 0, x: -20 }}

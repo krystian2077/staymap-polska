@@ -1279,14 +1279,14 @@ export function HeroSearchBar({ variant }: HeroSearchBarProps) {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="flex h-[72px] items-center rounded-[32px] border border-brand/20 bg-white px-3 py-2.5 shadow-[0_16px_48px_rgba(0,0,0,0.3)] transition-all hover:border-brand/40 group"
+        className="flex h-auto min-h-[72px] w-full flex-wrap items-center gap-2 rounded-[24px] border border-brand/20 bg-white px-2.5 py-2.5 shadow-[0_16px_48px_rgba(0,0,0,0.3)] transition-all hover:border-brand/40 md:h-[72px] md:flex-nowrap md:gap-0 md:rounded-[32px] md:px-3 group"
       >
         {/* Location */}
         <button
           type="button"
           onClick={() => setOpenTab("location")}
           className={cn(
-            "flex min-w-[200px] max-w-[340px] items-center gap-3.5 rounded-[22px] px-6 py-3 transition-all",
+            "flex min-w-[150px] max-w-[340px] flex-1 items-center gap-3 rounded-[18px] px-3 py-2.5 transition-all md:min-w-[180px] md:flex-none md:gap-3.5 md:rounded-[22px] md:px-5 md:py-3 xl:min-w-[200px] xl:px-6",
             "hover:bg-gray-50 active:scale-[0.98]",
             openTab === "location" ? "bg-brand-surface shadow-inner text-brand-dark" : "text-brand-dark/90"
           )}
@@ -1298,65 +1298,65 @@ export function HeroSearchBar({ variant }: HeroSearchBarProps) {
           </div>
           <div className="flex flex-col items-start overflow-hidden text-left">
             <span className="text-[10px] font-black uppercase tracking-wider text-brand-dark/40">Gdzie</span>
-            <span className={cn("truncate text-[15px] font-black tracking-tight", locInput ? "text-brand-dark" : "text-brand-dark/20")}>
+            <span className={cn("truncate text-[14px] font-black tracking-tight md:text-[15px]", locInput ? "text-brand-dark" : "text-brand-dark/20")}>
               {locInput || "Wybierz cel"}
             </span>
           </div>
         </button>
 
-        <span className="h-8 w-px shrink-0 bg-brand/10 mx-1.5" aria-hidden />
+        <span className="mx-1.5 hidden h-8 w-px shrink-0 bg-brand/10 md:block" aria-hidden />
 
         {/* Dates */}
         <button
           type="button"
           onClick={() => setOpenTab("dates")}
           className={cn(
-            "flex min-w-[130px] shrink-0 whitespace-nowrap px-6 py-3 text-left rounded-[22px] transition-all active:scale-[0.98]",
+            "flex min-w-0 flex-1 whitespace-nowrap rounded-[18px] px-3 py-2.5 text-left transition-all active:scale-[0.98] md:min-w-[130px] md:flex-none md:rounded-[22px] md:px-5 md:py-3 xl:px-6",
             hasDateRange ? "text-brand-dark bg-brand-surface" : "text-brand-dark/90 hover:bg-gray-50",
             openTab === "dates" && "bg-brand-surface shadow-inner text-brand-dark"
           )}
         >
           <div className="flex flex-col items-start">
             <span className="text-[10px] font-black uppercase tracking-wider text-brand-dark/40">Kiedy</span>
-            <span className="text-[15px] font-black tracking-tight">{dateLabel}</span>
+            <span className="text-[14px] font-black tracking-tight md:text-[15px]">{dateLabel}</span>
           </div>
         </button>
 
-        <span className="h-8 w-px shrink-0 bg-brand/10 mx-1.5" aria-hidden />
+        <span className="mx-1.5 hidden h-8 w-px shrink-0 bg-brand/10 md:block" aria-hidden />
 
         {/* Guests */}
         <button
           type="button"
           onClick={() => setOpenTab("guests")}
           className={cn(
-            "flex min-w-[110px] shrink-0 whitespace-nowrap px-6 py-3 text-left rounded-[22px] transition-all active:scale-[0.98]",
+            "flex min-w-0 flex-1 whitespace-nowrap rounded-[18px] px-3 py-2.5 text-left transition-all active:scale-[0.98] md:min-w-[110px] md:flex-none md:rounded-[22px] md:px-5 md:py-3 xl:px-6",
             guests > 0 ? "text-brand-dark/90 hover:bg-gray-50" : "text-brand-dark/60 hover:bg-gray-50",
             openTab === "guests" && "bg-brand-surface shadow-inner text-brand-dark"
           )}
         >
           <div className="flex flex-col items-start">
             <span className="text-[10px] font-black uppercase tracking-wider text-brand-dark/40">Goście</span>
-            <span className="text-[15px] font-black tracking-tight">
+            <span className="text-[14px] font-black tracking-tight md:text-[15px]">
               {guests === 0 ? "Ilu gości?" : `${guests} ${guests === 1 ? "osoba" : "osób"}`}
             </span>
           </div>
         </button>
 
-        <span className="h-8 w-px shrink-0 bg-brand/10 mx-1.5" aria-hidden />
+        <span className="mx-1.5 hidden h-8 w-px shrink-0 bg-brand/10 md:block" aria-hidden />
 
         {/* Travel mode */}
         <button
           type="button"
           onClick={() => setOpenTab("mode")}
           className={cn(
-            "flex min-w-[110px] shrink-0 whitespace-nowrap px-6 py-3 text-left rounded-[22px] transition-all active:scale-[0.98]",
+            "flex min-w-0 flex-1 whitespace-nowrap rounded-[18px] px-3 py-2.5 text-left transition-all active:scale-[0.98] md:min-w-[110px] md:flex-none md:rounded-[22px] md:px-5 md:py-3 xl:px-6",
             currentMode ? "text-brand-dark bg-brand-surface shadow-sm" : "text-brand-dark/60 hover:bg-gray-50",
             openTab === "mode" && "bg-brand-surface shadow-inner text-brand-dark"
           )}
         >
           <div className="flex flex-col items-start">
             <span className="text-[10px] font-black uppercase tracking-wider text-brand-dark/40">Tryb</span>
-            <span className="text-[15px] font-black tracking-tight">{modeLabel}</span>
+            <span className="text-[14px] font-black tracking-tight md:text-[15px]">{modeLabel}</span>
           </div>
         </button>
       </motion.div>

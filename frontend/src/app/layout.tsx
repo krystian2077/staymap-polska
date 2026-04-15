@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { DM_Sans } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { MainShell } from "@/components/layout/MainShell";
@@ -19,6 +19,16 @@ export const metadata: Metadata = {
     "Domki, glamping i apartamenty w najpiękniejszych miejscach Polski. Wyszukaj na mapie i zarezerwuj.",
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#030a05" },
+  ],
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,7 +43,11 @@ export default function RootLayout({
         <Navbar />
         <MainShell>{children}</MainShell>
         <Toaster
-          position="bottom-right"
+          position="bottom-center"
+          containerStyle={{
+            bottom:
+              "calc(14px + var(--compare-bar-pad, 0px) + max(var(--guest-nav-bottom-offset, 0px), var(--mobile-safe-bottom)))",
+          }}
           toastOptions={{
             className: "font-sans text-sm font-medium",
             style: {

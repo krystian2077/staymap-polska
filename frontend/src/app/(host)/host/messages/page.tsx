@@ -196,14 +196,14 @@ export default function HostMessagesPage() {
     <section className="mx-auto w-full max-w-[1440px] px-3 py-6 md:px-6 md:py-8">
       <div
         className={cn(
-          "grid w-full overflow-hidden rounded-[24px] border border-brand-dark/[.07] bg-white",
+          "grid w-full overflow-hidden rounded-[16px] border border-brand-dark/[.07] bg-white sm:rounded-[24px]",
           "shadow-[0_2px_0_0_rgba(15,23,42,0.03),0_28px_56px_-30px_rgba(15,23,42,0.26),0_0_0_1px_rgba(255,255,255,0.8)_inset]",
           "md:grid-cols-[minmax(260px,320px)_1fr]",
-          "h-[min(920px,calc(100dvh-6rem))] min-h-[520px]"
+          "h-[calc(100dvh-var(--nav-h)-1rem)] min-h-[520px] md:h-[min(920px,calc(100dvh-6rem))]"
         )}
       >
         {/* Lista konwersacji */}
-        <div className="flex min-h-0 flex-col border-brand-dark/[.06] bg-gradient-to-b from-[#f6faf8] via-[#fbfcfb] to-[#f0f5f2] md:border-r md:border-brand-dark/[.05]">
+        <div className={cn("flex min-h-0 flex-col border-brand-dark/[.06] bg-gradient-to-b from-[#f6faf8] via-[#fbfcfb] to-[#f0f5f2] md:border-r md:border-brand-dark/[.05]", activeConv ? "hidden md:flex" : "flex")}>
           <div className="relative overflow-hidden border-b border-white/10 bg-gradient-to-br from-[#0c4d26] via-brand-dark to-[#14532d] px-4 py-4 text-white md:px-5">
             <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
             <div className="pointer-events-none absolute -bottom-6 left-1/4 h-20 w-36 rounded-full bg-emerald-400/15 blur-2xl" />
@@ -311,7 +311,7 @@ export default function HostMessagesPage() {
         </div>
 
         {/* Panel wątku */}
-        <div className="relative flex min-h-0 flex-col overflow-hidden bg-[#f3f7f5] dark:bg-[var(--bg1)]">
+        <div className={cn("relative min-h-0 flex-col overflow-hidden bg-[#f3f7f5] dark:bg-[var(--bg1)]", activeConv ? "flex" : "hidden md:flex")}>
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.35]"
             style={{
@@ -324,8 +324,16 @@ export default function HostMessagesPage() {
 
           {activeConv ? (
             <>
-              <header className="relative z-[1] flex flex-col gap-3 border-b border-brand-dark/[.07] bg-white/85 px-4 py-4 backdrop-blur-md sm:flex-row sm:items-center sm:gap-4 sm:px-6">
+              <header className="relative z-[1] flex flex-col gap-3 border-b border-brand-dark/[.07] bg-white/85 px-3.5 py-3 backdrop-blur-md sm:flex-row sm:items-center sm:gap-4 sm:px-6 sm:py-4">
                 <div className="flex min-w-0 flex-1 items-center gap-3.5">
+                  <button
+                    type="button"
+                    onClick={() => setActiveConv(null)}
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-brand-dark/[.08] bg-white text-brand-dark md:hidden"
+                    aria-label="Wróć do listy rozmów"
+                  >
+                    ←
+                  </button>
                   <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-brand-muted to-emerald-100/80 text-sm font-bold text-brand-dark shadow-inner ring-2 ring-white">
                     {activeConv.guest.avatar_url ? (
                       <Image
@@ -371,7 +379,7 @@ export default function HostMessagesPage() {
 
               <div
                 ref={messagesScrollRef}
-                className="relative z-[1] flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain px-4 py-5 sm:px-6"
+                className="relative z-[1] flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto overscroll-y-contain px-3.5 py-3.5 sm:px-6 sm:py-5"
               >
                 {activeMessages.map((m, idx) => {
                   const d = new Date(m.created_at);
@@ -395,7 +403,7 @@ export default function HostMessagesPage() {
                       <div className={cn("flex gap-2.5", mine ? "flex-row-reverse" : "flex-row")}>
                         <div
                           className={cn(
-                            "max-w-[min(92%,520px)] rounded-[20px] px-4 py-3 text-[14px] leading-relaxed shadow-[0_10px_40px_-24px_rgba(15,23,42,0.45)]",
+                            "max-w-[92%] rounded-[20px] px-3.5 py-3 text-[14px] leading-relaxed shadow-[0_10px_40px_-24px_rgba(15,23,42,0.45)] sm:max-w-[min(92%,520px)] sm:px-4",
                             mine
                               ? "rounded-br-md bg-gradient-to-br from-[#0f5f2e] via-brand-dark to-[#134e2e] text-white"
                               : "rounded-bl-md bg-white text-text shadow-sm ring-1 ring-black/[.05] dark:bg-[var(--bg2)] dark:ring-white/10"
@@ -493,11 +501,11 @@ function ChatInput({
           <div className="mx-auto max-w-[960px]">{templateSlot}</div>
         </div>
       ) : null}
-      <div className="px-3 pb-4 pt-3 sm:px-5 sm:pb-5">
+      <div className="px-3 pb-[calc(10px+var(--mobile-safe-bottom))] pt-2.5 sm:px-5 sm:pb-5 sm:pt-3">
         <div className="mx-auto max-w-[960px]">
           <div className="flex flex-col gap-3 rounded-2xl border border-brand-dark/[.06] bg-white p-2.5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.45),inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-black/[.03] dark:border-brand-border dark:bg-[var(--bg2)] dark:ring-white/5 sm:flex-row sm:items-stretch sm:gap-3 sm:p-3">
             <textarea
-              className="input min-h-[112px] w-full flex-1 resize-y rounded-xl border-0 bg-transparent px-3 py-2.5 text-[14px] leading-relaxed text-brand-dark shadow-none placeholder:text-text-muted/65 focus:ring-0 dark:text-[var(--foreground)] md:min-h-[120px]"
+              className="input min-h-[100px] w-full flex-1 resize-y rounded-xl border-0 bg-transparent px-3 py-2.5 text-[14px] leading-relaxed text-brand-dark shadow-none placeholder:text-text-muted/65 focus:ring-0 dark:text-[var(--foreground)] md:min-h-[120px]"
               style={{ maxHeight: "min(280px, 38vh)" }}
               rows={4}
               value={value}

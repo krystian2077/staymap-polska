@@ -38,7 +38,37 @@ export function ListingGallery({
 
   return (
     <div className="relative mb-0 overflow-hidden rounded-[22px] shadow-lg ring-1 ring-black/[0.06] group/gallery">
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-[2fr_1fr_1fr] md:grid-rows-[240px_240px]">
+      {/* Mobile: poziomy scroll + snap (gest jak w aplikacjach rezerwacji) */}
+      <div className="scrollbar-hide flex snap-x snap-mandatory gap-0 overflow-x-auto overscroll-x-contain md:hidden">
+        {ordered.length === 0 ? (
+          <div className="relative flex min-h-[min(72vw,320px)] w-full shrink-0 snap-center items-center justify-center bg-gradient-to-br from-brand to-brand-dark text-8xl">
+            {typeIcon}
+          </div>
+        ) : (
+          ordered.map((im) => (
+            <div
+              key={im.id}
+              className="relative aspect-[4/3] min-h-[min(72vw,320px)] w-full shrink-0 snap-center"
+            >
+              {url(im) ? (
+                <Image
+                  src={url(im)!}
+                  alt={im.alt_text || ""}
+                  fill
+                  className="object-cover"
+                  sizes="100vw"
+                  priority={im === main}
+                  unoptimized
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center bg-brand-muted text-6xl">{typeIcon}</div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="hidden grid-cols-1 gap-2 md:grid md:grid-cols-[2fr_1fr_1fr] md:grid-rows-[240px_240px]">
         <div className="relative row-span-1 min-h-[260px] overflow-hidden md:row-span-2 md:min-h-0">
           {main && url(main) ? (
             <Image
@@ -79,7 +109,7 @@ export function ListingGallery({
         <button
           type="button"
           onClick={() => setModal(true)}
-          className="absolute bottom-4 right-4 flex items-center gap-2 rounded-xl border border-gray-200 bg-white/95 px-4 py-2 text-sm font-black text-brand-dark shadow-xl transition-all hover:bg-brand hover:text-white hover:border-brand"
+          className="absolute bottom-4 right-4 flex min-h-[var(--tap-min)] items-center gap-2 rounded-xl border border-gray-200 bg-white/95 px-4 py-2 text-sm font-black text-brand-dark shadow-xl transition-all hover:border-brand hover:bg-brand hover:text-white"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />

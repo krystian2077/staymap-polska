@@ -512,7 +512,7 @@ export default function SearchPageClient() {
   return (
     <div
       className="flex bg-white dark:bg-[var(--background)]"
-      style={{ height: "calc(100dvh - 88px)", overflow: "hidden" }}
+      style={{ height: "calc(100dvh - var(--nav-h))", overflow: "hidden" }}
     >
       {/* ── LEFT — results rail (desktop only) ─────────────────────────── */}
       <aside
@@ -595,8 +595,8 @@ export default function SearchPageClient() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-400/10 blur-[120px] rounded-full pointer-events-none" />
 
         {/* Top search / filter bar */}
-        <div className="z-20 flex flex-col items-center border-b border-white/5 bg-brand-950/40 backdrop-blur-xl overflow-x-auto scrollbar-hide relative overflow-hidden">
-          <div className="relative z-10 flex min-w-max items-center justify-center gap-5 px-6 py-7 sm:px-10">
+        <div className="relative z-20 flex flex-col items-center overflow-hidden border-b border-white/5 bg-brand-950/40 backdrop-blur-xl">
+          <div className="relative z-10 flex w-full max-w-[1500px] flex-wrap items-center justify-center gap-3 px-4 py-4 sm:px-6 lg:gap-4 lg:px-8 lg:py-5">
             <MyLocationButton
               onLocationFound={handleLocationFound}
               onClearLocation={handleLocationCleared}
@@ -609,7 +609,9 @@ export default function SearchPageClient() {
               onSearch={handleFiltersSearch}
               className="hidden lg:flex"
             />
-            <HeroSearchBar variant="strip" />
+            <div className="w-full min-w-0 lg:w-auto lg:min-w-[640px] xl:min-w-[820px]">
+              <HeroSearchBar variant="strip" />
+            </div>
             <SearchFiltersPanel
               params={params}
               onChange={handleFiltersChange}
@@ -634,7 +636,7 @@ export default function SearchPageClient() {
           </div>
 
           {/* Active filter chips */}
-          <SearchFiltersBar
+           <SearchFiltersBar
             params={params}
             onRemove={(update) => {
               handleFiltersChange(update);
@@ -642,7 +644,7 @@ export default function SearchPageClient() {
               const newQ = buildSearchQueryString(newParams);
               router.replace(`/search?${newQ}`);
             }}
-            className="lg:justify-center px-6 pb-5 relative z-10"
+             className="relative z-10 px-4 pb-4 sm:px-6 lg:justify-center lg:px-6 lg:pb-5"
           />
         </div>
 
@@ -670,12 +672,13 @@ export default function SearchPageClient() {
                 type="button"
                 onClick={() => setMobileBottomSheetOpen(!mobileBottomSheetOpen)}
                 className={cn(
-                  "absolute bottom-6 left-1/2 z-[800] -translate-x-1/2",
-                  "flex items-center gap-2 rounded-full px-5 py-3 text-[13px] font-bold text-white",
+                  "absolute left-1/2 z-[135] -translate-x-1/2",
+                  "flex min-h-[44px] items-center gap-2 rounded-full px-5 py-3 text-[13px] font-bold text-white",
                   "shadow-[0_4px_20px_rgba(0,0,0,.28)] transition-all duration-200 active:scale-95",
                   "lg:hidden",
                   mobileBottomSheetOpen ? "bg-brand-dark" : "bg-brand",
                 )}
+                style={{ bottom: "calc(1rem + var(--mobile-safe-bottom))" }}
                 aria-label="Pokaż listę ofert"
               >
                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -727,8 +730,8 @@ export default function SearchPageClient() {
       {/* ── Save search modal ───────────────────────────────────────────── */}
       <Dialog.Root open={saveOpen} onOpenChange={setSaveOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-[300] bg-black/50 backdrop-blur-sm" />
-          <Dialog.Content className="fixed left-1/2 top-1/2 z-[301] w-[min(92vw,400px)] -translate-x-1/2 -translate-y-1/2 rounded-[20px] border border-gray-200 bg-white p-7 shadow-xl">
+          <Dialog.Overlay className="fixed inset-0 z-[600] bg-black/50 backdrop-blur-sm" />
+          <Dialog.Content className="fixed inset-x-0 bottom-0 z-[601] mx-auto flex max-h-[min(88dvh,calc(100dvh-env(safe-area-inset-bottom)))] w-full max-w-[min(92vw,400px)] flex-col rounded-t-[1.25rem] border border-gray-200 bg-white p-5 shadow-xl outline-none sm:left-1/2 sm:top-1/2 sm:bottom-auto sm:max-h-none sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-[20px] sm:p-7">
             <Dialog.Title className="text-lg font-extrabold text-brand-dark">
               Zapisz wyszukiwanie
             </Dialog.Title>
