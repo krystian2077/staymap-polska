@@ -26,23 +26,23 @@ export default function HostPayoutsPage() {
       </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl bg-white p-5 shadow-card ring-1 ring-black/[.04]">
+        <div className="host-card p-5">
           <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Łączne zarobki</p>
           <p className="mt-2 text-2xl font-extrabold text-brand-dark">{formatPLN(totalEarnings)}</p>
         </div>
-        <div className="rounded-2xl bg-white p-5 shadow-card ring-1 ring-black/[.04]">
+        <div className="host-card p-5">
           <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Wypłacono</p>
           <p className="mt-2 text-2xl font-extrabold text-emerald-700">{formatPLN(paidOut)}</p>
         </div>
-        <div className="rounded-2xl bg-white p-5 shadow-card ring-1 ring-black/[.04]">
+        <div className="host-card p-5">
           <p className="text-xs font-bold uppercase tracking-wider text-text-muted">Do wypłaty</p>
           <p className="mt-2 text-2xl font-extrabold text-amber-700">{formatPLN(pendingPayout)}</p>
         </div>
       </div>
 
-      <div className="rounded-2xl bg-white p-6 shadow-card ring-1 ring-black/[.04]">
+      <div className="host-card p-6">
         <h2 className="text-sm font-extrabold text-brand-dark">Metoda wypłaty</h2>
-        <div className="mt-4 rounded-xl bg-[#f7f9f8] px-5 py-4">
+        <div className="host-card-muted mt-4 px-5 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-muted text-lg">
               🏦
@@ -59,7 +59,7 @@ export default function HostPayoutsPage() {
           {stats && (stats.revenue_this_month > 0 || stats.revenue_last_month > 0) ? (
             <div className="mt-3 space-y-2">
               {stats.revenue_last_month > 0 && (
-                <div className="flex items-center justify-between rounded-lg border border-brand-dark/[.04] px-4 py-3">
+                <div className="flex items-center justify-between rounded-lg border border-brand-dark/[.04] px-4 py-3 dark:border-brand-border/45">
                   <div>
                     <p className="text-sm font-medium text-brand-dark">Wypłata za poprzedni miesiąc</p>
                     <p className="text-xs text-text-muted">Automatycznie przetworzona</p>
@@ -71,7 +71,7 @@ export default function HostPayoutsPage() {
                 </div>
               )}
               {stats.revenue_this_month > 0 && (
-                <div className="flex items-center justify-between rounded-lg border border-brand-dark/[.04] px-4 py-3">
+                <div className="flex items-center justify-between rounded-lg border border-brand-dark/[.04] px-4 py-3 dark:border-brand-border/45">
                   <div>
                     <p className="text-sm font-medium text-brand-dark">Bieżący miesiąc</p>
                     <p className="text-xs text-text-muted">W trakcie naliczania</p>

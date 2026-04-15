@@ -155,6 +155,47 @@ class TestBookingService:
                 children=0,
             )
 
+    def test_create_rejects_guests_above_listing_max(self, approved_listing, guest_user):
+        with pytest.raises(ValidationError):
+            BookingService.create_booking(
+                listing_id=approved_listing.id,
+                guest=guest_user,
+                check_in=date.today() + timedelta(days=321),
+                check_out=date.today() + timedelta(days=323),
+                guests_count=approved_listing.max_guests + 1,
+                adults=approved_listing.max_guests + 1,
+                children=0,
+            )
+
+    def test_create_persists_cost_split(self, approved_listing, guest_user):
+        b = BookingService.create_booking(
+            listing_id=approved_listing.id,
+            guest=guest_user,
+            check_in=date.today() + timedelta(days=322),
+            check_out=date.today() + timedelta(days=324),
+            guests_count=2,
+            adults=2,
+            children=0,
+            cost_split={"people": 2},
+        )
+        split = b.pricing_breakdown.get("cost_split")
+        assert split is not None
+        assert split["people"] == 2
+
+    def test_create_applies_adult_and_child_surcharges(self, approved_listing, guest_user):
+        b = BookingService.create_booking(
+            listing_id=approved_listing.id,
+            guest=guest_user,
+            check_in=date.today() + timedelta(days=323),
+            check_out=date.today() + timedelta(days=325),
+            guests_count=3,
+            adults=2,
+            children=1,
+            pets=2,
+        )
+        assert Decimal(str(b.pricing_breakdown.get("adults_surcharge_total", "0"))) > Decimal("0")
+        assert Decimal(str(b.pricing_breakdown.get("children_surcharge_total", "0"))) > Decimal("0")
+
     def test_append_status_noop_same_status(self, approved_listing, guest_user):
         ci = date.today() + timedelta(days=330)
         co = ci + timedelta(days=2)

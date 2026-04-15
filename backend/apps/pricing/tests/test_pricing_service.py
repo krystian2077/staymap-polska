@@ -4,7 +4,6 @@ from decimal import Decimal
 import pytest
 
 from apps.common.exceptions import PricingError
-from apps.listings.models import Listing
 from apps.pricing.models import LongStayDiscountRule, SeasonalPricingRule
 from apps.pricing.services import PricingService
 
@@ -17,12 +16,33 @@ class TestPricingService:
         listing.save()
         d0 = date.today() + timedelta(days=10)
         d1 = d0 + timedelta(days=3)
-        r = PricingService.calculate(listing, d0, d1, guests=2)
+        r = PricingService.calculate(listing, d0, d1, guests=1, adults=1, children=0)
         assert r["nights"] == 3
         assert Decimal(r["accommodation_subtotal"]) == Decimal("600")
         assert Decimal(r["cleaning_fee"]) == Decimal("100")
         assert Decimal(r["service_fee"]) == Decimal("90")
         assert Decimal(r["total"]) == Decimal("790")
+
+    def test_extra_adults_and_children_surcharge(self, listing):
+        listing.base_price = Decimal("100")
+        listing.cleaning_fee = Decimal("0")
+        listing.save()
+        d0 = date.today() + timedelta(days=14)
+        d1 = d0 + timedelta(days=2)
+
+        # 2 noce, 2 dorosłych + 1 dziecko:
+        # baza: 100*2 = 200
+        # dopłata dorosły: 10%*100*2 = 20
+        # dopłata dziecko: 5%*100*2 = 10
+        # subtotal: 230, service 15%: 34.50, total: 264.50
+        r = PricingService.calculate(listing, d0, d1, guests=3, adults=2, children=1, pets=2)
+
+        assert Decimal(r["adults_surcharge_total"]) == Decimal("20.00")
+        assert Decimal(r["children_surcharge_total"]) == Decimal("10.00")
+        assert Decimal(r["guest_surcharge_total"]) == Decimal("30.00")
+        assert Decimal(r["accommodation_subtotal"]) == Decimal("200.00")
+        assert Decimal(r["service_fee"]) == Decimal("34.50")
+        assert Decimal(r["total"]) == Decimal("264.50")
 
     def test_long_stay_discount(self, listing):
         listing.base_price = Decimal("100")

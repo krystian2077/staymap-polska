@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 
 from apps.ai_assistant.models import AiFilterInterpretation, AiRecommendation, AiTravelSession
@@ -15,12 +18,56 @@ from apps.listings.models import Listing
 from apps.search.serializers import ListingSearchSerializer
 
 
-def _serialize_ai_results(rows, filters: dict | None, request=None) -> list[dict]:
+def _fallback_match_explanation(listing: Listing, filters: Optional[dict]) -> tuple[str, list[str]]:
+    f = filters if isinstance(filters, dict) else {}
+    loc = getattr(listing, "location", None)
+    highlights: list[str] = []
+    if f.get("near_forest") and getattr(loc, "near_forest", False):
+        highlights.append("blisko lasu")
+    if f.get("near_lake") and getattr(loc, "near_lake", False):
+        highlights.append("blisko jeziora")
+    if f.get("near_mountains") and getattr(loc, "near_mountains", False):
+        highlights.append("blisko gór")
+    if f.get("sauna"):
+        amenities = listing.amenities if isinstance(listing.amenities, list) else []
+        amenity_tokens = {
+            (str(item.get("id") or item.get("name") or "") if isinstance(item, dict) else str(item)).lower()
+            for item in amenities
+        }
+        if "sauna" in amenity_tokens or "private_sauna" in amenity_tokens:
+            highlights.append("prywatna sauna")
+    if listing.average_rating:
+        highlights.append(f"ocena {float(listing.average_rating):.1f}")
+    highlights = highlights[:3]
+    if highlights:
+        return (
+            f"Ta oferta pasuje do Twojego zapytania. Najmocniejsze argumenty: {', '.join(highlights)}.",
+            highlights,
+        )
+    return (
+        "Ta oferta pasuje do Twoich preferencji i profilu wyjazdu. Sprawdza się pod kątem lokalizacji oraz parametrów pobytu.",
+        [],
+    )
+
+
+def _serialize_ai_results(rows, filters: Optional[dict], request=None, rec_by_listing_id: Optional[dict] = None) -> list[dict]:
     out: list[dict] = []
     mode = (filters or {}).get("travel_mode") if isinstance(filters, dict) else None
     for rank, listing in enumerate(rows):
         ser = ListingSearchSerializer(listing, context={"request": request})
         base_data = ser.data
+        rec = (rec_by_listing_id or {}).get(str(listing.id)) if isinstance(rec_by_listing_id, dict) else None
+        explanation = ""
+        highlights: list[str] = []
+        if rec is not None:
+            explanation = str(getattr(rec, "match_explanation", "") or "")
+            raw_highlights = getattr(rec, "match_highlights", [])
+            if isinstance(raw_highlights, list):
+                highlights = [str(x) for x in raw_highlights if str(x).strip()][:3]
+        if not explanation:
+            explanation, fallback_highlights = _fallback_match_explanation(listing, filters)
+            if not highlights:
+                highlights = fallback_highlights
         out.append(
             {
                 **base_data,
@@ -29,6 +76,8 @@ def _serialize_ai_results(rows, filters: dict | None, request=None) -> list[dict
                 "match_reasons": [
                     f"Idealne dla trybu {mode}" if mode else "Pasuje do Twoich wymagań"
                 ],
+                "match_explanation": explanation,
+                "match_highlights": highlights,
             }
         )
     return out
@@ -128,10 +177,12 @@ def _session_payload(session: AiTravelSession, request=None) -> dict:
         )
 
         if recs:
+            rec_by_listing_id = {str(r.listing_id): r for r in recs}
             data["results"] = _serialize_ai_results(
                 [r.listing for r in recs],
                 data["filters"],
                 request=request,
+                rec_by_listing_id=rec_by_listing_id,
             )
         elif session.result_listing_ids:
             # Fallback: when recommendations were not persisted, render top listings from session ids.
@@ -148,8 +199,13 @@ def _session_payload(session: AiTravelSession, request=None) -> dict:
             ordered_rows = [by_id[str(pk)] for pk in id_list if str(pk) in by_id]
             data["results"] = _serialize_ai_results(ordered_rows, data["filters"], request=request)
 
-    # Bezpieczny fallback: nawet bez interpretacji oddaj wyniki zapisane w sesji.
-    if not data["results"] and session.result_listing_ids:
+    # Nie pokazuj starych wyników w trakcie przetwarzania follow-up (pending/processing),
+    # bo użytkownik oczekuje nowych ofert pod nowe kryteria.
+    if (
+        not data["results"]
+        and session.result_listing_ids
+        and session.status == AiTravelSession.Status.COMPLETE
+    ):
         id_list = list(session.result_listing_ids)[:24]
         qs = (
             Listing.objects.filter(pk__in=id_list, status=Listing.Status.APPROVED)
@@ -221,3 +277,34 @@ class AiSearchViewSet(ViewSet):
             pk=pk,
         )
         return Response({"data": _session_payload(session, request), "meta": {}})
+
+
+class AiSessionHistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        sessions = (
+            AiTravelSession.objects.filter(
+                user=request.user,
+                status=AiTravelSession.Status.COMPLETE,
+            )
+            .order_by("-created_at")[:20]
+        )
+        result = []
+        for session in sessions:
+            prompt = session.prompts.order_by("-created_at").first()
+            interp = None
+            if prompt:
+                interp = AiFilterInterpretation.objects.filter(prompt=prompt).first()
+            prompt_text = (prompt.raw_text[:200] if prompt and prompt.raw_text else "") or ""
+            summary = (interp.summary_pl[:300] if interp and interp.summary_pl else "") or ""
+            result.append(
+                {
+                    "session_id": str(session.id),
+                    "prompt": prompt_text,
+                    "summary_pl": summary,
+                    "result_count": int(session.result_total_count or 0),
+                    "created_at": session.created_at.isoformat(),
+                }
+            )
+        return Response({"results": result})

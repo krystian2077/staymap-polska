@@ -228,7 +228,7 @@ export function ListingCard({
     <Link
       href={`/listing/${listing.slug}`}
       className={cn(
-        "card-hover group relative block overflow-hidden rounded-[18px] border border-gray-200 bg-white shadow-card",
+        "card-hover group relative block overflow-hidden rounded-[18px] border border-gray-200 bg-white shadow-card dark:border-brand-border dark:bg-[var(--bg2)]",
         ripple && "ring-2 ring-brand/40"
       )}
       onMouseEnter={() => onHover?.(true)}

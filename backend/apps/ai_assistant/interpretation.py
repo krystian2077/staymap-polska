@@ -125,6 +125,11 @@ def normalized_search_params_from_llm(llm: dict[str, Any]) -> tuple[dict[str, An
         if bv is True:
             params[tag] = True
 
+    sauna = _parse_bool(llm.get("sauna"))
+    if sauna is True:
+        # SearchOrchestrator filtruje po "amenities".
+        params["amenities"] = ["sauna", "private_sauna"]
+
     quiet_min = _parse_int(llm.get("quiet_score_min"))
     if llm.get("quiet_score_min") not in (None, ""):
         if quiet_min is None:

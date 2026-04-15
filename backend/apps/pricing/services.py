@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from decimal import Decimal
+from typing import Optional
 
 from django.conf import settings
 
@@ -37,6 +38,9 @@ class PricingService:
         check_in: date,
         check_out: date,
         guests: int = 1,
+        adults: Optional[int] = None,
+        children: int = 0,
+        pets: int = 0,
     ) -> dict:
         if check_out <= check_in:
             raise PricingError("Data wyjazdu musi być późniejsza niż przyjazdu.")
@@ -45,30 +49,48 @@ class PricingService:
         if guests > listing.max_guests:
             raise PricingError("Przekroczono maksymalną liczbę gości dla tej oferty.")
 
+        ad = adults if adults is not None else guests
+        ch = max(0, int(children))
+        pt = max(0, int(pets))
+        if ad < 1:
+            raise PricingError("Wymagany jest co najmniej jeden dorosły.")
+        if ad + ch != guests:
+            raise PricingError("Liczba gości musi być równa dorosłym + dzieciom.")
+
         nights = (check_out - check_in).days
         currency = listing.currency
         cleaning = listing.cleaning_fee or Decimal("0")
         svc_pct = _service_fee_percent()
 
-        extra_guests = max(0, guests - listing.guests_included)
-        extra_fee_per_night = (Decimal(str(extra_guests)) * listing.extra_guest_fee).quantize(Decimal("0.01"))
+        extra_adults = max(0, ad - 1)
+        extra_children = ch
+        adult_pct = Decimal("0.10")
+        child_pct = Decimal("0.05")
 
         custom_map = cls._custom_prices_map(listing, check_in, check_out)
         nightly_lines = []
         accommodation_base_total = Decimal("0")
-        extra_guests_total = Decimal("0")
+        adults_surcharge_total = Decimal("0")
+        children_surcharge_total = Decimal("0")
 
         for d in _iter_nights(check_in, check_out):
             base = custom_map.get(d, listing.base_price)
             seasonal = cls._seasonal_multiplier(listing, d)
             holiday = cls._holiday_multiplier(listing, d)
             
-            # Cena za noc (obiekt)
+            # Cena za noc dla 1 osoby
             nightly_base = (base * seasonal * holiday).quantize(Decimal("0.01"))
-            
+            adults_surcharge_per_night = (
+                nightly_base * Decimal(str(extra_adults)) * adult_pct
+            ).quantize(Decimal("0.01"))
+            children_surcharge_per_night = (
+                nightly_base * Decimal(str(extra_children)) * child_pct
+            ).quantize(Decimal("0.01"))
+
             accommodation_base_total += nightly_base
-            extra_guests_total += extra_fee_per_night
-            
+            adults_surcharge_total += adults_surcharge_per_night
+            children_surcharge_total += children_surcharge_per_night
+
             nightly_lines.append(
                 {
                     "date": d.isoformat(),
@@ -76,13 +98,17 @@ class PricingService:
                     "seasonal_multiplier": str(seasonal),
                     "holiday_multiplier": str(holiday),
                     "nightly_base": str(nightly_base),
-                    "extra_guests_fee": str(extra_fee_per_night),
-                    "line_total": str(nightly_base + extra_fee_per_night),
+                    "adults_surcharge_fee": str(adults_surcharge_per_night),
+                    "children_surcharge_fee": str(children_surcharge_per_night),
+                    "line_total": str(
+                        nightly_base + adults_surcharge_per_night + children_surcharge_per_night
+                    ),
                 }
             )
 
-        # Suma przed rabatem (zakwaterowanie + goście)
-        subtotal_with_guests = accommodation_base_total + extra_guests_total
+        # Suma przed rabatem (zakwaterowanie + dopłaty osobowe)
+        guest_surcharge_total = (adults_surcharge_total + children_surcharge_total).quantize(Decimal("0.01"))
+        subtotal_with_guests = accommodation_base_total + guest_surcharge_total
 
         discount_pct = cls._long_stay_discount_percent(listing, nights)
         long_stay_discount = (subtotal_with_guests * discount_pct / Decimal("100")).quantize(Decimal("0.01"))
@@ -108,10 +134,21 @@ class PricingService:
         return {
             "nights": nights,
             "guests": guests,
+            "adults": ad,
+            "children": ch,
+            "pets": pt,
             "guests_included": listing.guests_included,
-            "extra_guests": extra_guests,
-            "extra_guest_fee_per_night": str(listing.extra_guest_fee),
-            "extra_guests_total": str(extra_guests_total),
+            "extra_adults": extra_adults,
+            "adult_surcharge_percent": str((adult_pct * Decimal("100")).quantize(Decimal("0.01"))),
+            "adults_surcharge_total": str(adults_surcharge_total),
+            "extra_children": extra_children,
+            "child_surcharge_percent": str((child_pct * Decimal("100")).quantize(Decimal("0.01"))),
+            "children_surcharge_total": str(children_surcharge_total),
+            "guest_surcharge_total": str(guest_surcharge_total),
+            # Zachowanie kompatybilności ze starym kontraktem UI/API.
+            "extra_guests": extra_adults + extra_children,
+            "extra_guest_fee_per_night": "0.00",
+            "extra_guests_total": str(guest_surcharge_total),
             "nightly_rate": str(avg_nightly_base),
             "seasonal_multiplier": str(avg_seasonal),
             "holiday_multiplier": str(avg_holiday),

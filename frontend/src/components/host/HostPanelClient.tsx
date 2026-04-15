@@ -222,7 +222,7 @@ export function HostPanelClient() {
         </p>
       ) : (
         <>
-          <div className="mt-8 flex flex-wrap gap-2 border-b border-gray-200 pb-2">
+          <div className="mt-8 flex flex-wrap gap-2 border-b border-gray-200 pb-2 dark:border-brand-border/50">
             <button
               type="button"
               onClick={() => setTab("listings")}
@@ -261,7 +261,7 @@ export function HostPanelClient() {
               ) : listings.length === 0 ? (
                 <p className="text-text-secondary">Brak ofert — utwórz pierwszą przez API lub seed.</p>
               ) : (
-                <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
+                <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white dark:divide-brand-border/40 dark:border-brand-border/50 dark:bg-[var(--bg2)]">
                   {listings.map((row) => (
                     <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
                       <div>
@@ -286,7 +286,7 @@ export function HostPanelClient() {
               ) : bookings.length === 0 ? (
                 <p className="text-text-secondary">Brak rezerwacji na Twoje oferty.</p>
               ) : (
-                <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white">
+                <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200 bg-white dark:divide-brand-border/40 dark:border-brand-border/50 dark:bg-[var(--bg2)]">
                   {bookings.map((b) => (
                     <li key={b.id} className="px-4 py-3">
                       <p className="font-semibold text-brand-dark">{b.listing_title}</p>
@@ -311,7 +311,7 @@ export function HostPanelClient() {
                   {modQueue.map((row) => (
                     <li
                       key={row.id}
-                      className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                      className="flex flex-col gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-brand-border/50 dark:bg-[var(--bg2)]"
                     >
                       <div>
                         <span className="font-semibold text-brand-dark">{row.title}</span>
@@ -365,7 +365,7 @@ export function HostPanelClient() {
         </>
       )}
 
-      <div className="mt-12 rounded-xl border border-gray-200 bg-gray-50/80 px-4 py-3 text-xs text-text-muted">
+      <div className="mt-12 rounded-xl border border-gray-200 bg-gray-50/80 px-4 py-3 text-xs text-text-muted dark:border-brand-border/50 dark:bg-[var(--bg3)]">
         <strong className="text-brand-dark">Wiadomości (API):</strong>{" "}
         <code>GET/POST /api/v1/conversations/</code>,{" "}
         <code>GET/POST /api/v1/conversations/{"{id}"}/messages/</code>, WebSocket{" "}

@@ -41,3 +41,10 @@ def test_json_safe_normalized_params_date():
     out = json_safe_normalized_params({"date_from": date(2025, 7, 1)})
     assert out["date_from"] == "2025-07-01"
 
+
+def test_normalized_search_params_sauna_maps_to_amenities():
+    params, errs = normalized_search_params_from_llm({"sauna": True, "ordering": "recommended"})
+    assert not errs
+    assert params.get("amenities") == ["sauna", "private_sauna"]
+
+

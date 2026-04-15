@@ -65,7 +65,7 @@ function WishlistCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.9 }}
       className={cn(
-        "group relative cursor-pointer overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-sm transition-all duration-500 hover:border-brand-border/50 hover:shadow-xl hover:shadow-brand/5",
+        "group relative cursor-pointer overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-sm transition-all duration-500 hover:border-brand-border/50 hover:shadow-xl hover:shadow-brand/5 dark:border-white/15 dark:bg-[var(--bg2)] dark:shadow-[0_16px_36px_-20px_rgba(0,0,0,.45)]",
         removing && "pointer-events-none scale-95 opacity-50",
         isSelected && "ring-2 ring-brand ring-offset-2"
       )}
@@ -103,7 +103,7 @@ function WishlistCard({
 
         <button
           type="button"
-          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-lg text-rose-600 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-white active:scale-95"
+          className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-lg text-rose-600 shadow-lg backdrop-blur-md transition-all hover:scale-110 hover:bg-white active:scale-95 dark:bg-[var(--bg3)]/90"
           aria-label="Usuń z ulubionych"
           onClick={(e) => {
             e.stopPropagation();
@@ -119,7 +119,7 @@ function WishlistCard({
             "absolute bottom-4 right-4 flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black shadow-lg backdrop-blur-md transition-all active:scale-95",
             isSelected
               ? "bg-brand text-white"
-              : "bg-white/90 text-brand-dark hover:bg-white"
+              : "bg-white/90 text-brand-dark hover:bg-white dark:bg-[var(--bg3)] dark:text-white"
           )}
           onClick={(e) => {
             e.stopPropagation();
@@ -136,25 +136,25 @@ function WishlistCard({
 
       <div className="p-5">
         <div className="mb-2 flex items-start justify-between gap-2">
-          <h3 className="line-clamp-2 text-base font-black leading-tight text-brand-dark group-hover:text-brand transition-colors">
+          <h3 className="line-clamp-2 text-base font-black leading-tight text-brand-dark transition-colors group-hover:text-brand dark:text-white dark:group-hover:text-brand-light">
             {listing.title}
           </h3>
           {listing.average_rating != null && (
-            <div className="flex shrink-0 items-center gap-1 rounded-lg bg-brand-surface px-2 py-1 text-xs font-black text-brand-dark">
+            <div className="flex shrink-0 items-center gap-1 rounded-lg bg-brand-surface px-2 py-1 text-xs font-black text-brand-dark dark:bg-[var(--bg3)] dark:text-white">
               ⭐ {Number(listing.average_rating).toFixed(1)}
             </div>
           )}
         </div>
         
-        <p className="mb-4 flex items-center gap-1.5 text-[13px] font-medium text-text-muted">
+        <p className="mb-4 flex items-center gap-1.5 text-[13px] font-medium text-text-muted dark:text-white/70">
           <span className="text-sm">📍</span>
           {city}, {region}
         </p>
 
-        <div className="flex items-center justify-between border-t border-gray-50 pt-4">
+        <div className="flex items-center justify-between border-t border-gray-50 pt-4 dark:border-white/15">
           <div>
             <span className="block text-[11px] font-black uppercase tracking-widest text-text-muted">Cena za noc</span>
-            <span className="text-lg font-black text-brand-dark">
+            <span className="text-lg font-black text-brand-dark dark:text-white">
               {listing.base_price} {listing.currency}
             </span>
           </div>
@@ -205,8 +205,9 @@ function ComparisonDialog({
         { key: 'workation', label: 'Praca zdalna' }
       ];
       
+      const scoreCache = (l.destination_score_cache ?? {}) as Record<string, number>;
       const top = scores
-        .map(s => ({ label: s.label, score: (l.destination_score_cache as any)?.[s.key] ?? 0 }))
+        .map(s => ({ label: s.label, score: scoreCache[s.key] ?? 0 }))
         .filter(s => s.score >= 8)
         .sort((a, b) => b.score - a.score)
         .slice(0, 2);
@@ -274,15 +275,15 @@ function ComparisonDialog({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm animate-in fade-in duration-300" />
-        <Dialog.Content className="fixed left-1/2 top-[12vh] z-[101] flex max-h-[78vh] w-[95vw] max-w-7xl -translate-x-1/2 flex-col rounded-[32px] bg-white p-0 shadow-2xl animate-in zoom-in-95 duration-300 focus:outline-none overflow-hidden border border-gray-100">
-          <div className="flex items-center justify-between border-b border-gray-100 px-8 py-6">
+        <Dialog.Content className="fixed left-1/2 top-[12vh] z-[101] flex max-h-[78vh] w-[95vw] max-w-7xl -translate-x-1/2 flex-col rounded-[32px] bg-white p-0 shadow-2xl animate-in zoom-in-95 duration-300 focus:outline-none overflow-hidden border border-gray-100 dark:border-white/15 dark:bg-[var(--bg2)] dark:shadow-[0_24px_60px_-20px_rgba(0,0,0,.55)]">
+          <div className="flex items-center justify-between border-b border-gray-100 px-8 py-6 dark:border-white/15">
             <div>
-              <Dialog.Title className="text-2xl font-black text-brand-dark">Porównaj oferty</Dialog.Title>
-              <Dialog.Description className="text-sm font-medium text-text-muted">
+              <Dialog.Title className="text-2xl font-black text-brand-dark dark:text-white">Porównaj oferty</Dialog.Title>
+              <Dialog.Description className="text-sm font-medium text-text-muted dark:text-white/70">
                 Porównujesz {listings.length} wybrane miejsca
               </Dialog.Description>
             </div>
-            <Dialog.Close className="rounded-full bg-gray-100 p-2 text-gray-500 hover:bg-gray-200 transition-colors">
+            <Dialog.Close className="rounded-full bg-gray-100 p-2 text-gray-500 transition-colors hover:bg-gray-200 dark:bg-[var(--bg3)] dark:text-white/70 dark:hover:bg-[var(--bg)]">
               ✕
             </Dialog.Close>
           </div>
@@ -290,9 +291,9 @@ function ComparisonDialog({
           <div className="flex-1 overflow-auto px-8 py-6">
             <div className="grid" style={{ gridTemplateColumns: `140px repeat(${listings.length}, minmax(200px, 1fr))` }}>
               {/* Header: Images & Titles */}
-              <div className="sticky left-0 bg-white" />
+              <div className="sticky left-0 bg-white dark:bg-[var(--bg2)]" />
               {listings.map(l => (
-                <div key={l.id} className="px-4 pb-6 border-l border-gray-50 first:border-l-0">
+                <div key={l.id} className="border-l border-gray-50 px-4 pb-6 first:border-l-0 dark:border-white/10">
                   <div className="relative aspect-video mb-4 overflow-hidden rounded-2xl bg-brand-surface shadow-inner group">
                     {(() => {
                       const img = l.images?.find(i => i.is_cover)?.display_url ?? l.images?.[0]?.display_url;
@@ -314,18 +315,18 @@ function ComparisonDialog({
                     })()}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
                   </div>
-                  <h4 className="line-clamp-2 text-[13px] font-black leading-tight text-brand-dark min-h-[2.5rem]">{l.title}</h4>
+                  <h4 className="min-h-[2.5rem] line-clamp-2 text-[13px] font-black leading-tight text-brand-dark dark:text-white">{l.title}</h4>
                 </div>
               ))}
 
               {/* Rows */}
               {features.map((f, idx) => (
-                <div key={f.label} className={cn("contents group", idx % 2 === 0 ? "bg-white" : "bg-gray-50/50")}>
-                  <div className={cn("sticky left-0 flex items-center border-t border-gray-100 py-4 text-xs font-black uppercase tracking-wider text-text-muted", idx % 2 === 0 ? "bg-white" : "bg-gray-50")}>
+                <div key={f.label} className={cn("contents group", idx % 2 === 0 ? "bg-white dark:bg-[var(--bg2)]" : "bg-gray-50/50 dark:bg-[var(--bg3)]")}>
+                  <div className={cn("sticky left-0 flex items-center border-t border-gray-100 py-4 text-xs font-black uppercase tracking-wider text-text-muted dark:border-white/10 dark:text-white/65", idx % 2 === 0 ? "bg-white dark:bg-[var(--bg2)]" : "bg-gray-50 dark:bg-[var(--bg3)]")}>
                     {f.label}
                   </div>
                   {listings.map(l => (
-                    <div key={l.id} className="flex items-center border-t border-gray-100 px-4 py-4 text-sm font-bold text-brand-dark">
+                    <div key={l.id} className="flex items-center border-t border-gray-100 px-4 py-4 text-sm font-bold text-brand-dark dark:border-white/10 dark:text-white">
                       {f.getValue(l)}
                     </div>
                   ))}
@@ -334,7 +335,7 @@ function ComparisonDialog({
             </div>
           </div>
           
-          <div className="border-t border-gray-100 bg-gray-50 px-8 py-6 text-center">
+          <div className="border-t border-gray-100 bg-gray-50 px-8 py-6 text-center dark:border-white/10 dark:bg-[var(--bg3)]">
             <Dialog.Close className="btn-primary rounded-full px-12">
               Zamknij porównanie
             </Dialog.Close>
@@ -570,7 +571,7 @@ export default function WishlistPage() {
   const saved = savedPayload?.data ?? [];
 
   return (
-    <div className="min-h-screen bg-[#fafbfc] pb-20">
+      <div className="min-h-screen bg-[#fafbfc] pb-20 dark:bg-[var(--background)]">
       <div className="mx-auto max-w-[1400px] px-6 py-12 sm:px-10 lg:py-16">
         <header className="mb-10 flex flex-wrap items-end justify-between gap-6">
           <div>
@@ -582,15 +583,15 @@ export default function WishlistPage() {
               <span className="h-1.5 w-1.5 rounded-full bg-brand" />
               Twoja kolekcja
             </motion.div>
-            <h1 className="text-[clamp(32px,5vw,48px)] font-black leading-tight tracking-tight text-brand-dark">
+            <h1 className="text-[clamp(32px,5vw,48px)] font-black leading-tight tracking-tight text-brand-dark dark:text-white">
               Moje <span className="bg-gradient-to-r from-brand to-rose-500 bg-clip-text text-transparent">Ulubione</span>
             </h1>
-            <p className="mt-3 text-lg font-medium text-text-muted">
+            <p className="mt-3 text-lg font-medium text-text-muted dark:text-white/70">
               {items.length} zapisanych ofert gotowych do odkrycia.
             </p>
           </div>
           <div className="flex gap-3">
-            <button type="button" className="btn-secondary flex items-center gap-2 rounded-full border-gray-200 bg-white px-6 font-black text-brand-dark shadow-sm hover:border-brand-border" onClick={() => toast.success("Kolekcje będą dostępne już wkrótce!")}>
+            <button type="button" className="btn-secondary flex items-center gap-2 rounded-full border-gray-200 bg-white px-6 font-black text-brand-dark shadow-sm hover:border-brand-border dark:border-white/20 dark:bg-[var(--bg2)] dark:text-white" onClick={() => toast.success("Kolekcje będą dostępne już wkrótce!")}>
               📋 Stwórz kolekcję
             </button>
           </div>
@@ -604,7 +605,7 @@ export default function WishlistPage() {
               "shrink-0 rounded-full px-6 py-3 text-sm font-black transition-all",
               filterMode === "all" 
                 ? "bg-brand-dark text-white shadow-lg shadow-brand-dark/20" 
-                : "bg-white text-text-muted hover:bg-brand-surface hover:text-brand"
+                : "bg-white text-text-muted hover:bg-brand-surface hover:text-brand dark:bg-[var(--bg2)] dark:text-white/70 dark:hover:text-white"
             )}
           >
             Wszystkie ({items.length})
@@ -618,7 +619,7 @@ export default function WishlistPage() {
                 "flex shrink-0 items-center gap-2 rounded-full px-6 py-3 text-sm font-black transition-all",
                 filterMode === mode 
                   ? "bg-brand-dark text-white shadow-lg shadow-brand-dark/20" 
-                  : "bg-white text-text-muted hover:bg-brand-surface hover:text-brand"
+                  : "bg-white text-text-muted hover:bg-brand-surface hover:text-brand dark:bg-[var(--bg2)] dark:text-white/70 dark:hover:text-white"
               )}
             >
               <span>{MODE_EMOJI[mode] ?? "✨"}</span>
@@ -631,20 +632,20 @@ export default function WishlistPage() {
         {wishLoading && items.length === 0 ? (
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="h-80 animate-pulse rounded-[32px] bg-gray-100" />
+              <div key={i} className="h-80 animate-pulse rounded-[32px] bg-gray-100 dark:bg-[var(--bg3)]" />
             ))}
           </div>
         ) : filteredItems.length === 0 ? (
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="rounded-[40px] bg-white px-8 py-24 text-center shadow-sm border border-gray-100"
+            className="rounded-[40px] border border-gray-100 bg-white px-8 py-24 text-center shadow-sm dark:border-white/15 dark:bg-[var(--bg2)]"
           >
             <div className="animate-bounce text-7xl mb-8" aria-hidden>
               ❤️
             </div>
-            <h2 className="text-3xl font-black text-brand-dark">Lista jest pusta</h2>
-            <p className="mx-auto mt-4 max-w-md text-lg font-medium text-text-muted">
+            <h2 className="text-3xl font-black text-brand-dark dark:text-white">Lista jest pusta</h2>
+            <p className="mx-auto mt-4 max-w-md text-lg font-medium text-text-muted dark:text-white/70">
               Nie masz jeszcze żadnych zapisanych ofert. Przeglądaj noclegi i znajdź coś wyjątkowego!
             </p>
             <Link href="/search" className="btn-primary mt-10 inline-flex px-12 rounded-full py-4 text-base">
@@ -668,13 +669,13 @@ export default function WishlistPage() {
           </div>
         )}
 
-        <div className="my-20 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent" />
+        <div className="my-20 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent dark:via-white/20" />
 
-        <div className="rounded-[40px] bg-white p-8 lg:p-12 shadow-sm border border-gray-100">
+        <div className="rounded-[40px] border border-gray-100 bg-white p-8 shadow-sm dark:border-white/15 dark:bg-[var(--bg2)] lg:p-12">
           <header className="mb-8 flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-black text-brand-dark">Zapisane wyszukiwania</h2>
-              <p className="text-sm font-medium text-text-muted">Wracaj do ulubionych filtrów jednym kliknięciem.</p>
+              <h2 className="text-2xl font-black text-brand-dark dark:text-white">Zapisane wyszukiwania</h2>
+              <p className="text-sm font-medium text-text-muted dark:text-white/70">Wracaj do ulubionych filtrów jednym kliknięciem.</p>
             </div>
             <Link href="/search" className="btn-secondary rounded-full px-6 text-sm font-black">
               + Nowe wyszukiwanie
@@ -683,23 +684,23 @@ export default function WishlistPage() {
 
           <div className="space-y-4">
             {saved.length === 0 ? (
-              <div className="rounded-3xl border-2 border-dashed border-gray-100 py-12 text-center">
-                <p className="font-bold text-text-muted">Brak zapisanych wyszukiwań.</p>
+                <div className="rounded-3xl border-2 border-dashed border-gray-100 py-12 text-center dark:border-white/20">
+                  <p className="font-bold text-text-muted dark:text-white/70">Brak zapisanych wyszukiwań.</p>
               </div>
             ) : (
               saved.map((s) => (
                 <motion.div
                   key={s.id}
                   whileHover={{ x: 5 }}
-                  className="group flex cursor-pointer flex-wrap items-center gap-4 rounded-3xl border border-gray-100 bg-white p-5 transition-all hover:border-brand-border hover:shadow-md"
+                  className="group flex cursor-pointer flex-wrap items-center gap-4 rounded-3xl border border-gray-100 bg-white p-5 transition-all hover:border-brand-border hover:shadow-md dark:border-white/15 dark:bg-[var(--bg3)] dark:hover:border-white/30"
                   onClick={() => router.push(buildSearchURL(s.query_payload))}
                 >
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-surface text-2xl group-hover:bg-brand group-hover:text-white transition-colors">
                     🔍
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-lg font-black text-brand-dark">{s.name}</p>
-                    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[13px] font-medium text-text-muted">
+                    <p className="text-lg font-black text-brand-dark dark:text-white">{s.name}</p>
+                    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[13px] font-medium text-text-muted dark:text-white/70">
                       {s.query_payload.location ? <span className="flex items-center gap-1">📍 {s.query_payload.location}</span> : null}
                       {s.query_payload.travel_mode ? (
                         <span className="flex items-center gap-1">
@@ -716,11 +717,11 @@ export default function WishlistPage() {
                         {s.new_listings_count} nowe oferty
                       </div>
                     )}
-                    <div className="flex items-center gap-3 border-l border-gray-100 pl-4">
+                    <div className="flex items-center gap-3 border-l border-gray-100 pl-4 dark:border-white/15">
                       <NotifyToggle on={s.notify_new_listings} onToggle={() => void toggleNotify(s)} />
                       <button
                         type="button"
-                        className="rounded-full h-10 w-10 flex items-center justify-center bg-gray-50 text-red-500 hover:bg-red-50 transition-colors"
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 text-red-500 transition-colors hover:bg-red-50 dark:bg-[var(--bg2)]"
                         onClick={(e) => {
                           e.stopPropagation();
                           void deleteSaved(s.id);

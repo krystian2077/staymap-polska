@@ -176,7 +176,7 @@ git add -A
 git commit -m "feat: implement AI Search premium with contextual chat, follow-ups, and cheap model
 
 - Backend: session-aware AI interpretation with conversation history
-- Frontend: premium concierge panel with follow-up suggestions
+- Frontend: premium StayMap AI panel with follow-up suggestions
 - Model: gpt-4o-mini (cost ~5x cheaper than gpt-4o)
 - Throttle: 20 requests/min per user
 - Filters: improved mapping (quiet_rural, travel_mode → is_pet_friendly, etc.)

@@ -22,6 +22,22 @@ type Row = {
   special_requests?: string;
   cancellation_policy_snapshot?: string;
   has_guest_review?: boolean;
+  cost_split?: {
+    people?: number | string;
+    per_person?: string | number;
+    total?: string | number;
+    currency?: string;
+    max_guests?: number;
+  } | null;
+  pricing_breakdown?: {
+    cost_split?: {
+      people?: number;
+      per_person?: string | number;
+      total?: string | number;
+      currency?: string;
+      max_guests?: number;
+    };
+  };
   status_history?: Array<{
     id: string;
     old_status: string;
@@ -82,6 +98,28 @@ function canWriteReview(booking: Row): boolean {
   return booking.status === "completed" || booking.status === "confirmed";
 }
 
+function costSplitLabel(booking: Row): string | null {
+  const split = booking.cost_split ?? booking.pricing_breakdown?.cost_split;
+  if (!split) return null;
+
+  const people = Number(split.people ?? 0);
+  if (Number.isNaN(people) || people < 1) return null;
+
+  const currency = split.currency || booking.currency || "PLN";
+  const perPersonRaw = Number(split.per_person ?? 0);
+
+  if (!Number.isNaN(perPersonRaw) && perPersonRaw > 0) {
+    return `${people} os. x ${perPersonRaw.toFixed(2)} ${currency}`;
+  }
+
+  const totalRaw = Number(split.total ?? booking.final_amount ?? 0);
+  if (!Number.isNaN(totalRaw) && totalRaw > 0) {
+    return `${people} os. x ${(totalRaw / people).toFixed(2)} ${currency}`;
+  }
+
+  return `${people} os.`;
+}
+
 // ── Star Picker ────────────────────────────────────────────────────────────────
 
 function StarPicker({
@@ -117,6 +155,44 @@ function StarPicker({
   );
 }
 
+const SUBSCORE_LABELS: Record<string, string> = {
+  cleanliness: "Czystość",
+  location: "Lokalizacja",
+  communication: "Komunikacja",
+  accuracy: "Zgodność z opisem",
+};
+
+function SubscoreSliders({
+  value,
+  onChange,
+}: {
+  value: Record<string, number>;
+  onChange: (v: Record<string, number>) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <p className="font-bold text-brand-dark">Oceny szczegółowe</p>
+      {Object.entries(SUBSCORE_LABELS).map(([key, label]) => (
+        <div key={key} className="flex items-center gap-3 sm:gap-4">
+          <span className="w-36 shrink-0 text-sm text-text-secondary sm:w-44">{label}</span>
+          <input
+            type="range"
+            min={1}
+            max={5}
+            step={0.5}
+            value={value[key] ?? 5}
+            onChange={(e) => onChange({ ...value, [key]: parseFloat(e.target.value) })}
+            className="min-w-0 flex-1 accent-brand"
+          />
+          <span className="w-8 shrink-0 text-right text-sm font-bold text-brand">
+            {(value[key] ?? 5).toFixed(1)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Review Modal ───────────────────────────────────────────────────────────────
 
 function ReviewModal({
@@ -130,6 +206,12 @@ function ReviewModal({
 }) {
   const [rating, setRating] = useState(0);
   const [content, setContent] = useState("");
+  const [subscores, setSubscores] = useState({
+    cleanliness: 5,
+    location: 5,
+    communication: 5,
+    accuracy: 5,
+  });
   const [submitting, setSubmitting] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
 
@@ -160,6 +242,7 @@ function ReviewModal({
         reviewer_role: "guest",
         overall_rating: rating,
         content: content.trim(),
+        subscores,
       });
       toast.success("Recenzja została opublikowana!");
       onSubmitted();
@@ -185,14 +268,14 @@ function ReviewModal({
       onClick={handleOverlayClick}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
     >
-      <div className="w-full max-w-lg rounded-[28px] border border-brand-dark/[.08] bg-white p-7 shadow-[0_40px_100px_-30px_rgba(15,23,42,0.45)] sm:p-8">
+      <div className="w-full max-w-lg rounded-[28px] border border-brand-dark/[.08] bg-white p-7 shadow-[0_40px_100px_-30px_rgba(15,23,42,0.45)] dark:border-white/20 dark:bg-[var(--bg2)] sm:p-8">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand">Recenzja pobytu</p>
-            <h2 className="mt-1 text-xl font-black tracking-tight text-brand-dark line-clamp-2">
+            <h2 className="mt-1 line-clamp-2 text-xl font-black tracking-tight text-brand-dark dark:text-white">
               {booking.listing_title}
             </h2>
-            <p className="mt-1 text-xs text-text-secondary">
+            <p className="mt-1 text-xs text-text-secondary dark:text-white/70">
               {fmtDate(booking.check_in)} – {fmtDate(booking.check_out)}
             </p>
           </div>
@@ -200,7 +283,7 @@ function ReviewModal({
             type="button"
             onClick={onClose}
             aria-label="Zamknij"
-            className="shrink-0 rounded-xl border border-brand-dark/[.1] bg-white p-2 text-text-secondary transition hover:bg-brand-surface hover:text-brand-dark"
+            className="shrink-0 rounded-xl border border-brand-dark/[.1] bg-white p-2 text-text-secondary transition hover:bg-brand-surface hover:text-brand-dark dark:border-white/20 dark:bg-[var(--bg3)] dark:text-white/70 dark:hover:bg-[var(--bg)] dark:hover:text-white"
           >
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
               <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
@@ -210,15 +293,27 @@ function ReviewModal({
 
         <form onSubmit={(e) => void handleSubmit(e)} className="space-y-5">
           <div>
-            <p className="mb-2 text-sm font-bold text-brand-dark">Ogólna ocena *</p>
+            <p className="mb-2 text-sm font-bold text-brand-dark dark:text-white">Ogólna ocena *</p>
             <StarPicker value={rating} onChange={setRating} />
             {rating > 0 && (
               <p className="mt-1.5 text-sm font-semibold text-amber-600">{ratingLabels[rating]}</p>
             )}
           </div>
 
+          <SubscoreSliders
+            value={subscores}
+            onChange={(v) =>
+              setSubscores({
+                cleanliness: v.cleanliness ?? 5,
+                location: v.location ?? 5,
+                communication: v.communication ?? 5,
+                accuracy: v.accuracy ?? 5,
+              })
+            }
+          />
+
           <div>
-            <label htmlFor="review-content" className="mb-1.5 block text-sm font-bold text-brand-dark">
+              <label htmlFor="review-content" className="mb-1.5 block text-sm font-bold text-brand-dark dark:text-white">
               Treść recenzji{" "}
               <span className="font-normal text-text-secondary">(opcjonalna)</span>
             </label>
@@ -229,7 +324,7 @@ function ReviewModal({
               maxLength={4000}
               rows={5}
               placeholder="Opisz swoje doświadczenia — co było super, a co można poprawić..."
-              className="w-full resize-none rounded-2xl border border-brand-dark/[.15] bg-[#f8faf9] px-4 py-3 text-sm text-brand-dark placeholder:text-text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+              className="w-full resize-none rounded-2xl border border-brand-dark/[.15] bg-[#f8faf9] px-4 py-3 text-sm text-brand-dark placeholder:text-text-muted focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 dark:border-white/20 dark:bg-[var(--bg3)] dark:text-white dark:placeholder:text-white/45"
             />
             <p className="mt-1 text-right text-[11px] text-text-muted">{content.length}/4000</p>
           </div>
@@ -245,7 +340,7 @@ function ReviewModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-xl border border-brand-dark/[.1] bg-white px-5 py-3 text-sm font-bold text-brand-dark transition hover:-translate-y-px hover:bg-brand-surface"
+              className="rounded-xl border border-brand-dark/[.1] bg-white px-5 py-3 text-sm font-bold text-brand-dark transition hover:-translate-y-px hover:bg-brand-surface dark:border-white/20 dark:bg-[var(--bg3)] dark:text-white dark:hover:bg-[var(--bg)]"
             >
               Anuluj
             </button>
@@ -370,10 +465,10 @@ export function BookingsPageClient() {
   if (sortedRows.length === 0) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16">
-        <div className="rounded-[28px] border border-brand-dark/[.08] bg-white p-10 text-center shadow-[0_30px_80px_-45px_rgba(15,23,42,0.4)]">
+        <div className="rounded-[28px] border border-brand-dark/[.08] bg-white p-10 text-center shadow-[0_30px_80px_-45px_rgba(15,23,42,0.4)] dark:border-white/20 dark:bg-[var(--bg2)]">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-muted text-2xl">📅</div>
-          <h1 className="text-3xl font-black tracking-tight text-brand-dark">Moje rezerwacje</h1>
-          <p className="mt-3 text-text-secondary">Nie masz jeszcze żadnych rezerwacji. Znajdź wymarzone miejsce i zarezerwuj je w kilka kliknięć.</p>
+          <h1 className="text-3xl font-black tracking-tight text-brand-dark dark:text-white">Moje rezerwacje</h1>
+          <p className="mt-3 text-text-secondary dark:text-white/70">Nie masz jeszcze żadnych rezerwacji. Znajdź wymarzone miejsce i zarezerwuj je w kilka kliknięć.</p>
           <Link href="/search" className="btn-primary mt-8 inline-block px-8 py-3 text-sm font-bold">
             Szukaj noclegów
           </Link>
@@ -409,10 +504,11 @@ export function BookingsPageClient() {
               const isBusy = busyId === b.id;
               const canCancel = cancellableStatuses.has(b.status);
               const showReviewBtn = canWriteReview(b);
+              const splitInfo = costSplitLabel(b);
               return (
             <li
               key={b.id}
-              className="group overflow-hidden rounded-[26px] border border-brand-dark/[.08] bg-white p-5 shadow-[0_20px_45px_-36px_rgba(15,23,42,0.45)] transition-all duration-300 hover:-translate-y-[2px] hover:shadow-[0_28px_70px_-34px_rgba(15,23,42,0.45)] sm:p-6"
+              className="group overflow-hidden rounded-[26px] border border-brand-dark/[.08] bg-white p-5 shadow-[0_20px_45px_-36px_rgba(15,23,42,0.45)] transition-all duration-300 hover:-translate-y-[2px] hover:shadow-[0_28px_70px_-34px_rgba(15,23,42,0.45)] dark:border-white/15 dark:bg-[var(--bg2)] dark:shadow-[0_24px_52px_-28px_rgba(0,0,0,.6)] sm:p-6"
             >
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
@@ -421,7 +517,7 @@ export function BookingsPageClient() {
                       {statusPl[b.status] ?? b.status}
                     </span>
                     {b.confirmation_email_sent ? (
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600 ring-1 ring-slate-200">
+                       <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600 ring-1 ring-slate-200 dark:bg-[var(--bg3)] dark:text-white/75 dark:ring-white/20">
                         Potwierdzenie e-mail
                       </span>
                     ) : null}
@@ -433,31 +529,32 @@ export function BookingsPageClient() {
                   </div>
                   <Link
                     href={`/listing/${b.listing_slug}`}
-                    className="line-clamp-2 text-[22px] font-black leading-tight tracking-tight text-brand-dark transition-colors hover:text-brand"
+                    className="line-clamp-2 text-[22px] font-black leading-tight tracking-tight text-brand-dark transition-colors hover:text-brand dark:text-white dark:hover:text-brand-light"
                   >
                     {b.listing_title}
                   </Link>
-                  <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium text-text-secondary">
+                  <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm font-medium text-text-secondary dark:text-white/70">
                     <span>📍 {b.listing_slug}</span>
                     <span>👥 {b.guests_count} {b.guests_count === 1 ? "gość" : "gości"}</span>
                     {nights ? <span>🌙 {nights} {nights === 1 ? "noc" : "nocy"}</span> : null}
+                    {splitInfo ? <span>🧾 Podział: {splitInfo}</span> : null}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-brand-dark/[.08] bg-[#f8faf9] px-4 py-3 text-right shadow-inner sm:min-w-[170px]">
+                <div className="rounded-2xl border border-brand-dark/[.08] bg-[#f8faf9] px-4 py-3 text-right shadow-inner dark:border-white/15 dark:bg-[var(--bg3)] sm:min-w-[170px]">
                   <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Do zapłaty</p>
-                  <p className="mt-1 text-2xl font-black tracking-tight text-brand-dark">
+                  <p className="mt-1 text-2xl font-black tracking-tight text-brand-dark dark:text-white">
                     {b.final_amount} {b.currency}
                   </p>
                   <p className="mt-1 text-[11px] text-text-muted">ID: {b.id.slice(0, 8).toUpperCase()}</p>
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-2 rounded-2xl border border-brand-dark/[.08] bg-[#f8faf9] p-4 text-sm text-text-secondary sm:grid-cols-2">
+              <div className="mt-4 grid grid-cols-1 gap-2 rounded-2xl border border-brand-dark/[.08] bg-[#f8faf9] p-4 text-sm text-text-secondary dark:border-white/15 dark:bg-[var(--bg3)] dark:text-white/75 sm:grid-cols-2">
                 <p>
-                  <span className="font-semibold text-brand-dark">Przyjazd:</span> {fmtDate(b.check_in)}
+                  <span className="font-semibold text-brand-dark dark:text-white">Przyjazd:</span> {fmtDate(b.check_in)}
                 </p>
                 <p>
-                  <span className="font-semibold text-brand-dark">Wyjazd:</span> {fmtDate(b.check_out)}
+                  <span className="font-semibold text-brand-dark dark:text-white">Wyjazd:</span> {fmtDate(b.check_out)}
                 </p>
               </div>
 
@@ -465,7 +562,7 @@ export function BookingsPageClient() {
                 <button
                   type="button"
                   onClick={() => setExpandedId((prev) => (prev === b.id ? null : b.id))}
-                  className="rounded-xl border border-brand-dark/[.1] bg-white px-4 py-2.5 text-xs font-bold text-brand-dark transition hover:-translate-y-px hover:bg-brand-surface"
+                  className="rounded-xl border border-brand-dark/[.1] bg-white px-4 py-2.5 text-xs font-bold text-brand-dark transition hover:-translate-y-px hover:bg-brand-surface dark:border-white/20 dark:bg-[var(--bg3)] dark:text-white dark:hover:bg-[var(--bg)]"
                 >
                   {expandedId === b.id ? "Ukryj szczegóły" : "Szczegóły"}
                 </button>
@@ -500,34 +597,38 @@ export function BookingsPageClient() {
               </div>
 
               {expandedId === b.id ? (
-                <div className="mt-4 rounded-2xl border border-brand-dark/[.08] bg-white p-4 shadow-inner sm:p-5">
-                  <h3 className="text-sm font-extrabold uppercase tracking-wide text-brand-dark">Szczegóły rezerwacji</h3>
-                  <div className="mt-3 grid grid-cols-1 gap-3 text-sm text-text-secondary sm:grid-cols-2">
-                    <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5">
+                <div className="mt-4 rounded-2xl border border-brand-dark/[.08] bg-white p-4 shadow-inner dark:border-white/15 dark:bg-[var(--bg2)] sm:p-5">
+                  <h3 className="text-sm font-extrabold uppercase tracking-wide text-brand-dark dark:text-white">Szczegóły rezerwacji</h3>
+                  <div className="mt-3 grid grid-cols-1 gap-3 text-sm text-text-secondary dark:text-white/75 sm:grid-cols-2">
+                    <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5 dark:border-white/15 dark:bg-[var(--bg3)]">
                       <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Termin</p>
-                      <p className="mt-1 font-semibold text-brand-dark">{fmtDate(b.check_in)} - {fmtDate(b.check_out)}</p>
+                      <p className="mt-1 font-semibold text-brand-dark dark:text-white">{fmtDate(b.check_in)} - {fmtDate(b.check_out)}</p>
                     </div>
-                    <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5">
+                    <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5 dark:border-white/15 dark:bg-[var(--bg3)]">
                       <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Status</p>
-                      <p className="mt-1 font-semibold text-brand-dark">{statusPl[b.status] ?? b.status}</p>
+                      <p className="mt-1 font-semibold text-brand-dark dark:text-white">{statusPl[b.status] ?? b.status}</p>
                     </div>
-                    <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5 sm:col-span-2">
+                    <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5 dark:border-white/15 dark:bg-[var(--bg3)] sm:col-span-2">
                       <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Polityka anulacji</p>
-                      <p className="mt-1 font-semibold text-brand-dark">{b.cancellation_policy_snapshot || "Brak informacji"}</p>
+                      <p className="mt-1 font-semibold text-brand-dark dark:text-white">{b.cancellation_policy_snapshot || "Brak informacji"}</p>
                     </div>
-                    <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5 sm:col-span-2">
+                    <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5 dark:border-white/15 dark:bg-[var(--bg3)] sm:col-span-2">
                       <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Wiadomość do gospodarza</p>
-                      <p className="mt-1 font-semibold text-brand-dark">{b.special_requests?.trim() || "Brak"}</p>
+                      <p className="mt-1 font-semibold text-brand-dark dark:text-white">{b.special_requests?.trim() || "Brak"}</p>
+                    </div>
+                    <div className="rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] px-3 py-2.5 dark:border-white/15 dark:bg-[var(--bg3)] sm:col-span-2">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-text-muted">Podział kosztów</p>
+                      <p className="mt-1 font-semibold text-brand-dark dark:text-white">{splitInfo || "Brak zapisanego podziału"}</p>
                     </div>
                   </div>
 
                   {Array.isArray(b.status_history) && b.status_history.length > 0 ? (
-                    <div className="mt-4 rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] p-3.5">
+                    <div className="mt-4 rounded-xl border border-brand-dark/[.08] bg-[#f8faf9] p-3.5 dark:border-white/15 dark:bg-[var(--bg3)]">
                       <p className="text-[11px] font-bold uppercase tracking-wide text-brand-dark">Historia statusów</p>
                       <ul className="mt-2 space-y-1.5 text-xs text-text-secondary">
                         {b.status_history.slice(-4).reverse().map((h) => (
-                          <li key={h.id} className="rounded-lg bg-white px-2.5 py-2 ring-1 ring-black/[.04]">
-                            <span className="font-semibold text-brand-dark">{fmtDate(h.created_at)}</span>
+                          <li key={h.id} className="rounded-lg bg-white px-2.5 py-2 ring-1 ring-black/[.04] dark:bg-[var(--bg2)] dark:ring-white/15">
+                            <span className="font-semibold text-brand-dark dark:text-white">{fmtDate(h.created_at)}</span>
                             {" - "}
                             {statusPl[h.new_status] ?? h.new_status}
                             {h.note ? ` (${h.note})` : ""}

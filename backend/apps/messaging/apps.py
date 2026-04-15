@@ -6,3 +6,6 @@ class MessagingConfig(AppConfig):
     name = "apps.messaging"
     label = "messaging"
     verbose_name = "Wiadomości"
+
+    def ready(self):
+        from apps.messaging import signals  # noqa: F401

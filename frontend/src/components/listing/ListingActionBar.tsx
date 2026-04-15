@@ -35,9 +35,11 @@ type Props = {
   listingId: string;
   listingTitle: string;
   slug: string;
+  latitude?: number;
+  longitude?: number;
 };
 
-export function ListingActionBar({ listingId, listingTitle, slug }: Props) {
+export function ListingActionBar({ listingId, listingTitle, slug, latitude, longitude }: Props) {
   const user = useAuthStore((s) => s.user);
   const [authOpen, setAuthOpen] = useState(false);
   const [optimisticLiked, setOptimisticLiked] = useState<boolean | null>(null);
@@ -80,6 +82,13 @@ export function ListingActionBar({ listingId, listingTitle, slug }: Props) {
       }
     }
   }, [listingTitle, slug]);
+
+  const openGoogleMapsRoute = useCallback(() => {
+    if (latitude !== undefined && longitude !== undefined) {
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`;
+      window.open(mapsUrl, '_blank');
+    }
+  }, [latitude, longitude]);
 
   async function toggleWishlist() {
     if (!user) {
@@ -125,7 +134,7 @@ export function ListingActionBar({ listingId, listingTitle, slug }: Props) {
           </p>
         </div>
 
-        <div className="relative flex shrink-0 items-center gap-3">
+        <div className="relative flex shrink-0 flex-wrap items-center gap-3">
           <motion.button
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
@@ -148,6 +157,30 @@ export function ListingActionBar({ listingId, listingTitle, slug }: Props) {
             </svg>
             Udostępnij
           </motion.button>
+
+          {latitude !== undefined && longitude !== undefined && (
+            <motion.button
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+              type="button"
+              onClick={openGoogleMapsRoute}
+              className="group/btn flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/10 px-6 py-3.5 text-sm font-bold text-white shadow-sm transition-all hover:border-amber-400/30 hover:bg-amber-500 hover:text-white hover:shadow-lg hover:shadow-amber-900/40 backdrop-blur-sm"
+            >
+              <svg
+                className="h-4.5 w-4.5 transition-transform duration-300 group-hover/btn:-translate-y-1 group-hover/btn:-translate-x-0.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Sprawdź trasę
+            </motion.button>
+          )}
 
           <motion.button
             layout

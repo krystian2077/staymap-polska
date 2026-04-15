@@ -93,7 +93,7 @@ export default function HostReviewsPage() {
       </header>
 
       {blindCount > 0 ? (
-        <div className="mb-4 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5">
+        <div className="mb-4 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3.5 dark:border-amber-500/35 dark:bg-amber-950/30">
           <span className="text-xl">🔒</span>
           <div>
             <p className="font-bold text-amber-900">Blind Review Period — {blindCount} recenzji oczekuje</p>
@@ -157,20 +157,20 @@ export default function HostReviewsPage() {
             key={r.id}
             className={cn(
               "rounded-xl border p-4",
-              !r.is_public ? "border-amber-200 bg-amber-50/85 opacity-85" : "bg-white ring-1 ring-black/[.04]"
+              !r.is_public ? "border-amber-200 bg-amber-50/85 opacity-85 dark:border-amber-500/35 dark:bg-amber-950/30" : "bg-white ring-1 ring-black/[.04] dark:bg-[var(--bg2)] dark:ring-brand-border/45"
             )}
           >
             {!r.is_public ? (
               <div className="flex gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-200 text-lg font-bold text-gray-500">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-200 text-lg font-bold text-gray-500 dark:bg-[var(--bg3)] dark:text-[var(--text2)]">
                   ?
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-bold">Gość — blind</p>
-                  <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900">
+                   <span className="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-900 dark:bg-amber-900/40 dark:text-amber-200">
                     🔒 Blind period — pozostało {daysUntil(r.blind_release_at)} dni
                   </span>
-                  <div className="mt-2 rounded-lg bg-amber-100 p-3 text-sm text-amber-900">
+                  <div className="mt-2 rounded-lg bg-amber-100 p-3 text-sm text-amber-900 dark:bg-amber-900/35 dark:text-amber-100">
                     Treść ukryta do czasu publikacji.
                   </div>
                 </div>

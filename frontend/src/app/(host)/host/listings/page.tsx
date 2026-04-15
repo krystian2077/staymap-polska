@@ -93,8 +93,8 @@ export default function HostListingsPage() {
           animate={{ opacity: 1, x: 0 }}
         >
           <p className="text-[12px] font-extrabold uppercase tracking-[.2em] text-brand mb-1">Moje portfolio</p>
-          <h1 className="text-4xl font-extrabold text-brand-dark tracking-tight">Twoje oferty</h1>
-          <p className="mt-2 text-text-secondary max-w-lg">
+          <h1 className="text-4xl font-extrabold text-brand-dark tracking-tight dark:text-white">Twoje oferty</h1>
+          <p className="mt-2 max-w-lg text-text-secondary dark:text-white/70">
             Zarządzaj swoimi nieruchomościami, aktualizuj ceny i dostępność, aby przyciągnąć więcej gości.
           </p>
         </motion.div>
@@ -128,7 +128,7 @@ export default function HostListingsPage() {
                   "relative rounded-xl px-5 py-2.5 text-sm font-bold transition-all duration-300 active:scale-95",
                   filter === val
                     ? "bg-brand text-white shadow-lg shadow-brand/20 ring-1 ring-brand/10"
-                    : "bg-white text-brand-dark/60 hover:text-brand-dark hover:bg-brand-surface/40 hover:shadow-sm ring-1 ring-black/[.03]"
+                    : "bg-white text-brand-dark/60 hover:text-brand-dark hover:bg-brand-surface/40 hover:shadow-sm ring-1 ring-black/[.03] dark:bg-[var(--bg3)] dark:text-white/70 dark:ring-white/20 dark:hover:text-white dark:hover:shadow-[0_10px_26px_rgba(0,0,0,.35)]"
                 )}
               >
                 {label}
@@ -151,13 +151,13 @@ export default function HostListingsPage() {
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border-l-4 border-red-500 bg-red-50 p-6 shadow-sm mb-8"
+          className="mb-8 rounded-2xl border-l-4 border-red-500 bg-red-50 p-6 shadow-sm dark:bg-red-950/35 dark:shadow-[0_16px_40px_rgba(0,0,0,.35)]"
         >
           <div className="flex items-center gap-3">
             <span className="text-2xl">⚠️</span>
             <div>
-              <p className="font-bold text-red-800">Wystąpił błąd</p>
-              <p className="text-sm text-red-600">{err}</p>
+              <p className="font-bold text-red-800 dark:text-red-200">Wystąpił błąd</p>
+              <p className="text-sm text-red-600 dark:text-red-300">{err}</p>
             </div>
           </div>
         </motion.div>
@@ -166,17 +166,17 @@ export default function HostListingsPage() {
       {filtered === null ? (
         <div className="flex flex-col items-center justify-center py-24 gap-4">
           <LoadingSpinner className="h-12 w-12 text-brand" />
-          <p className="text-brand-dark/40 font-bold animate-pulse">Ładowanie Twoich skarbów...</p>
+          <p className="font-bold animate-pulse text-brand-dark/40 dark:text-white/55">Ładowanie Twoich skarbów...</p>
         </div>
       ) : filtered.length === 0 ? (
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="rounded-3xl bg-white border-2 border-dashed border-brand/20 py-24 text-center shadow-[0_20px_50px_rgba(22,163,74,0.03)]"
+          className="rounded-3xl bg-white border-2 border-dashed border-brand/20 py-24 text-center shadow-[0_20px_50px_rgba(22,163,74,0.03)] dark:bg-[var(--bg2)]"
         >
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-brand-surface text-4xl mb-6">🏠</div>
-          <p className="text-2xl font-black text-brand-dark">Jeszcze nic tu nie ma</p>
-          <p className="mt-2 text-text-secondary max-w-sm mx-auto">
+          <p className="text-2xl font-black text-brand-dark dark:text-white">Jeszcze nic tu nie ma</p>
+          <p className="mx-auto mt-2 max-w-sm text-text-secondary dark:text-white/70">
             {filter !== "all" ? "Brak ofert o wybranym statusie." : "Wygląda na to, że nie masz jeszcze żadnych ofert. Czas to zmienić!"}
           </p>
           {filter === "all" && (
@@ -196,7 +196,7 @@ export default function HostListingsPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0, transition: { delay: idx * 0.05 } }}
                   exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.2 } }}
-                  className="group relative flex flex-col gap-6 overflow-hidden rounded-[32px] bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-black/[0.02] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] hover:ring-brand/10 sm:flex-row sm:items-center"
+                  className="group relative flex flex-col gap-6 overflow-hidden rounded-[32px] bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-black/[0.02] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,0,0,0.06)] hover:ring-brand/10 dark:bg-[var(--bg2)] dark:ring-brand-border/45 sm:flex-row sm:items-center"
                 >
                   <div className="relative h-32 w-full shrink-0 overflow-hidden rounded-2xl sm:h-28 sm:w-40">
                     {coverSrc ? (
@@ -219,10 +219,10 @@ export default function HostListingsPage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div>
-                        <Link href={`/listing/${listing.slug}`} className="text-lg font-black text-brand-dark transition-colors hover:text-brand">
+                        <Link href={`/listing/${listing.slug}`} className="text-lg font-black text-brand-dark transition-colors hover:text-brand dark:text-white dark:hover:text-brand-light">
                           {listing.title}
                         </Link>
-                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-muted">
+                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-muted dark:text-white/70">
                           <div className="flex items-center gap-1.5 font-bold text-brand">
                             <span className="text-lg">💰</span>
                             {listing.base_price} {listing.currency} <span className="text-[11px] font-medium text-text-muted uppercase">/ noc</span>
@@ -234,7 +234,7 @@ export default function HostListingsPage() {
                           {listing.average_rating != null && (
                             <div className="flex items-center gap-1.5">
                               <span className="text-brand">★</span>
-                              <span className="font-bold text-brand-dark">{Number(listing.average_rating).toFixed(2)}</span>
+                              <span className="font-bold text-brand-dark dark:text-white">{Number(listing.average_rating).toFixed(2)}</span>
                               <span className="text-xs">({listing.review_count} opinii)</span>
                             </div>
                           )}
@@ -250,7 +250,7 @@ export default function HostListingsPage() {
                       <div className="flex shrink-0 items-center gap-2">
                         <Link
                           href={`/host/new-listing?listingId=${listing.id}`}
-                          className="flex h-11 items-center gap-2 rounded-xl border border-black/[0.05] px-5 text-sm font-bold text-brand-dark transition-all hover:bg-white hover:shadow-md active:scale-95"
+                          className="flex h-11 items-center gap-2 rounded-xl border border-black/[0.05] px-5 text-sm font-bold text-brand-dark transition-all hover:bg-white hover:shadow-md active:scale-95 dark:border-white/20 dark:text-white dark:hover:bg-[var(--bg3)] dark:hover:shadow-[0_12px_28px_rgba(0,0,0,.35)]"
                         >
                           Edytuj
                         </Link>
@@ -263,7 +263,7 @@ export default function HostListingsPage() {
                         </Link>
                         <Link 
                           href={`/listing/${listing.slug}`} 
-                          className="flex h-11 items-center gap-2 rounded-xl border border-black/[0.05] px-5 text-sm font-bold text-brand-dark transition-all hover:bg-white hover:shadow-md active:scale-95"
+                          className="flex h-11 items-center gap-2 rounded-xl border border-black/[0.05] px-5 text-sm font-bold text-brand-dark transition-all hover:bg-white hover:shadow-md active:scale-95 dark:border-white/20 dark:text-white dark:hover:bg-[var(--bg3)] dark:hover:shadow-[0_12px_28px_rgba(0,0,0,.35)]"
                         >
                           Podgląd
                         </Link>

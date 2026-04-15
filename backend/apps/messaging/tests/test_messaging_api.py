@@ -166,3 +166,81 @@ def test_host_notifications_include_new_message_and_read_state(
     assert message_notification_after is not None
     assert message_notification_after["is_read"] is True
 
+
+@pytest.mark.django_db
+def test_new_host_gets_default_message_templates(user_host):
+    from apps.host.models import HostProfile
+    from apps.messaging.models import MessageTemplate
+
+    profile = HostProfile.objects.get(user=user_host)
+    rows = MessageTemplate.objects.filter(host=profile, deleted_at__isnull=True)
+    assert rows.count() == 6
+    titles = set(rows.values_list("title", flat=True))
+    assert titles == {
+        "Powitanie",
+        "Szczegóły pobytu",
+        "Dojazd i zameldowanie",
+        "Zasady pobytu",
+        "Podziękowanie i recenzja",
+        "Brak terminu",
+    }
+
+
+@pytest.mark.django_db
+def test_host_message_templates_list(api_client, user_host):
+    api_client.force_authenticate(user=user_host)
+    res = api_client.get("/api/v1/host/message-templates/")
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert len(data) == 6
+    assert data[0]["title"] == "Powitanie"
+    assert "{{guest_name}}" in data[0]["body"]
+    assert "{{listing_title}}" in data[0]["body"]
+
+
+@pytest.mark.django_db
+def test_list_repairs_empty_templates_via_ensure(api_client, user_host):
+    """Gdy gospodarz nie ma aktywnych szablonów (np. usunięte lub stara baza), GET zasiewa zestaw."""
+    from apps.host.models import HostProfile
+    from apps.messaging.models import MessageTemplate
+
+    profile = HostProfile.objects.get(user=user_host)
+    for t in MessageTemplate.objects.filter(host=profile, deleted_at__isnull=True):
+        t.soft_delete()
+
+    api_client.force_authenticate(user=user_host)
+    res = api_client.get("/api/v1/host/message-templates/")
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert len(data) == 6
+    assert data[0]["title"] == "Powitanie"
+
+
+@pytest.mark.django_db
+def test_host_message_template_patch(api_client, user_host):
+    api_client.force_authenticate(user=user_host)
+    list_res = api_client.get("/api/v1/host/message-templates/")
+    assert list_res.status_code == 200
+    tid = list_res.json()["data"][0]["id"]
+    patch = api_client.patch(
+        f"/api/v1/host/message-templates/{tid}/",
+        {"title": "Powitanie (test)", "body": "Zmieniona treść {{guest_name}} w {{listing_title}}."},
+        format="json",
+    )
+    assert patch.status_code == 200
+    body = patch.json()["data"]
+    assert body["title"] == "Powitanie (test)"
+    assert body["body"] == "Zmieniona treść {{guest_name}} w {{listing_title}}."
+
+
+@pytest.mark.django_db
+def test_ensure_default_message_templates_idempotent(user_host):
+    from apps.host.models import HostProfile
+    from apps.messaging.models import MessageTemplate
+    from apps.messaging.template_seeding import ensure_default_message_templates
+
+    profile = HostProfile.objects.get(user=user_host)
+    assert MessageTemplate.objects.filter(host=profile, deleted_at__isnull=True).count() == 6
+    assert ensure_default_message_templates(profile) == 0
+    assert MessageTemplate.objects.filter(host=profile, deleted_at__isnull=True).count() == 6
+

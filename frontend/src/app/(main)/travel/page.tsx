@@ -162,7 +162,7 @@ const cardVariants = {
 
 export default function TravelPage() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-white">
+    <div className="relative min-h-screen overflow-hidden bg-white dark:bg-[var(--background)]">
       {/* Animated background orbs */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <motion.div
@@ -197,7 +197,7 @@ export default function TravelPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
-        className="relative z-10 overflow-hidden bg-gradient-to-b from-white via-brand-50 to-white px-6 py-20 md:px-12 md:py-28"
+        className="relative z-10 overflow-hidden bg-gradient-to-b from-white via-brand-50 to-white px-6 py-20 dark:from-[var(--bg2)] dark:via-[var(--bg)] dark:to-[var(--bg2)] md:px-12 md:py-28"
       >
         <div className="mx-auto max-w-[1360px]">
           {/* Badge */}
@@ -207,9 +207,9 @@ export default function TravelPage() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="mb-8 flex justify-center"
           >
-            <div className="inline-flex items-center gap-2 rounded-full border border-brand/20 bg-gradient-to-r from-brand-surface via-emerald-50 to-brand-surface px-6 py-3 backdrop-blur-sm">
+            <div className="inline-flex items-center gap-2 rounded-full border border-brand/20 bg-gradient-to-r from-brand-surface via-emerald-50 to-brand-surface px-6 py-3 backdrop-blur-sm dark:border-white/20 dark:from-[var(--bg3)] dark:via-[var(--bg2)] dark:to-[var(--bg3)]">
               <span className="text-xl">✨</span>
-              <span className="text-sm font-bold text-brand-dark">Odkryj swój idealny styl podróży</span>
+              <span className="text-sm font-bold text-brand-dark dark:text-white">Odkryj swój idealny styl podróży</span>
             </div>
           </motion.div>
 
@@ -221,7 +221,7 @@ export default function TravelPage() {
             className="mb-12 text-center"
           >
             <h1 className="mb-6 text-[clamp(42px,7vw,72px)] font-black leading-[1.1] tracking-tight">
-              <span className="block text-brand-dark">Wybierz swój</span>
+                <span className="block text-brand-dark dark:text-white">Wybierz swój</span>
               <span className="relative inline-block">
                 <span className="relative z-10 bg-gradient-to-r from-brand via-emerald-500 to-brand bg-clip-text text-transparent">
                   tryb podróży
@@ -237,7 +237,7 @@ export default function TravelPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.8, delay: 0.3 }}
-              className="mx-auto max-w-2xl text-lg leading-relaxed text-text-muted md:text-xl"
+              className="mx-auto max-w-2xl text-lg leading-relaxed text-text-muted dark:text-white/70 md:text-xl"
             >
               Od romantycznych uniesień dla dwojga, po aktywne przygody na szlakach. Znajdź miejsca,
               które idealnie rezonują z Twoją osobowością i marzeniami.
@@ -283,10 +283,10 @@ export default function TravelPage() {
         className="relative z-10 mx-auto max-w-[1360px] px-6 py-20 md:px-12 md:py-28"
       >
         <motion.div variants={itemVariants} className="mb-16 text-center">
-          <h2 className="mb-4 text-[clamp(32px,5vw,48px)] font-black leading-tight tracking-tight text-brand-dark">
+          <h2 className="mb-4 text-[clamp(32px,5vw,48px)] font-black leading-tight tracking-tight text-brand-dark dark:text-white">
             9 trybów podróży
           </h2>
-          <p className="mx-auto max-w-xl text-lg text-text-muted">
+          <p className="mx-auto max-w-xl text-lg text-text-muted dark:text-white/70">
             Każdy typ podróżnika znajdzie tu idealne miejsce. Niezależnie od tego, czy szukasz relaksu, przygody czy
             produktywności.
           </p>
@@ -308,7 +308,7 @@ export default function TravelPage() {
                 {/* Card Background with gradient */}
                 <div
                   className={cn(
-                    "relative h-full overflow-hidden rounded-3xl border border-gray-100 bg-white p-8 transition-all duration-500",
+                     "relative h-full overflow-hidden rounded-3xl border border-gray-100 bg-white p-8 transition-all duration-500 dark:border-white/15 dark:bg-[var(--bg2)] dark:shadow-[0_18px_36px_-24px_rgba(0,0,0,.5)]",
                     "before:absolute before:inset-0 before:bg-gradient-to-br before:opacity-0 before:transition-opacity before:duration-500 group-hover:before:opacity-100",
                     `before:${mode.gradient}`
                   )}
@@ -348,7 +348,7 @@ export default function TravelPage() {
                       whileHover={{ scale: 1.15, rotate: 12 }}
                       transition={{ type: "spring", stiffness: 300, damping: 20 }}
                       className={cn(
-                        "mb-6 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-white p-2 text-4xl transition-all duration-300",
+                         "mb-6 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-white p-2 text-4xl transition-all duration-300 dark:bg-[var(--bg3)] dark:ring-1 dark:ring-white/20",
                         `group-hover:bg-gradient-to-br ${mode.gradient} group-hover:shadow-lg`
                       )}
                     >
@@ -359,7 +359,7 @@ export default function TravelPage() {
                     <motion.h3
                       className={cn(
                         "mb-3 text-2xl font-black transition-all duration-300",
-                        "text-gray-900 group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:text-transparent",
+                         "text-gray-900 group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:text-transparent dark:text-white",
                         `group-hover:${mode.textGradient}`
                       )}
                     >
@@ -367,12 +367,12 @@ export default function TravelPage() {
                     </motion.h3>
 
                     {/* Description */}
-                    <p className="mb-6 leading-relaxed text-gray-600 transition-colors duration-300 group-hover:text-gray-700">
+                    <p className="mb-6 leading-relaxed text-gray-600 transition-colors duration-300 group-hover:text-gray-700 dark:text-white/72 dark:group-hover:text-white/88">
                       {mode.description}
                     </p>
 
                     {/* Icon hint */}
-                    <div className="flex items-center gap-2 text-sm font-bold text-gray-400 transition-all duration-300 group-hover:text-brand">
+                    <div className="flex items-center gap-2 text-sm font-bold text-gray-400 transition-all duration-300 group-hover:text-brand dark:text-white/55">
                       <span>Odkryj teraz</span>
                       <motion.span
                         initial={{ x: 0 }}
@@ -408,14 +408,14 @@ export default function TravelPage() {
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: "-100px" }}
-        className="relative z-10 bg-gradient-to-b from-brand-50 to-white px-6 py-20 md:px-12 md:py-28"
+        className="relative z-10 bg-gradient-to-b from-brand-50 to-white px-6 py-20 dark:from-[var(--bg)] dark:to-[var(--bg2)] md:px-12 md:py-28"
       >
         <div className="mx-auto max-w-[1360px]">
           <motion.div variants={itemVariants} className="mb-16 text-center">
-            <h2 className="mb-4 text-[clamp(32px,5vw,48px)] font-black leading-tight tracking-tight text-brand-dark">
+            <h2 className="mb-4 text-[clamp(32px,5vw,48px)] font-black leading-tight tracking-tight text-brand-dark dark:text-white">
               Dlaczego StayMap?
             </h2>
-            <p className="mx-auto max-w-xl text-lg text-text-muted">
+            <p className="mx-auto max-w-xl text-lg text-text-muted dark:text-white/70">
               Każdy tryb podróży ma dedykowany system rekomendacji
             </p>
           </motion.div>
@@ -459,7 +459,7 @@ export default function TravelPage() {
               <motion.div
                 key={i}
                 variants={itemVariants}
-                className="group rounded-2xl border border-gray-100 bg-white p-8 transition-all duration-300 hover:border-brand hover:shadow-xl"
+                className="group rounded-2xl border border-gray-100 bg-white p-8 transition-all duration-300 hover:border-brand hover:shadow-xl dark:border-white/15 dark:bg-[var(--bg2)] dark:hover:border-white/30 dark:hover:shadow-[0_20px_44px_-26px_rgba(0,0,0,.55)]"
               >
                 <motion.div
                   whileHover={{ scale: 1.15, rotate: 10 }}
@@ -467,8 +467,8 @@ export default function TravelPage() {
                 >
                   {feature.icon}
                 </motion.div>
-                <h3 className="mb-2 text-xl font-bold text-brand-dark">{feature.title}</h3>
-                <p className="text-gray-600 transition-colors duration-300 group-hover:text-text-secondary">
+                <h3 className="mb-2 text-xl font-bold text-brand-dark dark:text-white">{feature.title}</h3>
+                <p className="text-gray-600 transition-colors duration-300 group-hover:text-text-secondary dark:text-white/72 dark:group-hover:text-white/88">
                   {feature.desc}
                 </p>
               </motion.div>

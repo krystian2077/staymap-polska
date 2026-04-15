@@ -142,6 +142,12 @@ export function AccountPageClient() {
           <Link href="/search" className="block rounded-lg border border-gray-200 bg-white px-4 py-3 hover:border-brand/40">
             Szukaj noclegów
           </Link>
+          <Link
+            href="/ai/history"
+            className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 hover:border-brand/40"
+          >
+            Historia wyszukiwań AI
+          </Link>
           {me.is_host ? (
             <Link
               href="/host/dashboard"

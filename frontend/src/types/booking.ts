@@ -3,10 +3,20 @@ import type { Listing } from "./listing";
 export interface PricingBreakdown {
   nights: number;
   guests?: number;
+  adults?: number;
+  children?: number;
+  pets?: number;
   guests_included?: number;
   extra_guests?: number;
   extra_guest_fee_per_night?: number;
   extra_guests_total?: number;
+  extra_adults?: number;
+  adult_surcharge_percent?: number;
+  adults_surcharge_total?: number;
+  extra_children?: number;
+  child_surcharge_percent?: number;
+  children_surcharge_total?: number;
+  guest_surcharge_total?: number;
   nightly_rate: number;
   seasonal_multiplier: number;
   holiday_multiplier: number;
@@ -27,6 +37,8 @@ export interface BookingQuoteRequest {
   check_out: string;
   guests: number;
   adults: number;
+  children?: number;
+  pets?: number;
 }
 
 export interface BookingCreateRequest {
@@ -36,7 +48,15 @@ export interface BookingCreateRequest {
   guests_count: number;
   adults: number;
   children?: number;
+  pets?: number;
   special_requests?: string;
+  cost_split?: {
+    people: number;
+    per_person: number;
+    total: number;
+    currency: string;
+    max_guests: number;
+  } | null;
 }
 
 export interface Booking {
@@ -54,7 +74,15 @@ export interface Booking {
     | "cancelled"
     | "rejected"
     | "completed";
-  pricing_breakdown: Record<string, unknown>;
+  pricing_breakdown: Record<string, unknown> & {
+    cost_split?: {
+      people: number;
+      per_person: string | number;
+      total: string | number;
+      currency: string;
+      max_guests: number;
+    };
+  };
   final_amount: number;
   currency: string;
   special_requests: string;

@@ -12,7 +12,7 @@ import type { HostBooking } from "@/types/host";
 
 import { motion, AnimatePresence } from "framer-motion";
 
-const CARD = "rounded-[32px] bg-white shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-black/[0.02]";
+const CARD = "rounded-[32px] bg-white shadow-[0_4px_20px_rgba(0,0,0,0.03)] ring-1 ring-black/[0.02] dark:bg-[var(--bg2)] dark:ring-brand-border/45";
 
 const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   pending: { label: "Oczekująca", cls: "bg-amber-50 text-amber-700 ring-1 ring-amber-500/10" },
@@ -83,7 +83,7 @@ export function HostBookingsClient({
                 "relative rounded-xl px-6 py-2.5 text-sm font-bold transition-all duration-300",
                 statusFilter === sf
                   ? "bg-brand text-white shadow-lg shadow-brand/20 ring-1 ring-brand/10"
-                  : "bg-white text-brand-dark/60 hover:text-brand-dark hover:bg-brand-surface/40 hover:shadow-sm ring-1 ring-black/[.03]"
+                  : "bg-white text-brand-dark/60 hover:text-brand-dark hover:bg-brand-surface/40 hover:shadow-sm ring-1 ring-black/[.03] dark:bg-[var(--bg3)] dark:text-[var(--text2)] dark:ring-brand-border/50"
               )}
             >
               {label}
@@ -114,7 +114,7 @@ export function HostBookingsClient({
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="rounded-[40px] bg-white border-2 border-dashed border-brand/20 py-24 text-center shadow-[0_20px_50px_rgba(22,163,74,0.03)]"
+          className="rounded-[40px] bg-white border-2 border-dashed border-brand/20 py-24 text-center shadow-[0_20px_50px_rgba(22,163,74,0.03)] dark:bg-[var(--bg2)]"
         >
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-brand-surface text-4xl mb-6">📋</div>
           <p className="text-2xl font-black text-brand-dark">Cisza przed burzą?</p>
@@ -170,7 +170,7 @@ export function HostBookingsClient({
                         <span className="h-1.5 w-1.5 rounded-full bg-brand/20" />
                         <span className="text-sm font-black text-brand">{b.final_amount} {b.currency}</span>
                         {b.special_requests && (
-                          <div className="w-full mt-2 rounded-xl bg-gray-50 px-4 py-2.5 text-[13px] italic text-text-muted border-l-2 border-brand/20">
+                          <div className="w-full mt-2 rounded-xl bg-gray-50 px-4 py-2.5 text-[13px] italic text-text-muted border-l-2 border-brand/20 dark:bg-[var(--bg3)]">
                             &bdquo;{b.special_requests}&rdquo;
                           </div>
                         )}
@@ -200,7 +200,7 @@ export function HostBookingsClient({
                     {b.conversation_id && (
                       <Link 
                         href={`/host/messages?conv=${encodeURIComponent(b.conversation_id)}`} 
-                        className="flex h-11 items-center gap-2 rounded-xl bg-white border border-black/[0.05] px-5 text-sm font-black text-brand-dark transition-all hover:bg-brand-surface hover:text-brand hover:shadow-md active:scale-95"
+                        className="flex h-11 items-center gap-2 rounded-xl bg-white border border-black/[0.05] px-5 text-sm font-black text-brand-dark transition-all hover:bg-brand-surface hover:text-brand hover:shadow-md active:scale-95 dark:bg-[var(--bg3)] dark:border-brand-border/60 dark:text-[var(--foreground)] dark:hover:bg-[var(--bg2)]"
                       >
                         💬 Wiadomość
                       </Link>

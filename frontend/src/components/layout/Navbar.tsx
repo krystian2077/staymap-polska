@@ -8,6 +8,7 @@ import { clearAuthTokens, getAccessToken } from "@/lib/authStorage";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useMessagingStore } from "@/lib/store/messagingStore";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 type NavItem = { label: string; href: string; ai?: boolean };
 
@@ -169,22 +170,23 @@ export function Navbar() {
      cn(
        "group relative flex items-center h-full px-3 lg:px-4 xl:px-5 text-[16px] font-bold tracking-[-0.3px] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
        ai
-         ? "mx-2 px-4 py-1 text-[#7c3aed] hover:text-[#6d28d9] hover:scale-105"
-          : "text-[#1f2937] hover:text-[#0a0f0d]",
-       isActive(pathname, href) && !ai && "text-[#16a34a] font-extrabold after:absolute after:bottom-[12px] after:left-4 after:right-4 after:h-[3px] after:rounded-full after:bg-gradient-to-r after:from-[#16a34a] after:to-[#22c55e] after:content-['']"
+         ? "mx-2 px-4 py-1 text-[#7c3aed] hover:text-[#6d28d9] hover:scale-105 dark:text-violet-300 dark:hover:text-violet-200"
+          : "text-[#1f2937] hover:text-[#0a0f0d] dark:text-zinc-200 dark:hover:text-white",
+       isActive(pathname, href) && !ai && "text-[#16a34a] font-extrabold after:absolute after:bottom-[12px] after:left-4 after:right-4 after:h-[3px] after:rounded-full after:bg-gradient-to-r after:from-[#16a34a] after:to-[#22c55e] after:content-[''] dark:text-brand"
      );
 
    return (
      <header
        className={cn(
          "sticky top-0 z-[500] h-[88px] border-b border-gray-200 bg-white shadow-[0_6px_24px_-12px_rgba(0,0,0,0.18)] transition-all duration-500",
+         "dark:border-brand-border dark:bg-[var(--bg2)] dark:shadow-[0_6px_24px_-12px_rgba(0,0,0,0.45)]",
          scrolled && "h-[80px] shadow-[0_10px_28px_-14px_rgba(0,0,0,0.24)]"
        )}
      >
        <div className="mx-auto flex h-full w-full max-w-[1560px] items-center justify-between px-4 md:px-8 lg:px-10 xl:px-12">
          <Link href="/" className="group flex items-end leading-none transition-all duration-300 hover:scale-[1.03] active:scale-95">
-           <span className="text-[28px] font-[900] tracking-[-1.2px] text-[#0a2e1a] sm:text-[30px]">StayMap</span>
-           <span className="ml-0.5 text-[32px] leading-none text-[#16a34a] transition-all duration-500 group-hover:ml-1.5 group-hover:scale-150 sm:text-[36px]">.</span>
+           <span className="text-[28px] font-[900] tracking-[-1.2px] text-[#0a2e1a] sm:text-[30px] dark:text-[var(--brand-dark)]">StayMap</span>
+           <span className="ml-0.5 text-[32px] leading-none text-[#16a34a] transition-all duration-500 group-hover:ml-1.5 group-hover:scale-150 sm:text-[36px] dark:text-brand">.</span>
          </Link>
 
           <nav className="hidden h-full flex-nowrap items-center gap-[8px] md:flex lg:gap-[12px]" aria-label="Nawigacja główna">
@@ -198,7 +200,8 @@ export function Navbar() {
            ))}
          </nav>
 
-         <div className="hidden items-center gap-5 md:flex">
+         <div className="hidden items-center gap-4 md:flex">
+           <ThemeToggle />
            {!authReady ? (
              <div className="h-12 w-[240px] animate-pulse rounded-full bg-[#f2f7f4]" aria-hidden />
            ) : !user ? (
@@ -289,7 +292,7 @@ export function Navbar() {
 
          <button
            type="button"
-           className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#e4ebe7] bg-white text-[#0a2e1a] shadow-md transition-all duration-300 active:scale-95 md:hidden hover:border-[#16a34a]/30 hover:shadow-lg"
+           className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#e4ebe7] bg-white text-[#0a2e1a] shadow-md transition-all duration-300 active:scale-95 md:hidden hover:border-[#16a34a]/30 hover:shadow-lg dark:border-brand-border dark:bg-[var(--bg3)] dark:text-[var(--foreground)]"
            aria-label="Otwórz menu"
            aria-expanded={menuOpen}
            aria-controls="mobile-main-nav"
@@ -311,13 +314,16 @@ export function Navbar() {
          ref={drawerRef}
          id="mobile-main-nav"
          className={cn(
-           "absolute left-4 right-4 top-[88px] z-[499] overflow-hidden rounded-[28px] border border-[#e4ebe7] bg-white/98 p-4 shadow-[0_28px_56px_-12px_rgba(10,15,13,.2)] backdrop-blur-xl transition-all duration-500 md:hidden",
+           "absolute left-4 right-4 top-[88px] z-[499] overflow-hidden rounded-[28px] border border-[#e4ebe7] bg-white/98 p-4 shadow-[0_28px_56px_-12px_rgba(10,15,13,.2)] backdrop-blur-xl transition-all duration-500 md:hidden dark:border-brand-border dark:bg-[var(--bg2)]/98",
            scrolled && "top-[80px]",
            menuOpen ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-4 opacity-0"
          )}
          aria-hidden={!menuOpen}
        >
          <div className="flex flex-col gap-2">
+           <div className="mb-1 flex items-center justify-end border-b border-[#e4ebe7] pb-3 dark:border-brand-border">
+             <ThemeToggle />
+           </div>
            {navItems.map((item) => (
              <Link
                key={item.href}

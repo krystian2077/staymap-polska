@@ -54,9 +54,9 @@ export function MountainCollection({ cards }: { cards: CollectionCardData[] }) {
           ref={railRef}
           className="flex gap-4 overflow-x-auto pb-9 pr-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
-          {cards.map((card) => (
+          {cards.map((card, index) => (
             <Link
-              key={`${card.href}-${card.title}`}
+              key={card.listingId ? `${card.listingId}-${index}` : `${card.href}-${index}`}
               href={card.href}
               className="group min-w-[264px] shrink-0 overflow-hidden rounded-[20px] border border-[#e4ebe7] bg-white shadow-[0_1px_3px_rgba(10,15,13,.05)] transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-1.5 hover:border-[#bbf7d0] hover:shadow-[0_24px_64px_rgba(10,15,13,.16)]"
             >

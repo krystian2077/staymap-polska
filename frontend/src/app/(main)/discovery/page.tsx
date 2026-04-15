@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { ListingCard } from "@/components/listings/ListingCard";
-import { LastMinuteBanner, LastMinuteCard } from "@/components/discovery/LastMinuteCard";
+import { LastMinuteBanner } from "@/components/discovery/LastMinuteCard";
+import { LastMinute3DSlider } from "@/components/discovery/LastMinute3DSlider";
 import { similarListingToSearch } from "@/lib/listingAdapters";
 import { MODE_EMOJI, TRAVEL_MODE_LABELS } from "@/lib/travelModes";
 import type { Collection, DiscoveryHomepage, LastMinuteListing } from "@/types/ai";
@@ -43,15 +44,15 @@ export default function DiscoveryPage() {
 
   if (!data) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-white">
+      <div className="flex min-h-screen items-center justify-center bg-white dark:bg-[var(--background)]">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#fafbfc] pb-24">
-      <section className="relative overflow-hidden bg-white px-7 py-20 lg:py-28">
+    <div className="min-h-screen bg-[#fafbfc] pb-24 dark:bg-[var(--background)]">
+      <section className="relative overflow-hidden bg-white px-7 py-20 dark:bg-[var(--bg2)] lg:py-28">
         {/* Dekoracyjne elementy tła */}
         <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-brand-surface opacity-30 blur-3xl" />
         <div className="absolute -right-20 top-0 h-[500px] w-[500px] rounded-full bg-blue-50 opacity-40 blur-3xl" />
@@ -61,7 +62,7 @@ export default function DiscoveryPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-border bg-white px-4 py-1.5 text-[13px] font-bold text-brand-dark shadow-sm"
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-brand-border bg-white px-4 py-1.5 text-[13px] font-bold text-brand-dark shadow-sm dark:border-white/20 dark:bg-[var(--bg3)] dark:text-white"
           >
             <span className="flex h-2 w-2 rounded-full bg-brand animate-pulse" />
             🗺️ Odkrywaj Polskę na nowo
@@ -71,7 +72,7 @@ export default function DiscoveryPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-[clamp(32px,6vw,64px)] font-black leading-[1.1] tracking-tight text-brand-dark"
+            className="text-[clamp(32px,6vw,64px)] font-black leading-[1.1] tracking-tight text-brand-dark dark:text-white"
           >
             Miejsca z duszą,<br />
             <span className="bg-gradient-to-r from-brand to-emerald-600 bg-clip-text text-transparent">wybrane dla Ciebie.</span>
@@ -91,7 +92,7 @@ export default function DiscoveryPage() {
                 className="flex flex-col items-center gap-2"
               >
                 <span className="text-2xl">{item.icon}</span>
-                <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">{item.label}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-text-muted dark:text-white/65">{item.label}</span>
               </motion.div>
             ))}
           </div>
@@ -100,7 +101,7 @@ export default function DiscoveryPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="mx-auto mt-8 max-w-[640px] text-lg leading-relaxed text-text-secondary"
+            className="mx-auto mt-8 max-w-[640px] text-lg leading-relaxed text-text-secondary dark:text-white/75"
           >
             Nasz zespół kuratorów podróży przeczesuje Polskę, by dostarczyć Ci zestawienia najpiękniejszych domów, pensjonatów i ukrytych perełek.
           </motion.p>
@@ -132,45 +133,28 @@ export default function DiscoveryPage() {
           <LastMinuteBanner />
         </div>
 
-        <div className="no-scrollbar mb-16 flex gap-5 overflow-x-auto pb-6 px-1">
-          {data.last_minute.length === 0 ? (
-            <div className="flex h-40 w-full items-center justify-center rounded-2xl border-2 border-dashed border-gray-100 bg-white">
-              <p className="text-sm text-text-muted italic">Obecnie brak ofert last minute. Wróć niebawem!</p>
-            </div>
-          ) : (
-            data.last_minute.map((l, i) => (
-              <motion.div
-                key={l.id}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.1 }}
-              >
-                <LastMinuteCard listing={l} />
-              </motion.div>
-            ))
-          )}
-        </div>
+        <LastMinute3DSlider listings={data.last_minute} />
 
         <div className="space-y-24">
           {data.featured_collections
             .filter((collection) => collection.title !== "Nad jeziorem i wodą")
-            .map((collection, collectionIndex) => (
+            .map((collection) => (
             <section key={collection.id} className="relative">
               <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="max-w-2xl">
                   <div className="flex items-center gap-3 mb-3">
                     {collection.mode ? (
-                      <span className="inline-flex items-center rounded-lg bg-brand-surface px-2.5 py-1 text-[12px] font-bold text-brand-dark ring-1 ring-brand-border">
+                       <span className="inline-flex items-center rounded-lg bg-brand-surface px-2.5 py-1 text-[12px] font-bold text-brand-dark ring-1 ring-brand-border dark:border-white/20 dark:bg-[var(--bg3)] dark:text-white">
                         {MODE_EMOJI[collection.mode] ?? "✨"}{" "}
                         {TRAVEL_MODE_LABELS[collection.mode] ?? collection.mode}
                       </span>
                     ) : null}
-                    <span className="h-px flex-1 bg-gray-100 min-w-[40px] md:hidden" />
+                    <span className="h-px min-w-[40px] flex-1 bg-gray-100 dark:bg-white/20 md:hidden" />
                   </div>
-                  <h2 className="text-3xl font-black tracking-tight text-brand-dark mb-4">
+                  <h2 className="mb-4 text-3xl font-black tracking-tight text-brand-dark dark:text-white">
                     {collection.title}
                   </h2>
-                  <p className="text-base leading-relaxed text-text-muted max-w-xl">
+                  <p className="max-w-xl text-base leading-relaxed text-text-muted dark:text-white/70">
                     {collection.description}
                   </p>
                 </div>
@@ -181,7 +165,7 @@ export default function DiscoveryPage() {
                       ? `/search?travel_mode=${encodeURIComponent(collection.mode)}`
                       : `/search?collection=${encodeURIComponent(collection.id)}`
                   }
-                  className="group flex items-center gap-2 text-sm font-bold text-brand transition-colors hover:text-brand-dark"
+                  className="group flex items-center gap-2 text-sm font-bold text-brand transition-colors hover:text-brand-dark dark:hover:text-white"
                 >
                   Zobacz całą kolekcję
                   <span className="transition-transform group-hover:translate-x-1">→</span>

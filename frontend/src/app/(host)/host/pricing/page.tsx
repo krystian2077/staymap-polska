@@ -6,7 +6,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 
-const CARD = "rounded-2xl bg-white shadow-card ring-1 ring-black/[.04]";
+const CARD = "rounded-2xl bg-white shadow-card ring-1 ring-black/[.04] dark:bg-[var(--bg2)] dark:ring-brand-border/45";
 
 type ListingPricing = {
   id: string;
@@ -114,7 +114,7 @@ export default function HostPricingPage() {
                       <span className="rounded-full bg-brand-muted px-2.5 py-1 text-[10px] font-bold text-brand-dark">
                         {BOOKING_MODE_LABELS[l.booking_mode] ?? l.booking_mode}
                       </span>
-                      <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-bold text-gray-600">
+                      <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[10px] font-bold text-gray-600 dark:bg-[var(--bg3)] dark:text-[var(--text2)]">
                         Max {l.max_guests} gości
                       </span>
                     </div>
@@ -136,11 +136,11 @@ export default function HostPricingPage() {
                     <div className="flex flex-wrap items-end gap-3">
                       <label className="text-xs font-semibold text-text-secondary">
                         Cena/noc ({l.currency})
-                        <input type="number" className="mt-1 w-28 rounded-xl border-0 bg-[#f7f9f8] px-3 py-2.5 text-sm ring-1 ring-black/[.06] focus:ring-2 focus:ring-brand" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
+                        <input type="number" className="host-input mt-1 w-28" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} />
                       </label>
                       <label className="text-xs font-semibold text-text-secondary">
                         Sprzątanie ({l.currency})
-                        <input type="number" className="mt-1 w-28 rounded-xl border-0 bg-[#f7f9f8] px-3 py-2.5 text-sm ring-1 ring-black/[.06] focus:ring-2 focus:ring-brand" value={editFee} onChange={(e) => setEditFee(e.target.value)} />
+                        <input type="number" className="host-input mt-1 w-28" value={editFee} onChange={(e) => setEditFee(e.target.value)} />
                       </label>
                       <div className="flex gap-2">
                         <button type="button" className="btn-secondary px-3 py-2 text-xs" onClick={() => setEditId(null)}>Anuluj</button>

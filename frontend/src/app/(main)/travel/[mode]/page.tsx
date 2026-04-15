@@ -132,7 +132,8 @@ export default async function TravelModePage({ params }: { params: { mode: strin
     `/api/v1/search/?travel_mode=${params.mode}&ordering=recommended&page_size=12`
   );
   console.log(`[TravelModePage] Fetching listings for ${params.mode} from: ${url}`);
-  let listings = [];
+  type ListingCardItem = Parameters<typeof ListingCard>[0]["listing"];
+  let listings: ListingCardItem[] = [];
 
   try {
     const res = await fetch(url, { next: { revalidate: 60 } });
@@ -140,7 +141,7 @@ export default async function TravelModePage({ params }: { params: { mode: strin
     if (res.ok) {
       const data = await res.json();
       console.log(`[TravelModePage] Data received keys:`, Object.keys(data));
-      listings = data?.data ?? data?.results ?? [];
+      listings = (data?.data ?? data?.results ?? []) as ListingCardItem[];
       console.log(`[TravelModePage] Listings count: ${listings.length}`);
     } else {
       const errorText = await res.text();
@@ -151,9 +152,9 @@ export default async function TravelModePage({ params }: { params: { mode: strin
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-[var(--background)]">
       {/* Hero Section */}
-      <section className={`relative overflow-hidden bg-gradient-to-br ${meta.bgColor} py-20 md:py-32`}>
+      <section className={`relative overflow-hidden bg-gradient-to-br ${meta.bgColor} py-20 dark:from-[var(--bg2)] dark:to-[var(--bg)] md:py-32`}>
         {/* Animated Background Decorative Elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div
@@ -167,7 +168,7 @@ export default async function TravelModePage({ params }: { params: { mode: strin
           <div className="mb-8 flex justify-center">
             <Link
               href="/travel"
-              className="group inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white/80 px-6 py-2.5 text-sm font-bold text-gray-700 backdrop-blur-sm transition-all duration-300 hover:border-gray-400 hover:bg-white hover:shadow-lg"
+              className="group inline-flex items-center gap-2 rounded-full border border-gray-300 bg-white/80 px-6 py-2.5 text-sm font-bold text-gray-700 backdrop-blur-sm transition-all duration-300 hover:border-gray-400 hover:bg-white hover:shadow-lg dark:border-white/25 dark:bg-[var(--bg3)]/90 dark:text-white dark:hover:bg-[var(--bg2)]"
             >
               <span className="transition-transform group-hover:-translate-x-1">←</span>
               <span>Wróć do trybów</span>
@@ -180,7 +181,7 @@ export default async function TravelModePage({ params }: { params: { mode: strin
           </div>
 
           {/* Heading */}
-          <h1 className="mb-6 text-[clamp(36px,6vw,64px)] font-black leading-[1.1] tracking-tight text-gray-900">
+          <h1 className="mb-6 text-[clamp(36px,6vw,64px)] font-black leading-[1.1] tracking-tight text-gray-900 dark:text-white">
             {meta.headline}
           </h1>
 
@@ -190,7 +191,7 @@ export default async function TravelModePage({ params }: { params: { mode: strin
           </p>
 
           {/* Description */}
-          <p className="mx-auto max-w-2xl text-lg leading-relaxed text-gray-700 md:text-[17px]">
+          <p className="mx-auto max-w-2xl text-lg leading-relaxed text-gray-700 dark:text-white/78 md:text-[17px]">
             {meta.description}
           </p>
 
@@ -199,7 +200,7 @@ export default async function TravelModePage({ params }: { params: { mode: strin
             {meta.benefits.map((benefit) => (
               <div
                 key={benefit}
-                className={`inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 font-bold text-gray-900 shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1`}
+                className={`inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 font-bold text-gray-900 shadow-md transition-all duration-300 hover:shadow-xl hover:-translate-y-1 dark:border dark:border-white/20 dark:bg-[var(--bg3)] dark:text-white dark:shadow-[0_12px_30px_-18px_rgba(0,0,0,.55)]`}
               >
                 <span>✨</span>
                 <span>{benefit}</span>
@@ -214,10 +215,10 @@ export default async function TravelModePage({ params }: { params: { mode: strin
         {/* Header */}
         <div className="mb-16 flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
           <div>
-            <h2 className="mb-3 text-[clamp(28px,5vw,42px)] font-black text-gray-900">
+            <h2 className="mb-3 text-[clamp(28px,5vw,42px)] font-black text-gray-900 dark:text-white">
               Oferty na miarę Twoich marzeń
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-gray-600 dark:text-white/72">
               {listings.length > 0
                 ? `Znaleźliśmy ${listings.length} niesamowitych miejsc dla Ciebie`
                 : "Czytaj dalej — mamy coś dla każdego"}
@@ -239,17 +240,17 @@ export default async function TravelModePage({ params }: { params: { mode: strin
         {/* Listings Grid or Empty State */}
         {listings.length > 0 ? (
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {listings.map((listing: any, idx: number) => (
+            {listings.map((listing, idx: number) => (
               <div key={listing.id} style={{ animationDelay: `${idx * 0.08}s` }} className="animate-fade-up">
                 <ListingCard listing={listing} />
               </div>
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-gray-300 bg-gray-50 py-32 text-center">
+          <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-gray-300 bg-gray-50 py-32 text-center dark:border-white/20 dark:bg-[var(--bg2)]">
             <div className="mb-6 text-6xl">🔍</div>
-            <h3 className="mb-2 text-2xl font-bold text-gray-900">Chwilowo brak dedykowanych ofert</h3>
-            <p className="mb-8 max-w-md text-gray-600">
+            <h3 className="mb-2 text-2xl font-bold text-gray-900 dark:text-white">Chwilowo brak dedykowanych ofert</h3>
+            <p className="mb-8 max-w-md text-gray-600 dark:text-white/72">
               Ale nie martw się! Mamy wiele wspaniałych miejsc, które mogą Ci się spodobać. Sprawdź inne propozycje w
               naszym wyszukiwarce.
             </p>
@@ -263,7 +264,7 @@ export default async function TravelModePage({ params }: { params: { mode: strin
               </Link>
               <Link
                 href="/ai"
-                className="group inline-flex items-center justify-center gap-2 rounded-full border-2 border-brand bg-white px-8 py-3 font-bold text-brand transition-all hover:bg-brand-surface hover:shadow-lg hover:-translate-y-1"
+                className="group inline-flex items-center justify-center gap-2 rounded-full border-2 border-brand bg-white px-8 py-3 font-bold text-brand transition-all hover:bg-brand-surface hover:shadow-lg hover:-translate-y-1 dark:border-white/25 dark:bg-[var(--bg3)] dark:text-white dark:hover:bg-[var(--bg)]"
               >
                 <span>Spróbuj AI</span>
                 <span>✨</span>

@@ -105,6 +105,9 @@ class AiRecommendation(BaseModel):
         related_name="ai_recommendations",
     )
     rank = models.PositiveSmallIntegerField(default=0)
+    match_explanation = models.TextField(blank=True, default="")
+    match_highlights = models.JSONField(default=list, blank=True)
+    explanation_source = models.CharField(max_length=16, blank=True, default="rule")
 
     class Meta:
         ordering = ("rank", "id")

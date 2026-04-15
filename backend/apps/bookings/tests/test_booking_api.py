@@ -115,8 +115,10 @@ def test_bookings_quote_success_and_cache(api_client, guest_user, approved_listi
         "listing_id": str(approved_listing_instant.id),
         "check_in": str(ci),
         "check_out": str(co),
-        "guests": 2,
+        "guests": 3,
         "adults": 2,
+        "children": 1,
+        "pets": 2,
     }
     r1 = api_client.post("/api/v1/bookings/quote/", payload, format="json")
     assert r1.status_code == 200
@@ -204,6 +206,97 @@ def test_bookings_create_guests_mismatch(api_client, guest_user, approved_listin
             "guests_count": 3,
             "adults": 1,
             "children": 1,
+        },
+        format="json",
+    )
+    assert res.status_code == 400
+
+
+@pytest.mark.django_db
+def test_bookings_create_rejects_guests_above_listing_max(api_client, guest_user, approved_listing_instant):
+    api_client.force_authenticate(user=guest_user)
+    ci = date.today() + timedelta(days=52)
+    co = ci + timedelta(days=2)
+    res = api_client.post(
+        "/api/v1/bookings/",
+        {
+            "listing_id": str(approved_listing_instant.id),
+            "check_in": str(ci),
+            "check_out": str(co),
+            "guests_count": approved_listing_instant.max_guests + 1,
+            "adults": approved_listing_instant.max_guests + 1,
+            "children": 0,
+        },
+        format="json",
+    )
+    assert res.status_code == 400
+
+
+@pytest.mark.django_db
+def test_bookings_create_persists_cost_split(api_client, guest_user, approved_listing_instant):
+    api_client.force_authenticate(user=guest_user)
+    ci = date.today() + timedelta(days=53)
+    co = ci + timedelta(days=2)
+    res = api_client.post(
+        "/api/v1/bookings/",
+        {
+            "listing_id": str(approved_listing_instant.id),
+            "check_in": str(ci),
+            "check_out": str(co),
+            "guests_count": 2,
+            "adults": 2,
+            "children": 0,
+            "pets": 1,
+            "cost_split": {"people": 2},
+        },
+        format="json",
+    )
+    assert res.status_code == 201
+    split = res.json()["data"]["pricing_breakdown"].get("cost_split")
+    assert split is not None
+    assert split["people"] == 2
+    assert res.json()["data"]["cost_split"]["people"] == 2
+
+
+@pytest.mark.django_db
+def test_bookings_create_applies_percentage_surcharges(api_client, guest_user, approved_listing_instant):
+    api_client.force_authenticate(user=guest_user)
+    ci = date.today() + timedelta(days=53)
+    co = ci + timedelta(days=2)
+    res = api_client.post(
+        "/api/v1/bookings/",
+        {
+            "listing_id": str(approved_listing_instant.id),
+            "check_in": str(ci),
+            "check_out": str(co),
+            "guests_count": 3,
+            "adults": 2,
+            "children": 1,
+            "pets": 2,
+        },
+        format="json",
+    )
+    assert res.status_code == 201
+    breakdown = res.json()["data"]["pricing_breakdown"]
+    assert Decimal(str(breakdown["adults_surcharge_total"])) > Decimal("0")
+    assert Decimal(str(breakdown["children_surcharge_total"])) > Decimal("0")
+
+
+@pytest.mark.django_db
+def test_bookings_create_rejects_cost_split_above_listing_max(api_client, guest_user, approved_listing_instant):
+    api_client.force_authenticate(user=guest_user)
+    ci = date.today() + timedelta(days=54)
+    co = ci + timedelta(days=2)
+    res = api_client.post(
+        "/api/v1/bookings/",
+        {
+            "listing_id": str(approved_listing_instant.id),
+            "check_in": str(ci),
+            "check_out": str(co),
+            "guests_count": 2,
+            "adults": 2,
+            "children": 0,
+            "cost_split": {"people": approved_listing_instant.max_guests + 1},
         },
         format="json",
     )

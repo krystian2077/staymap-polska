@@ -11,6 +11,7 @@ from apps.ai_assistant.services import (
     AISearchService,
     _geocode_if_needed,
     _parse_llm_json,
+    _rule_based_match_explanation,
     _strip_json_fence,
     _usage_cost_usd,
     _usage_tokens,
@@ -49,6 +50,15 @@ def test_rule_based_hints_budget_and_location():
     assert hints.get("location")
 
 
+def test_permute_ordered_ids_differs_by_prompt_same_pool():
+    ids = [f"id-{i}" for i in range(20)]
+    a = AISearchService._permute_ordered_ids_for_prompt(ids, "Mazury nocleg", "sess-a")
+    b = AISearchService._permute_ordered_ids_for_prompt(ids, "Tatry zima", "sess-a")
+    assert len(a) == len(ids) == len(b)
+    assert sorted(a) == sorted(ids)
+    assert a != b
+
+
 def test_merge_llm_with_hints_prefers_price_asc_for_cheap_prompt():
     merged = AISearchService._merge_llm_with_hints(
         {"ordering": "recommended", "travel_mode": None},
@@ -63,8 +73,28 @@ def test_best_fuzzy_match_returns_closest_candidate():
     assert hit == "Zakopane"
 
 
+def test_rule_based_match_explanation_uses_available_facts():
+    text, highlights = _rule_based_match_explanation(
+        {
+            "location": {"city": "Zakopane", "region": "Małopolskie", "near_mountains": True},
+            "scores": {"quiet": 9.1, "travel_fit": 8.6, "travel_fit_key": "romantic"},
+            "amenities": {"sauna": True, "jacuzzi": False},
+            "max_guests": 4,
+            "average_rating": 4.8,
+            "review_count": 32,
+            "response_rate_pct": 96,
+            "base_price": 490,
+            "currency": "PLN",
+        },
+        {"quiet_score_min": 8, "sauna": True, "guests": 2},
+    )
+    assert "Zakopane" in text
+    assert isinstance(highlights, list)
+    assert highlights
+
+
 @pytest.mark.django_db
-@override_settings(OPENAI_API_KEY="sk-x")
+@override_settings(OPENAI_API_KEY="sk-x", AI_MATCH_EXPLANATION_USE_LLM=False)
 @patch("apps.ai_assistant.services.AISearchService._call_llm")
 def test_run_sync_llm_failure_sets_failed(mock_llm, user_host):
     from apps.ai_assistant.models import AiTravelSession
@@ -76,7 +106,7 @@ def test_run_sync_llm_failure_sets_failed(mock_llm, user_host):
 
 
 @pytest.mark.django_db
-@override_settings(OPENAI_API_KEY="sk-x")
+@override_settings(OPENAI_API_KEY="sk-x", AI_MATCH_EXPLANATION_USE_LLM=False)
 @patch("apps.ai_assistant.services.AISearchService._call_llm")
 def test_run_sync_invalid_llm_params_fails_session(mock_llm, user_host):
     from apps.ai_assistant.models import AiTravelSession
@@ -93,7 +123,7 @@ def test_run_sync_invalid_llm_params_fails_session(mock_llm, user_host):
 
 
 @pytest.mark.django_db
-@override_settings(OPENAI_API_KEY="sk-x")
+@override_settings(OPENAI_API_KEY="sk-x", AI_MATCH_EXPLANATION_USE_LLM=False)
 @patch("apps.ai_assistant.services.SearchOrchestrator.get_ordered_ids")
 @patch("apps.ai_assistant.services.AISearchService._call_llm")
 def test_run_sync_search_orchestrator_error(mock_llm, mock_search, user_host):

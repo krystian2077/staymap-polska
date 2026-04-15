@@ -5,9 +5,13 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { Review } from "@/types/booking";
 
-type Props = { listingSlug: string };
+type Props = {
+  listingSlug: string;
+  /** Cache z API oferty — gdy brak, liczone z pobranych opinii. */
+  averageSubscores?: Record<string, number> | null;
+};
 
-export function ListingReviews({ listingSlug }: Props) {
+export function ListingReviews({ listingSlug, averageSubscores }: Props) {
   const [reviews, setReviews] = useState<Review[] | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -39,6 +43,9 @@ export function ListingReviews({ listingSlug }: Props) {
   }, [listingSlug]);
 
   const subAvg = (key: string) => {
+    if (averageSubscores && typeof averageSubscores[key] === "number") {
+      return averageSubscores[key];
+    }
     if (!reviews?.length) return 0;
     let s = 0;
     let n = 0;
@@ -50,7 +57,7 @@ export function ListingReviews({ listingSlug }: Props) {
       }
     }
     return n ? s / n : 0;
-};
+  };
 
   const dims = [
     { key: "cleanliness", label: "Czystość" },

@@ -68,33 +68,40 @@ class SearchOrchestrator:
         return f"search:v7:{digest}"
 
     @classmethod
-    def get_ordered_ids(cls, params: dict[str, Any]) -> list[UUID]:
-        """Lista PK w kolejności wyników — z Redis (TTL) albo z bazy."""
+    def get_ordered_ids(cls, params: dict[str, Any], *, use_cache: bool = True) -> list[UUID]:
+        """Lista PK w kolejności wyników — z Redis (TTL) albo z bazy.
+
+        use_cache=False: dla StayMap AI — unika powtarzania tej samej listy z Redis przy podobnych
+        parametrach; zawsze świeże zapytanie do bazy.
+        """
         cache_key = cls._make_cache_key(params)
-        cached = cache.get(cache_key)
-        if cached is not None:
-            try:
-                raw_ids = json.loads(cached)
-                ids = [UUID(x) for x in raw_ids]
-                logger.info(f"get_ordered_ids [CACHE HIT]: key={cache_key}, count={len(ids)}")
-                return ids
-            except (json.JSONDecodeError, TypeError, ValueError):
-                logger.warning("search cache corrupt for key %s — rebuilding", cache_key)
+        if use_cache:
+            cached = cache.get(cache_key)
+            if cached is not None:
+                try:
+                    raw_ids = json.loads(cached)
+                    ids = [UUID(x) for x in raw_ids]
+                    logger.info(f"get_ordered_ids [CACHE HIT]: key={cache_key}, count={len(ids)}")
+                    return ids
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    logger.warning("search cache corrupt for key %s — rebuilding", cache_key)
 
         qs = cls.build_queryset(params)
         all_ids = list(qs.values_list("id", flat=True))
         ids = all_ids[:MAX_CACHED_IDS]
-        
-        logger.info(f"get_ordered_ids [DB FETCH]: key={cache_key}, found={len(all_ids)}, caching={len(ids)}")
-        
-        try:
-            cache.set(
-                cache_key,
-                json.dumps([str(x) for x in ids]),
-                SEARCH_CACHE_TTL,
-            )
-        except Exception:
-            logger.exception("search cache set failed")
+
+        log_suffix = "no cache (AI)" if not use_cache else f"caching={len(ids)}"
+        logger.info(f"get_ordered_ids [DB FETCH]: key={cache_key}, found={len(all_ids)}, {log_suffix}")
+
+        if use_cache:
+            try:
+                cache.set(
+                    cache_key,
+                    json.dumps([str(x) for x in ids]),
+                    SEARCH_CACHE_TTL,
+                )
+            except Exception:
+                logger.exception("search cache set failed")
         return ids
 
     @classmethod
@@ -208,8 +215,12 @@ class SearchOrchestrator:
         # amenities — oferta musi mieć wszystkie wymagane amenity IDs
         if amenities := params.get("amenities"):
             for a_id in amenities:
-                # JSONField @> operator: checks if JSON array contains element with given id
-                qs = qs.filter(amenities__contains=[{"id": a_id}])
+                # Dane historyczne mają mieszany format: czasem string, czasem obiekt {id/name}.
+                qs = qs.filter(
+                    Q(amenities__contains=[a_id])
+                    | Q(amenities__contains=[{"id": a_id}])
+                    | Q(amenities__contains=[{"name": a_id}])
+                )
 
         # is_pet_friendly
         if params.get("is_pet_friendly") is True:

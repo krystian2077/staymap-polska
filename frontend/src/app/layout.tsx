@@ -3,6 +3,7 @@ import { DM_Sans } from "next/font/google";
 import { Toaster } from "react-hot-toast";
 import { MainShell } from "@/components/layout/MainShell";
 import { Navbar } from "@/components/layout/Navbar";
+import { THEME_STORAGE_KEY } from "@/lib/theme";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -23,9 +24,12 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const themeInitScript = `(function(){try{var k=${JSON.stringify(THEME_STORAGE_KEY)};var t=localStorage.getItem(k);if(t==="dark")document.documentElement.classList.add("dark");else document.documentElement.classList.remove("dark");}catch(e){}})();`;
+
   return (
-    <html lang="pl" className={dmSans.variable}>
-      <body className="min-h-screen bg-white font-sans antialiased">
+    <html lang="pl" className={dmSans.variable} suppressHydrationWarning>
+      <body className="min-h-screen bg-white font-sans antialiased dark:bg-[var(--background)] dark:text-[var(--foreground)]">
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <Navbar />
         <MainShell>{children}</MainShell>
         <Toaster

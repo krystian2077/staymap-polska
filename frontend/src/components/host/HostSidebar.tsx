@@ -37,7 +37,7 @@ function SidebarBadge({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-2 mt-10 px-8 text-[11px] font-extrabold uppercase tracking-[.2em] text-brand-dark/30 first:mt-0">
+    <p className="mb-2 mt-10 px-8 text-[11px] font-extrabold uppercase tracking-[.2em] text-brand-dark/30 first:mt-0 dark:text-brand-light/45">
       {children}
     </p>
   );
@@ -63,8 +63,8 @@ function Item({ id, href, icon, label, badge, badgeKind, activeItem }: ItemProps
         className={cn(
           "relative mb-2 flex cursor-pointer items-center gap-4 rounded-2xl px-8 py-4 text-[16px] font-semibold transition-all duration-300",
           active
-            ? "bg-brand-surface font-bold text-brand-dark shadow-[0_8px_20px_rgba(22,163,74,0.1)] ring-1 ring-brand/10"
-            : "text-brand-dark/60 hover:bg-white hover:text-brand-dark hover:shadow-[0_4px_16px_rgba(0,0,0,0.04)]"
+            ? "bg-brand-surface font-bold text-brand-dark shadow-[0_8px_20px_rgba(22,163,74,0.1)] ring-1 ring-brand/10 dark:bg-[var(--bg3)] dark:text-brand-light dark:ring-brand-border/70"
+            : "text-brand-dark/60 hover:bg-white hover:text-brand-dark hover:shadow-[0_4px_16px_rgba(0,0,0,0.04)] dark:text-[var(--text2)] dark:hover:bg-[var(--bg3)] dark:hover:text-[var(--foreground)]"
         )}
       >
         <AnimatePresence>
@@ -79,7 +79,7 @@ function Item({ id, href, icon, label, badge, badgeKind, activeItem }: ItemProps
         <span
           className={cn(
             "flex h-9 w-9 items-center justify-center rounded-xl text-lg leading-none transition-all duration-500",
-            active ? "bg-white text-brand shadow-md scale-110" : "bg-transparent grayscale group-hover:grayscale-0 group-hover:scale-110"
+            active ? "bg-white text-brand shadow-md scale-110 dark:bg-[var(--bg2)]" : "bg-transparent grayscale group-hover:grayscale-0 group-hover:scale-110"
           )}
           aria-hidden
         >
@@ -114,7 +114,7 @@ export function HostSidebar({ activeItem }: { activeItem: string }) {
   const rating = profile?.average_rating ?? 4.92;
 
   return (
-    <aside className="sticky top-16 flex h-[calc(100vh-4rem)] w-[340px] shrink-0 flex-col overflow-y-auto border-r border-brand-dark/[.03] bg-white custom-scrollbar">
+    <aside className="sticky top-16 flex h-[calc(100vh-4rem)] w-[340px] shrink-0 flex-col overflow-y-auto border-r border-brand-dark/[.03] bg-white custom-scrollbar dark:border-brand-border/45 dark:bg-[var(--bg2)]">
       {/* Profile card */}
       <div className="px-8 pb-8 pt-10">
         <motion.button
@@ -122,7 +122,7 @@ export function HostSidebar({ activeItem }: { activeItem: string }) {
           whileTap={{ scale: 0.97 }}
           type="button"
           onClick={() => router.push("/host/dashboard")}
-          className="group flex w-full items-center gap-4 rounded-[28px] bg-white p-5 text-left shadow-[0_12px_32px_rgba(0,0,0,0.05)] ring-1 ring-black/[.02] transition-all duration-500 hover:ring-brand/20"
+          className="group flex w-full items-center gap-4 rounded-[28px] bg-white p-5 text-left shadow-[0_12px_32px_rgba(0,0,0,0.05)] ring-1 ring-black/[.02] transition-all duration-500 hover:ring-brand/20 dark:bg-[var(--bg3)] dark:ring-brand-border/45"
         >
           <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-brand-muted ring-2 ring-brand/10">
             {profile?.avatar_url ? (
@@ -141,7 +141,7 @@ export function HostSidebar({ activeItem }: { activeItem: string }) {
             )}
             {profile?.is_verified && (
               <span
-                className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] shadow-md"
+                className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] shadow-md dark:bg-[var(--bg2)]"
                 title="Zweryfikowany"
               >
                 ⭐
@@ -149,7 +149,7 @@ export function HostSidebar({ activeItem }: { activeItem: string }) {
             )}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-sm font-extrabold text-brand-dark tracking-tight">{displayName}</p>
+            <p className="truncate text-sm font-extrabold tracking-tight text-brand-dark dark:text-[var(--foreground)]">{displayName}</p>
             <div className="flex items-center gap-1 mt-0.5">
               <span className="h-1 w-1 rounded-full bg-brand" />
               <p className="text-[11px] font-medium text-text-muted">

@@ -20,7 +20,7 @@ export function HostMobileNav({ activeItem }: { activeItem: string }) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-brand-dark/[.06] bg-gradient-to-t from-white via-white to-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-40 flex border-t border-brand-dark/[.06] bg-gradient-to-t from-white via-white to-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg dark:border-brand-border/45 dark:from-[var(--bg2)] dark:via-[var(--bg2)] dark:to-[var(--bg3)] md:hidden"
       aria-label="Nawigacja panelu gospodarza"
     >
       {items.map((it) => {

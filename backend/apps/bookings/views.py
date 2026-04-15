@@ -70,6 +70,8 @@ class BookingViewSet(viewsets.ViewSet):
                 "out": v["check_out"].isoformat(),
                 "guests": v["guests"],
                 "adults": v["adults"],
+                "children": v["children"],
+                "pets": v["pets"],
             },
             sort_keys=True,
         )
@@ -83,6 +85,9 @@ class BookingViewSet(viewsets.ViewSet):
             v["check_in"],
             v["check_out"],
             guests=v["guests"],
+            adults=v["adults"],
+            children=v["children"],
+            pets=v["pets"],
         )
         payload = {"data": breakdown, "meta": {}}
         cache.set(cache_key, payload, 900)
@@ -100,7 +105,9 @@ class BookingViewSet(viewsets.ViewSet):
             guests_count=v["guests_count"],
             adults=v["adults"],
             children=v["children"],
+            pets=v["pets"],
             special_requests=v.get("special_requests") or "",
+            cost_split=v.get("cost_split"),
         )
         booking = _booking_detail_qs().get(pk=booking.pk)
         out = BookingDetailSerializer(booking, context={"request": request})

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getAccessToken } from "@/lib/authStorage";
 import { publicMediaUrl } from "@/lib/mediaUrl";
 import { useAIStore } from "@/lib/store/aiStore";
@@ -17,6 +17,27 @@ const QUICK_PROMPTS = [
   "💻 Workation z szybkim WiFi",
   "👨‍👩‍👧 Dla rodziny, min. 6 osób",
 ];
+
+const DRAFT_SESSION: AISession = {
+  session_id: "draft-session",
+  status: "complete",
+  prompt: "",
+  filters: null,
+  search_params: null,
+  results: [],
+  latest_response: "",
+  assistant_reply: "",
+  follow_up_suggestions: [],
+  messages: [],
+  conversation: [],
+  error_message: null,
+  matching_strategy: null,
+  tokens_used: 0,
+  cost_usd: 0,
+  model_used: null,
+  created_at: new Date().toISOString(),
+  expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+};
 
 function StarIcon({ className }: { className?: string }) {
   return (
@@ -166,15 +187,18 @@ function AIResultCard({ result, index }: { result: AIResult; index: number }) {
         : null;
   const short = (result.short_description || "").trim();
   const imageCount = Array.isArray(result.images) ? result.images.length : 0;
+  const explanation = (result.match_explanation || "").trim();
+  const highlights = (result.match_highlights || []).filter(Boolean).slice(0, 3);
   return (
     <Link
       href={`/listing/${result.slug}`}
       className={cn(
-        "group animate-offer-card-in block h-full overflow-hidden rounded-[24px] border border-[#e4ebe7] bg-white shadow-[0_12px_34px_-24px_rgba(10,15,13,.32)] transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-[7px] hover:border-[#bbf7d0] hover:shadow-[0_30px_80px_-26px_rgba(10,15,13,.38)]"
+        "group animate-offer-card-in block h-full overflow-hidden rounded-[28px] border border-[#dde7e2] bg-white shadow-[0_20px_54px_-28px_rgba(10,15,13,.34)] transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)] hover:-translate-y-[8px] hover:border-[#86efac] hover:shadow-[0_34px_88px_-30px_rgba(10,15,13,.38)] dark:border-white/15 dark:bg-[var(--bg2)] dark:shadow-[0_20px_44px_-26px_rgba(0,0,0,.55)]",
+        "ai-premium-card"
       )}
       style={{ animationDelay: `${index * 80}ms` }}
     >
-      <div className="relative h-[236px] overflow-hidden bg-[linear-gradient(145deg,#dff8e9,#bcefd4)]">
+      <div className="relative h-[292px] overflow-hidden bg-[linear-gradient(145deg,#dff8e9,#bcefd4)]">
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -208,15 +232,15 @@ function AIResultCard({ result, index }: { result: AIResult; index: number }) {
         ) : null}
       </div>
 
-      <div className="flex min-h-[228px] flex-col px-5 pb-5 pt-4">
-        <h3 className="mb-1.5 line-clamp-2 text-[16px] font-extrabold leading-[1.28] text-[#0a0f0d]">{result.title}</h3>
-        <p className="mb-2.5 flex items-center gap-1 text-[12px] text-[#6e8378]">
+      <div className="flex min-h-[300px] flex-col px-6 pb-6 pt-5">
+        <h3 className="mb-2 line-clamp-2 text-[27px] font-extrabold leading-[1.2] text-[#0a0f0d]">{result.title}</h3>
+        <p className="mb-3 flex items-center gap-1 text-[14px] text-[#6e8378]">
           <span>📍</span>
           {result.location?.city}, {result.location?.region}
         </p>
 
         {short ? (
-          <p className="mb-3 line-clamp-2 text-[12px] leading-relaxed text-[#5f746b]">{short}</p>
+          <p className="mb-4 line-clamp-2 text-[15px] leading-relaxed text-[#5f746b]">{short}</p>
         ) : null}
 
         <div className="mb-2 flex flex-wrap gap-1.5">
@@ -237,16 +261,36 @@ function AIResultCard({ result, index }: { result: AIResult; index: number }) {
           ) : null}
         </div>
 
-        {result.match_reasons?.length ? (
-          <div className="mb-3 rounded-md bg-[#ede9fe] px-2.5 py-1.5 text-[11px] font-medium text-[#6d28d9]">
-            ✓ {result.match_reasons.join(" · ")}
+        <div className="mb-4 overflow-hidden rounded-2xl border border-[#e9d5ff] bg-[linear-gradient(135deg,#faf5ff,#f5f3ff)]">
+          <div className="flex items-center gap-1.5 border-b border-[#ede9fe] px-4 py-2 text-[11px] font-bold uppercase tracking-wide text-[#6d28d9]">
+            <span aria-hidden>✨</span>
+            Uzasadnienie dopasowania
           </div>
-        ) : null}
+          <div className="space-y-2.5 px-4 pb-3 pt-2.5">
+            {explanation ? (
+              <p className="line-clamp-4 text-[15px] leading-relaxed text-[#4c1d95]">{explanation}</p>
+            ) : result.match_reasons?.length ? (
+              <p className="text-[15px] leading-relaxed text-[#4c1d95]">{result.match_reasons.join(" · ")}</p>
+            ) : null}
+            {highlights.length ? (
+              <div className="flex flex-wrap gap-1.5">
+                {highlights.map((h) => (
+                  <span
+                    key={h}
+                    className="rounded-full border border-[#ddd6fe] bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-[#6d28d9]"
+                  >
+                    {h}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
 
-        <div className="mt-auto flex items-center justify-between border-t border-[#edf2ef] pt-3 text-sm">
+        <div className="mt-auto flex items-center justify-between border-t border-[#edf2ef] pt-3 text-base">
           <span className="font-extrabold text-[#0a0f0d]">
             {result.base_price} {result.currency}
-            <span className="text-xs font-normal text-[#7a8f84]"> / noc</span>
+            <span className="text-sm font-normal text-[#7a8f84]"> / noc</span>
           </span>
           <span className="flex items-center gap-1 text-amber-500">
             ★ <span className="font-bold text-[#0a0f0d]">{result.average_rating ?? "—"}</span>
@@ -254,11 +298,49 @@ function AIResultCard({ result, index }: { result: AIResult; index: number }) {
           </span>
         </div>
 
-        <div className="mt-3 inline-flex w-fit items-center gap-1 rounded-full border border-[#dcfce7] bg-[#f0fdf4] px-3 py-1 text-[11px] font-semibold text-[#15803d]">
+        <div className="mt-4 inline-flex w-fit items-center gap-1 rounded-full border border-[#dcfce7] bg-[#f0fdf4] px-4 py-1.5 text-[13px] font-semibold text-[#15803d]">
           Zobacz szczegóły →
         </div>
       </div>
     </Link>
+  );
+}
+
+function AIResultSkeletonCard({ index }: { index: number }) {
+  return (
+    <div
+      className="overflow-hidden rounded-[28px] border border-[#e8e7f8] bg-white shadow-[0_18px_46px_-28px_rgba(76,29,149,.32)] dark:border-white/15 dark:bg-[var(--bg2)]"
+      style={{ animationDelay: `${index * 70}ms` }}
+    >
+      <div className="relative h-[292px] overflow-hidden bg-[linear-gradient(135deg,#f4f1ff,#ebe9fe)]">
+        <div className="absolute inset-0 animate-pulse bg-[linear-gradient(90deg,rgba(255,255,255,.25),rgba(255,255,255,.55),rgba(255,255,255,.25))]" />
+      </div>
+      <div className="space-y-4 px-6 pb-6 pt-5">
+        <div className="h-7 w-4/5 animate-pulse rounded-lg bg-[#ede9fe]" />
+        <div className="h-4 w-2/3 animate-pulse rounded bg-[#f1f5f9]" />
+        <div className="h-4 w-full animate-pulse rounded bg-[#f3f4f6]" />
+        <div className="h-4 w-5/6 animate-pulse rounded bg-[#f3f4f6]" />
+        <div className="rounded-2xl border border-[#e9d5ff] bg-[linear-gradient(135deg,#faf5ff,#f5f3ff)] p-4">
+          <div className="mb-2 h-3 w-2/5 animate-pulse rounded bg-[#ddd6fe]" />
+          <div className="mb-2 h-4 w-full animate-pulse rounded bg-[#ede9fe]" />
+          <div className="h-4 w-4/5 animate-pulse rounded bg-[#ede9fe]" />
+        </div>
+        <div className="flex items-center justify-between border-t border-[#edf2ef] pt-3">
+          <div className="h-6 w-1/3 animate-pulse rounded bg-[#e2e8f0]" />
+          <div className="h-5 w-16 animate-pulse rounded bg-[#fef3c7]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AIResultsSkeletonGrid() {
+  return (
+    <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
+      {[0, 1, 2, 3, 4, 5].map((idx) => (
+        <AIResultSkeletonCard key={idx} index={idx} />
+      ))}
+    </div>
   );
 }
 
@@ -269,6 +351,8 @@ function AIChatPanel({
   setPrompt,
   onSubmit,
   busy,
+  submitting,
+  pendingUserMessage,
 }: {
   session: AISession;
   onUseSuggestion: (text: string) => void;
@@ -276,6 +360,8 @@ function AIChatPanel({
   setPrompt: (text: string) => void;
   onSubmit: () => void;
   busy: boolean;
+  submitting: boolean;
+  pendingUserMessage: string;
 }) {
   const rawConversation = session.messages ?? session.conversation ?? [];
   const assistantReply = session.latest_response ?? session.assistant_reply ?? "";
@@ -350,6 +436,9 @@ function AIChatPanel({
 
   const shouldShowTyping =
     assistantRevealPending || (isProcessing && (!lastRaw || lastRaw.role !== "assistant"));
+  const shouldShowPendingUserBubble =
+    Boolean(submitting && pendingUserMessage.trim()) &&
+    !(lastRaw?.role === "user" && (lastRaw?.text || "").trim() === pendingUserMessage.trim());
 
   useEffect(() => {
     const el = feedRef.current;
@@ -370,8 +459,8 @@ function AIChatPanel({
       : { label: "", className: "" };
 
   return (
-    <section className="mx-auto mt-8 w-[calc(100%-3.5rem)] max-w-[980px] overflow-hidden rounded-[28px] border border-[#ececf3] bg-white shadow-[0_24px_64px_-34px_rgba(15,23,42,.35)]">
-      <div className="border-b border-[#ececf3] bg-[linear-gradient(135deg,#ffffff_0%,#fafbfc_100%)] px-5 py-4 sm:px-6">
+    <section className="staymap-ai-chat-shell mx-auto mt-8 w-[calc(100%-3.5rem)] max-w-[980px] overflow-hidden rounded-[28px] border border-[#ececf3] bg-white/95 backdrop-blur-sm shadow-[0_24px_64px_-34px_rgba(15,23,42,.35)] dark:border-white/15 dark:bg-[var(--bg2)]/95 dark:shadow-[0_28px_70px_-30px_rgba(0,0,0,.6)]">
+      <div className="sticky top-0 z-[5] border-b border-[#ececf3] bg-[linear-gradient(135deg,rgba(255,255,255,.95)_0%,rgba(250,251,252,.92)_100%)] px-5 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-[rgba(17,24,39,.78)] sm:px-6">
           <div className="grid grid-cols-3 items-center py-2">
             {/* Lewa kolumna: napis */}
             <div className="flex items-center justify-start">
@@ -399,7 +488,7 @@ function AIChatPanel({
           </div>
           {statusPill.label && (
             <div className="flex justify-center">
-              <span className={cn("rounded-full border px-3 py-1.5 text-[11px] font-bold transition-all", statusPill.className)}>
+              <span className={cn("rounded-full border px-3 py-1.5 text-[11px] font-bold transition-all ai-chat-status-pill", statusPill.className)}>
                 {statusPill.label}
               </span>
             </div>
@@ -409,11 +498,11 @@ function AIChatPanel({
       <div className="px-5 pb-5 pt-4 sm:px-6 sm:pb-6">
         <div
           ref={feedRef}
-          className="mb-4 max-h-[420px] space-y-3 overflow-auto rounded-2xl bg-[#fbfbfd] p-3 sm:p-4"
+          className="mb-4 max-h-[420px] space-y-3 overflow-auto rounded-2xl bg-[#fbfbfd] p-3 dark:bg-[var(--bg3)] sm:p-4"
         >
           {showWelcome ? (
             <div className="flex justify-start">
-              <div className="max-w-[92%] rounded-2xl border border-[#ececf3] bg-white px-4 py-3 text-[14px] leading-relaxed text-[#111827] shadow-sm">
+              <div className="max-w-[92%] rounded-2xl border border-[#ececf3] bg-white px-4 py-3 text-[14px] leading-relaxed text-[#111827] shadow-sm dark:border-white/15 dark:bg-[var(--bg2)] dark:text-white">
                 Cześć! Opisz, czego szukasz, a pomogę dobrać najlepsze oferty.
               </div>
             </div>
@@ -447,7 +536,7 @@ function AIChatPanel({
                   className={cn(
                     "rounded-2xl px-4 py-3 text-[14px] leading-relaxed",
                     m.role === "assistant"
-                      ? "border border-[#ececf3] bg-white text-[#111827] shadow-sm"
+                      ? "border border-[#ececf3] bg-white text-[#111827] shadow-sm dark:border-white/15 dark:bg-[var(--bg2)] dark:text-white"
                       : "bg-[#111827] text-white",
                     m.role === "assistant" && idx === conversation.length - 1 && !isProcessing
                       ? "animate-chat-ai-reveal"
@@ -465,6 +554,20 @@ function AIChatPanel({
             </div>
           ))}
 
+          {shouldShowPendingUserBubble ? (
+            <div className="flex justify-end animate-chat-msg-in animate-chat-user-in">
+              <div className="flex max-w-[94%] items-end gap-2 flex-row-reverse">
+                <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#111827] text-xs font-bold text-white">
+                  Ty
+                </span>
+                <div className="rounded-2xl bg-[#111827] px-4 py-3 text-[14px] leading-relaxed text-white shadow-sm">
+                  <div>{pendingUserMessage}</div>
+                  <div className="mt-1 text-[10px] text-white/60">Wysyłam...</div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           {shouldShowTyping ? (
             <div className="flex justify-start animate-chat-typing-shell">
               <div className="flex items-end gap-2">
@@ -480,7 +583,7 @@ function AIChatPanel({
                     <circle cx="153" cy="54" r="12" fill="none" stroke="#43a047" strokeWidth="1" opacity=".3"/>
                   </svg>
                 </span>
-                <div className="inline-flex items-center gap-2.5 rounded-2xl border border-[#ececf3] bg-white px-3.5 py-2.5 text-[#6b7280] shadow-sm">
+                <div className="inline-flex items-center gap-2.5 rounded-2xl border border-[#ececf3] bg-white px-3.5 py-2.5 text-[#6b7280] shadow-sm dark:border-white/15 dark:bg-[var(--bg2)] dark:text-white/70">
                 <div className="flex items-center gap-1">
                   {[0, 1, 2].map((d) => (
                     <span
@@ -491,7 +594,7 @@ function AIChatPanel({
                   ))}
                 </div>
                 <span className="text-[11px] font-medium text-[#9ca3af] animate-chat-typing-text">
-                  AI przygotowuje odpowiedz...
+                  {submitting ? "Wysyłam Twoją wiadomość..." : "AI aktualizuje propozycje..."}
                 </span>
                 </div>
               </div>
@@ -521,7 +624,7 @@ function AIChatPanel({
           </div>
         ) : null}
 
-        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-3">
+        <div className="rounded-2xl border border-[#e5e7eb] bg-white p-3 dark:border-white/15 dark:bg-[var(--bg3)]">
           <label className="mb-2 block text-[11px] font-bold uppercase tracking-wide text-[#6b7280]">
             Napisz kolejną wiadomość
           </label>
@@ -536,13 +639,13 @@ function AIChatPanel({
             }}
             rows={2}
             placeholder="Doprecyzuj preferencje, np. tylko z jacuzzi, bliżej jeziora, albo tańsze opcje."
-            className="min-h-[58px] w-full resize-none rounded-xl border border-[#d1d5db] bg-white px-3 py-2.5 text-sm text-[#111827] outline-none placeholder:text-[#9ca3af] focus:border-[#6b7280]"
+            className="min-h-[58px] w-full resize-none rounded-xl border border-[#d1d5db] bg-white px-3 py-2.5 text-sm text-[#111827] outline-none placeholder:text-[#9ca3af] focus:border-[#6b7280] dark:border-white/20 dark:bg-[var(--bg2)] dark:text-white dark:placeholder:text-white/45"
           />
           <div className="mt-2 flex items-center justify-between gap-3">
-            <span className="text-[11px] text-[#6b7280]">
+            <span className="text-[11px] text-[#6b7280] dark:text-white/65">
               {session.status === "complete"
                 ? "Możesz kontynuować rozmowę w tej samej sesji."
-                : "AI analizuje bieżącą wiadomość i dopasowuje oferty live."}
+                : "AI aktualizuje propozycje do Twojej wiadomości i dopasowuje oferty live."}
             </span>
             <button
               type="button"
@@ -553,7 +656,7 @@ function AIChatPanel({
                 sendPulse ? "animate-chat-send-pulse" : ""
               )}
             >
-              {busy ? "Wysyłanie..." : "Wyślij"}
+              {submitting ? "Wysyłanie..." : busy ? "Aktualizacja..." : "Wyślij"}
             </button>
           </div>
         </div>
@@ -582,10 +685,17 @@ function AiSearchContent() {
   const session = useAIStore((s) => s.session);
   const loading = useAIStore((s) => s.loading);
   const polling = useAIStore((s) => s.polling);
+  const submitting = useAIStore((s) => s.submitting);
   const error = useAIStore((s) => s.error);
   const reset = useAIStore((s) => s.reset);
   const results = useAIStore((s) => s.results);
+  const [visibleCount, setVisibleCount] = useState(6);
   const startSearch = useAIStore((s) => s.startSearch);
+  const loadSession = useAIStore((s) => s.loadSession);
+  const sessionHydratedRef = useRef<string | null>(null);
+  const [pendingUserMessage, setPendingUserMessage] = useState("");
+  const [heroParallax, setHeroParallax] = useState(0);
+  const [visibleCardCount, setVisibleCardCount] = useState(0);
 
   // Czyszczenie błędów przy montowaniu dla lepszego UX podczas testów
   useEffect(() => {
@@ -599,6 +709,17 @@ function AiSearchContent() {
   }, []);
 
   useEffect(() => {
+    const sid = searchParams.get("session_id");
+    if (sid && mounted) {
+      if (sessionHydratedRef.current === sid) return;
+      const token = typeof window !== "undefined" ? getAccessToken() : null;
+      if (!token) return;
+      sessionHydratedRef.current = sid;
+      void loadSession(sid, token);
+      return;
+    }
+    sessionHydratedRef.current = null;
+
     const p = searchParams.get("prompt");
     if (p && mounted && !session && !loading && !polling && !error && searchStartedFor.current !== p) {
       searchStartedFor.current = p;
@@ -608,7 +729,7 @@ function AiSearchContent() {
         void startSearch(p, token);
       }
     }
-  }, [searchParams, mounted, session, loading, polling, error, setPrompt, startSearch]);
+  }, [searchParams, mounted, session, loading, polling, error, setPrompt, startSearch, loadSession]);
 
   useEffect(() => {
     if (!mounted || typeof window === "undefined") return;
@@ -616,6 +737,20 @@ function AiSearchContent() {
       router.replace("/login?next=/ai");
     }
   }, [mounted, router]);
+
+  useEffect(() => {
+    setVisibleCount(6);
+  }, [session?.session_id, results.length]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const y = typeof window !== "undefined" ? window.scrollY : 0;
+      setHeroParallax(Math.min(120, y * 0.12));
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const resizeTa = useCallback(() => {
     const el = textareaRef.current;
@@ -628,7 +763,14 @@ function AiSearchContent() {
     resizeTa();
   }, [prompt, resizeTa]);
 
-  async function submitSearch(overridePrompt?: string, overrideSessionId?: string) {
+  /**
+   * Hero "Szukaj" = zawsze nowa sesja (bez historii), żeby kolejne zapytania nie były
+   * zakotwiczone w poprzedniej interpretacji. Czat pod wynikami = kontynuacja sesji.
+   */
+  async function submitSearch(
+    overridePrompt?: string,
+    options?: { newSession?: boolean; sessionId?: string }
+  ) {
     if (busy) return;
     const token = getAccessToken();
     if (!token) {
@@ -637,12 +779,47 @@ function AiSearchContent() {
     }
     const p = (overridePrompt ?? prompt).trim();
     if (!p) return;
+    setPendingUserMessage(p);
     setPrompt("");
-    await startSearch(p, token, overrideSessionId ?? session?.session_id);
+    const sid = options?.newSession
+      ? undefined
+      : (options?.sessionId ?? session?.session_id);
+    await startSearch(p, token, sid);
+    setPendingUserMessage("");
   }
 
-  const busy = loading || polling;
+  const busy = loading || submitting || polling;
   const complete = session?.status === "complete";
+  const displaySession = session ?? DRAFT_SESSION;
+  const activeSessionId = session?.session_id;
+  const contextPrompt = pendingUserMessage || session?.prompt || prompt;
+  const targetResults = useMemo(() => results.slice(0, visibleCount), [results, visibleCount]);
+  const visibleResults = targetResults.slice(0, visibleCardCount);
+  const canLoadMoreResults = complete && visibleCount < results.length;
+
+  useEffect(() => {
+    if (!complete) {
+      setVisibleCardCount(0);
+      return;
+    }
+    if (targetResults.length === 0) {
+      setVisibleCardCount(0);
+      return;
+    }
+    let current = 0;
+    setVisibleCardCount((prev) => {
+      current = Math.max(0, Math.min(prev || 2, targetResults.length));
+      return current;
+    });
+    const timer = window.setInterval(() => {
+      current = Math.min(current + 2, targetResults.length);
+      setVisibleCardCount(current);
+      if (current >= targetResults.length) {
+        window.clearInterval(timer);
+      }
+    }, 120);
+    return () => window.clearInterval(timer);
+  }, [complete, targetResults.length]);
 
   if (!mounted) {
     return <div className="min-h-[40vh] bg-[#0a2e1a]" />;
@@ -652,10 +829,15 @@ function AiSearchContent() {
     return null;
   }
 
+  const stayMapAiSummary =
+    session?.status === "complete"
+      ? (session.latest_response || session.assistant_reply || "").trim()
+      : "";
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="staymap-ai-page min-h-screen bg-white dark:bg-[var(--background)]">
       <section
-        className="relative overflow-hidden px-7 pb-[60px] pt-14 text-center"
+        className="staymap-ai-hero relative overflow-hidden px-7 pb-[60px] pt-14 text-center"
         style={{
           background: "linear-gradient(135deg, #0a2e1a 0%, #1a1035 60%, #0f172a 100%)",
         }}
@@ -664,6 +846,7 @@ function AiSearchContent() {
           className="pointer-events-none absolute left-1/2 top-[-200px] h-[500px] w-[500px] -translate-x-1/2 rounded-full blur-[60px]"
           style={{
             background: "radial-gradient(circle, rgba(124,58,237,.15), transparent 70%)",
+            transform: `translate3d(-50%, ${-heroParallax * 0.4}px, 0)`,
           }}
           aria-hidden
         />
@@ -671,6 +854,7 @@ function AiSearchContent() {
           className="pointer-events-none absolute bottom-[-100px] right-[10%] h-[300px] w-[300px] rounded-full blur-[60px]"
           style={{
             background: "radial-gradient(circle, rgba(22,163,74,.1), transparent 70%)",
+            transform: `translate3d(0, ${heroParallax * 0.3}px, 0)`,
           }}
           aria-hidden
         />
@@ -683,7 +867,7 @@ function AiSearchContent() {
           }}
         >
           <StarIcon className="text-[#86efac]" />
-          Wyszukiwanie AI · Premium concierge
+          StayMap AI · wyszukiwanie naturalnym językiem
         </div>
 
         <h1
@@ -707,7 +891,7 @@ function AiSearchContent() {
           className="relative z-[1] mx-auto mb-9 mt-4 max-w-[480px] animate-fade-up text-base leading-relaxed text-[rgba(255,255,255,.6)]"
           style={{ animationDelay: "240ms" }}
         >
-          AI zrozumie co lubisz i znajdzie idealne miejsce. Powiedz po polsku — nie musisz używać filtrów.
+          StayMap AI rozumie kontekst, przeszukuje katalog i dobiera oferty dopasowane do Ciebie. Pisz po polsku — bez filtrów.
         </p>
 
         <div
@@ -731,7 +915,7 @@ function AiSearchContent() {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
-                  void submitSearch();
+                  void submitSearch(undefined, { newSession: true });
                 }
               }}
               rows={1}
@@ -741,7 +925,7 @@ function AiSearchContent() {
             <button
               type="button"
               disabled={busy}
-              onClick={() => void submitSearch()}
+              onClick={() => void submitSearch(undefined, { newSession: true })}
               className="flex shrink-0 items-center gap-1.5 rounded-xl bg-[#7c3aed] px-5 py-2.5 text-sm font-bold text-white transition-all hover:-translate-y-px hover:bg-[#6d28d9] hover:shadow-[0_6px_20px_rgba(124,58,237,.4)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               Szukaj
@@ -767,12 +951,22 @@ function AiSearchContent() {
             </button>
           ))}
         </div>
+
+        <p
+          className="relative z-[1] mx-auto mt-6 max-w-lg px-4 text-center text-[12px] leading-relaxed text-[rgba(255,255,255,.5)]"
+          style={{ animationDelay: "560ms" }}
+        >
+          <span className="rounded-md bg-[rgba(124,58,237,.2)] px-2 py-0.5 font-semibold text-[#e9d5ff]">
+            Nowe wyszukiwanie
+          </span>{" "}
+          — fioletowe pole u góry zawsze startuje od zera (bez historii). Doprecyzowania wpisuj w czacie pod wynikami.
+        </p>
       </section>
 
       {error ? (
         <div className="mx-auto max-w-[680px] px-7 py-4">
           <div
-            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-600"
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-600 dark:border-red-500/35 dark:bg-red-950/30 dark:text-red-300"
             role="alert"
           >
             {error}
@@ -780,75 +974,118 @@ function AiSearchContent() {
         </div>
       ) : null}
 
-      {(loading || polling) && !session ? (
-        <AIProcessingState session={session} prompt={prompt} />
-      ) : null}
+      {(loading || polling) && !session ? <AIProcessingState session={session} prompt={prompt} /> : null}
 
-      {session ? (
-        <section className="bg-white pb-8">
-          <div className="mx-auto w-full max-w-[1240px] px-7">
-            <div className="pt-5" />
+      <section className="relative bg-[linear-gradient(180deg,#ffffff_0%,#faf7ff_45%,#ffffff_100%)] pb-8 dark:bg-[var(--background)]">
+        <div
+          className="pointer-events-none absolute left-1/2 top-12 h-[320px] w-[320px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(124,58,237,.13),transparent_68%)] blur-3xl"
+          style={{ transform: `translate3d(-50%, ${heroParallax * 0.28}px, 0)` }}
+        />
+        <div
+          className="pointer-events-none absolute right-[8%] top-[120px] h-[220px] w-[220px] rounded-full bg-[radial-gradient(circle,rgba(52,211,153,.12),transparent_68%)] blur-3xl"
+          style={{ transform: `translate3d(0, ${-heroParallax * 0.22}px, 0)` }}
+        />
+        <div className="mx-auto w-full max-w-[1240px] px-7">
+          <div className="pt-5" />
 
-            <AIChatPanel
-              session={session}
-              prompt={prompt}
-              setPrompt={setPrompt}
-              busy={busy}
-              onSubmit={() => void submitSearch()}
-              onUseSuggestion={(text) => {
-                void submitSearch(text, session.session_id);
-              }}
-            />
+          <AIChatPanel
+            session={displaySession}
+            prompt={prompt}
+            setPrompt={setPrompt}
+            busy={busy}
+            submitting={submitting}
+            pendingUserMessage={pendingUserMessage}
+            onSubmit={() => void submitSearch(undefined, { newSession: false })}
+            onUseSuggestion={(text) => {
+              void submitSearch(text, { sessionId: activeSessionId ?? undefined, newSession: false });
+            }}
+          />
 
-            {results.length > 0 && complete ? (
-              <div className="mb-6 mt-6 rounded-2xl border border-[#ececf3] bg-[linear-gradient(135deg,#fbfbfd,#f9f9fd)] px-4 py-3.5">
-                <p className="text-center text-sm font-semibold text-[#111827]">
-                  ✨ Znalazłem <span className="text-[#7c3aed]">{results.length} ofert</span> dla Ciebie
-                </p>
-              </div>
-            ) : null}
+          {complete && stayMapAiSummary ? (
+            <div
+              className={cn(
+                "staymap-ai-verdict animate-staymap-ai-verdict-in mb-8 mt-2 px-5 py-4 sm:px-8 sm:py-5",
+                results.length === 0 ? "opacity-95" : ""
+              )}
+            >
+              <p className="mb-2 pl-1 text-[10px] font-bold uppercase tracking-[0.22em] text-[#6d28d9] dark:text-[#c4b5fd]">
+                Rekomendacja StayMap AI
+              </p>
+              <p className="max-w-[920px] pl-4 text-[15px] font-medium leading-relaxed text-[#312e81] sm:text-[16px] dark:text-[#e9e7ff]">
+                {stayMapAiSummary}
+              </p>
+            </div>
+          ) : null}
 
-            <div className="mb-5 mt-4 flex items-center gap-2.5 rounded-[10px] border border-[#ddd6fe] bg-[#ede9fe] px-3.5 py-2.5 text-[13px] font-medium text-[#7c3aed]">
+          {results.length > 0 && complete ? (
+            <div className="mb-6 mt-6 rounded-2xl border border-[#ececf3] bg-[linear-gradient(135deg,#fbfbfd,#f9f9fd)] px-4 py-3.5 dark:border-white/15 dark:bg-[var(--bg3)]">
+              <p className="text-center text-sm font-semibold text-[#111827] dark:text-white">
+                ✨ Pokazuję <span className="text-[#7c3aed]">{Math.min(visibleCount, results.length)}</span> z <span className="text-[#7c3aed]">{results.length} ofert</span>
+              </p>
+            </div>
+          ) : null}
+
+          {contextPrompt ? (
+            <div className="mb-5 mt-4 flex items-center gap-2.5 rounded-[10px] border border-[#ddd6fe] bg-[#ede9fe] px-3.5 py-2.5 text-[13px] font-medium text-[#7c3aed] dark:border-white/20 dark:bg-[var(--bg3)] dark:text-white/85">
               <span aria-hidden>💬</span>
               <span className="min-w-0 flex-1 truncate">
-                &quot;{prompt}&quot;
+                &quot;{contextPrompt}&quot;
               </span>
               <button type="button" className="shrink-0 text-xs font-bold underline" onClick={() => reset()}>
                 Zmień
               </button>
             </div>
+          ) : null}
 
-            {complete ? (
-              <>
-                {results.length > 0 ? (
-                  <>
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      {results.map((r, i) => (
-                        <AIResultCard key={r.listing_id} result={r} index={i} />
-                      ))}
+          {complete ? (
+            <>
+              {results.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    {visibleResults.map((r, i) => (
+                      <AIResultCard key={r.listing_id} result={r} index={i} />
+                    ))}
+                  </div>
+
+                  {canLoadMoreResults ? (
+                    <div className="mt-7 flex justify-center">
+                      <button
+                        type="button"
+                        onClick={() => setVisibleCount((c) => Math.min(c + 6, results.length))}
+                        className="inline-flex items-center gap-2 rounded-full border border-[#c4b5fd] bg-[#f5f3ff] px-6 py-3 text-sm font-bold text-[#5b21b6] transition-all hover:-translate-y-px hover:border-[#a78bfa] hover:bg-[#ede9fe]"
+                      >
+                        ✨ Przygotuj więcej ofert
+                      </button>
                     </div>
-
+                  ) : (
                     <div className="mt-6 flex justify-center">
                       <Link href="/search" className="btn-secondary">
                         Pokaż więcej wyników
                       </Link>
                     </div>
-                  </>
-                ) : (
-                  <div className="mt-4 rounded-2xl border border-[#ddd6fe] bg-[#faf8ff] px-4 py-5 text-sm text-[#5b21b6]">
-                    Nie znalazłem jeszcze pasujących ofert dla tego zapytania. Spróbuj doprecyzować lokalizację,
-                    budżet albo liczbę gości w czacie powyżej.
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="mt-4 rounded-2xl border border-dashed border-[#ddd6fe] bg-[#faf5ff] px-4 py-5 text-sm text-[#6d28d9]">
-                AI pracuje nad dopasowaniem ofert. Rozmowa już jest aktywna i możesz doprecyzować preferencje.
+                  )}
+                </>
+              ) : (
+                <div className="mt-4 rounded-2xl border border-[#ddd6fe] bg-[#faf8ff] px-4 py-5 text-sm text-[#5b21b6] dark:border-white/20 dark:bg-[var(--bg3)] dark:text-white/80">
+                  Nie znalazłem jeszcze pasujących ofert dla tego zapytania. Spróbuj doprecyzować lokalizację,
+                  budżet albo liczbę gości w czacie powyżej.
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="mt-4">
+              <div className="rounded-2xl border border-[#ddd6fe] bg-[linear-gradient(135deg,#faf5ff,#f5f3ff)] px-4 py-5 text-sm text-[#6d28d9] dark:border-white/20 dark:bg-[var(--bg3)] dark:text-white/80">
+                <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#c4b5fd] bg-white/70 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-[#5b21b6]">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#7c3aed]" />
+                  AI aktualizuje propozycje...
+                </div>
+                <p>Analizuję Twoją ostatnią wiadomość i przeliczam nowe, lepiej dopasowane oferty.</p>
               </div>
-            )}
-          </div>
-        </section>
-      ) : null}
+              <AIResultsSkeletonGrid />
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

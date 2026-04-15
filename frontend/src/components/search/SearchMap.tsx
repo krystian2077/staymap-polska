@@ -48,6 +48,8 @@ export type SearchMapProps = {
   isLocationActive?: boolean;
   center?: { lat: number; lng: number } | null;
   onBoundsChange?: (bounds: MapBounds) => void;
+  /** Tryb podróży z wyszukiwania — wpływa na podpowiedź dopasowania w popupie mapy. */
+  travelMode?: string | null;
 };
 
 type ClusterLayer = L.Layer & {
@@ -68,6 +70,7 @@ export function SearchMap({
   isLocationActive = false,
   center,
   onBoundsChange,
+  travelMode,
 }: SearchMapProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -79,10 +82,10 @@ export function SearchMap({
   const [isGeoPending, setIsGeoPending] = useState(false);
   const [isMapMoving, setIsMapMoving] = useState(false);
   const [isZooming, setIsZooming] = useState(false);
-  const boundsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const viewportIntentRef = useRef<ViewportIntent>(null);
+   const boundsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   const viewportIntentRef = useRef<ViewportIntent>(null);
 
-  // Lookup listing data by id for rich popup
+   // Lookup listing data by id for rich popup
   const resultsById = useRef<Map<string, SearchListing>>(new Map());
   useEffect(() => {
     const m = new Map<string, SearchListing>();
@@ -349,6 +352,7 @@ export function SearchMap({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   // ── piny + viewport ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -662,6 +666,7 @@ export function SearchMap({
              <SearchMapPopupCard
                pin={popupPin}
                listing={popupListing}
+               travelMode={travelMode}
                onClose={closePopup}
              />
            </div>

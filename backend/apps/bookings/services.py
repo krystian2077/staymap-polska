@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from decimal import Decimal
+from typing import Optional
 
 from django.conf import settings
 from django.db import transaction
@@ -89,9 +90,11 @@ class BookingService:
         check_in: date,
         check_out: date,
         guests_count: int,
-        adults: int | None = None,
+        adults: Optional[int] = None,
         children: int = 0,
+        pets: int = 0,
         special_requests: str = "",
+        cost_split=None,
     ) -> Booking:
         listing = (
             Listing.objects.select_for_update()
@@ -108,17 +111,56 @@ class BookingService:
 
         ad = adults if adults is not None else guests_count
         ch = max(0, int(children))
+        pt = max(0, int(pets))
         if ad < 1:
             raise ValidationError({"adults": ["Wymagany jest co najmniej jeden dorosły."]})
         if ad + ch != guests_count:
             raise ValidationError(
                 {"guests_count": ["Liczba gości musi być równa dorosłym + dzieciom."]}
             )
+        if guests_count > listing.max_guests:
+            raise ValidationError(
+                {
+                    "guests_count": [
+                        f"Maksymalna liczba gości dla tej oferty to {listing.max_guests}."
+                    ]
+                }
+            )
 
         try:
-            breakdown = PricingService.calculate(listing, check_in, check_out, guests=guests_count)
+            breakdown = PricingService.calculate(
+                listing,
+                check_in,
+                check_out,
+                guests=guests_count,
+                adults=ad,
+                children=ch,
+                pets=pt,
+            )
         except PricingError:
             raise
+
+        if cost_split:
+            people = cost_split.get("people")
+            if not isinstance(people, int):
+                raise ValidationError({"cost_split": ["Pole people musi być liczbą całkowitą."]})
+            if people < 1 or people > listing.max_guests:
+                raise ValidationError(
+                    {
+                        "cost_split": [
+                            f"Podział kosztów może obejmować od 1 do {listing.max_guests} osób."
+                        ]
+                    }
+                )
+            total_for_split = Decimal(str(breakdown["total"]))
+            per_person = (total_for_split / Decimal(people)).quantize(Decimal("0.01"))
+            breakdown["cost_split"] = {
+                "people": people,
+                "per_person": f"{per_person:.2f}",
+                "total": f"{total_for_split:.2f}",
+                "currency": breakdown.get("currency", listing.currency),
+                "max_guests": listing.max_guests,
+            }
         total = Decimal(breakdown["total"])
         if total <= 0:
             raise PricingError("Nieprawidłowa kwota rezerwacji.")

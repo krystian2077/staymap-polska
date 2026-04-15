@@ -190,6 +190,8 @@ export interface Listing {
   cancellation_policy: "flexible" | "moderate" | "strict" | "non_refundable";
   average_rating: number | null;
   review_count: number;
+  /** Średnie z ocen szczegółowych (cache z recenzji gości). */
+  average_subscores?: Record<string, number> | null;
   destination_score_cache: DestinationScore | null;
   /** Krótki opis okolicy (cache backendu, PL) */
   area_summary: string | null;

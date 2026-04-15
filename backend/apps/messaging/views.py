@@ -7,17 +7,21 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
 
+from apps.host.models import HostProfile
 from apps.listings.models import Listing
 
-from .models import Conversation, Message
+from .models import Conversation, Message, MessageTemplate
 from .serializers import (
     ConversationCreateSerializer,
     ConversationSerializer,
     MessageCreateSerializer,
     MessageSerializer,
+    MessageTemplateSerializer,
 )
 from .services import assert_conversation_member, get_or_create_conversation, resolve_guest_user
+from .template_seeding import ensure_default_message_templates
 from .ws_notify import notify_new_message
 
 
@@ -132,4 +136,54 @@ class ConversationSummaryView(APIView):
             },
             status=200,
         )
+
+
+class MessageTemplateViewSet(ModelViewSet):
+    """CRUD szablonów wiadomości dla zalogowanego gospodarza."""
+
+    serializer_class = MessageTemplateSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ["get", "post", "patch", "delete", "head", "options"]
+
+    def get_queryset(self):
+        host = get_object_or_404(HostProfile, user=self.request.user)
+        # Gdy migracja/sygnał nie dołożyły zestawu (np. istniejąca baza), pierwsze zapytanie
+        # uzupełnia 6 domyślnych szablonów.
+        ensure_default_message_templates(host)
+        return MessageTemplate.objects.filter(host=host, deleted_at__isnull=True).order_by(
+            "sort_order", "created_at"
+        )
+
+    def perform_create(self, serializer):
+        host = get_object_or_404(HostProfile, user=self.request.user)
+        serializer.save(host=host)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({"data": serializer.data, "meta": {}})
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response({"data": serializer.data, "meta": {}})
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response({"data": serializer.data, "meta": {}}, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response({"data": serializer.data, "meta": {}})
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.soft_delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 

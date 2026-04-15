@@ -97,6 +97,11 @@ class Listing(BaseModel):
         blank=True,
     )
     review_count = models.PositiveIntegerField(default=0)
+    average_subscores = models.JSONField(
+        null=True,
+        blank=True,
+        help_text='Cache: {"cleanliness":4.8,"location":4.9,"communication":4.7,"accuracy":4.8}',
+    )
 
     class Meta:
         verbose_name = "Oferta"

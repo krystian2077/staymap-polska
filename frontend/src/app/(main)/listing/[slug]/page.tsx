@@ -23,8 +23,11 @@ import { ListingViewErrorBoundary } from "@/components/ui/ListingViewErrorBounda
 import { AnimatedSection } from "@/components/ui/AnimatedSection";
 import { ListingCachedFallback } from "@/components/listing/ListingCachedFallback";
 import { apiUrl } from "@/lib/api";
+import { fetchOpenMeteoForecastServer } from "@/lib/openMeteoForecast";
 import { normalizeListing } from "@/lib/listingNormalize";
 import type { PricingRule } from "@/types/listing";
+import { ListingBookingStoreSync } from "@/components/listing/ListingBookingStoreSync";
+import { ListingWeatherSection } from "@/components/listing/ListingWeatherSection";
 
 const EMPTY_PRICING_RULES: PricingRule[] = [];
 
@@ -66,17 +69,26 @@ export default async function ListingPage({
   const { data: raw } = (await res.json()) as ApiEnvelope;
   const listing = normalizeListing(raw);
 
+  const weatherForecast =
+    listing.location != null
+      ? await fetchOpenMeteoForecastServer(
+          listing.location.latitude,
+          listing.location.longitude
+        )
+      : null;
+
   const city = listing.location?.city ?? "";
   const rating =
     listing.average_rating != null ? `${Number(listing.average_rating).toFixed(1)}` : "—";
 
 
   return (
-    <main className="min-h-screen bg-[#f9fafb] selection:bg-brand/10">
+    <main className="min-h-screen bg-[#f9fafb] selection:bg-brand/10 dark:bg-[var(--background)]">
       <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,rgba(240,253,244,0.4),transparent_50%),radial-gradient(circle_at_bottom_left,rgba(240,249,255,0.4),transparent_50%)]" />
       <ListingStickyHeader listing={listing} />
       <div className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-12">
         <ListingViewErrorBoundary>
+          <ListingBookingStoreSync listing={listing} />
           {/* Header Section */}
           <AnimatedSection delay={0} className="mb-8">
             <ListingBreadcrumb listing={listing} />
@@ -130,6 +142,8 @@ export default async function ListingPage({
                     listingId={listing.id}
                     listingTitle={listing.title}
                     slug={listing.slug}
+                    latitude={listing.location?.latitude}
+                    longitude={listing.location?.longitude}
                   />
 
                   <div className="flex flex-wrap gap-x-12 gap-y-6 rounded-[2.5rem] border border-slate-100 bg-white px-10 py-8 shadow-2xl ring-1 ring-slate-200/50">
@@ -211,6 +225,17 @@ export default async function ListingPage({
                 <ListingAmenities amenities={listing.amenities} />
               </AnimatedSection>
 
+              {weatherForecast && weatherForecast.days.length > 0 && listing.location ? (
+                <AnimatedSection delay={420}>
+                  <ListingWeatherSection
+                    days={weatherForecast.days}
+                    city={listing.location.city}
+                    region={listing.location.region}
+                    listingId={listing.id}
+                  />
+                </AnimatedSection>
+              ) : null}
+
               {listing.location ? (
                 <AnimatedSection delay={450}>
                   <div className="rounded-[2.5rem] bg-white p-8 shadow-sm ring-1 ring-black/[0.03] sm:p-10">
@@ -229,7 +254,10 @@ export default async function ListingPage({
 
               <AnimatedSection delay={500}>
                 <div className="rounded-[2.5rem] bg-white p-8 shadow-sm ring-1 ring-black/[0.03] sm:p-10">
-                  <ListingReviews listingSlug={listing.slug} />
+                  <ListingReviews
+                    listingSlug={listing.slug}
+                    averageSubscores={listing.average_subscores}
+                  />
                 </div>
               </AnimatedSection>
 

@@ -36,6 +36,8 @@ export interface AIResult {
   listing_type: { name: string; icon: string };
   match_score: number;
   match_reasons: string[];
+  match_explanation?: string;
+  match_highlights?: string[];
 }
 
 export interface AIMessage {

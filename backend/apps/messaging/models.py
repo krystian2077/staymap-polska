@@ -6,6 +6,28 @@ from django.db import models
 from apps.common.models import BaseModel
 
 
+class MessageTemplate(BaseModel):
+    """Szablony szybkich odpowiedzi dla gospodarza (czat z gościem)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    host = models.ForeignKey(
+        "host.HostProfile",
+        on_delete=models.CASCADE,
+        related_name="message_templates",
+    )
+    title = models.CharField(max_length=100)
+    body = models.TextField(help_text="Możesz użyć {{guest_name}} i {{listing_title}}.")
+    sort_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["sort_order", "created_at"]
+        verbose_name = "Szablon wiadomości"
+        verbose_name_plural = "Szablony wiadomości"
+
+    def __str__(self):
+        return f"{self.title} [{self.host_id}]"
+
+
 class Conversation(BaseModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     listing = models.ForeignKey(

@@ -15,7 +15,6 @@ import type { PricingBreakdown } from "@/types/booking";
 import type { BusyRange } from "./calendarUtils";
 import { DatePickerField } from "./DatePickerField";
 import { GuestsField } from "./GuestsField";
-import { PriceBreakdown } from "./PriceBreakdown";
 import { PriceDetailsModal } from "./PriceDetailsModal";
 
 type AvailabilityData = {
@@ -29,10 +28,20 @@ function toQuote(d: Record<string, unknown>): PricingBreakdown {
   return {
     nights: Number(d.nights),
     guests: Number(d.guests),
+    adults: Number(d.adults),
+    children: Number(d.children),
+    pets: Number(d.pets),
     guests_included: Number(d.guests_included),
     extra_guests: Number(d.extra_guests),
     extra_guest_fee_per_night: parseFloat(String(d.extra_guest_fee_per_night || 0)),
     extra_guests_total: parseFloat(String(d.extra_guests_total || 0)),
+    extra_adults: Number(d.extra_adults || 0),
+    adult_surcharge_percent: parseFloat(String(d.adult_surcharge_percent || 0)),
+    adults_surcharge_total: parseFloat(String(d.adults_surcharge_total || 0)),
+    extra_children: Number(d.extra_children || 0),
+    child_surcharge_percent: parseFloat(String(d.child_surcharge_percent || 0)),
+    children_surcharge_total: parseFloat(String(d.children_surcharge_total || 0)),
+    guest_surcharge_total: parseFloat(String(d.guest_surcharge_total || 0)),
     nightly_rate: parseFloat(String(d.nightly_rate)),
     seasonal_multiplier: parseFloat(String(d.seasonal_multiplier ?? 1)),
     holiday_multiplier: parseFloat(String(d.holiday_multiplier ?? 1)),
@@ -170,6 +179,8 @@ export function BookingWidget({ listing }: { listing: Listing }) {
         departure_time: departureTime,
         guests,
         adults,
+        children,
+        pets,
       });
       setQuote(toQuote(res.data));
     } catch (e) {
@@ -178,7 +189,7 @@ export function BookingWidget({ listing }: { listing: Listing }) {
     } finally {
       setQuoteLoading(false);
     }
-  }, [listing.id, range, adults, children, arrivalTime, departureTime, listing.max_guests, setQuote, setQuoteError, setQuoteLoading]);
+  }, [listing.id, range, adults, children, pets, arrivalTime, departureTime, listing.max_guests, setQuote, setQuoteError, setQuoteLoading]);
 
   useEffect(() => {
     const t = window.setTimeout(() => setDebounceTick((x) => x + 1), 400);
@@ -213,12 +224,12 @@ export function BookingWidget({ listing }: { listing: Listing }) {
   }
 
   return (
-    <div className="group/widget sticky top-28 rounded-[2.5rem] bg-white/75 p-2.5 shadow-[0_45px_100px_-25px_rgba(0,0,0,0.12)] backdrop-blur-3xl transition-all duration-700 hover:shadow-[0_65px_130px_-30px_rgba(0,0,0,0.22)] hover:-translate-y-1.5">
+    <div className="group/widget relative rounded-[2.5rem] bg-white/75 p-2.5 shadow-[0_45px_100px_-25px_rgba(0,0,0,0.12)] backdrop-blur-3xl transition-all duration-700 hover:shadow-[0_65px_130px_-30px_rgba(0,0,0,0.22)] hover:-translate-y-1.5">
       {/* Dekoracyjny blask w tle */}
       <div className="absolute -top-32 -right-32 -z-10 h-72 w-72 rounded-full bg-brand/10 blur-[100px] transition-opacity duration-1000 group-hover/widget:opacity-100 opacity-60 animate-pulse" />
       <div className="absolute -bottom-32 -left-32 -z-10 h-72 w-72 rounded-full bg-blue-500/5 blur-[100px] transition-opacity duration-1000 group-hover/widget:opacity-100 opacity-60" />
 
-      <div className="relative overflow-hidden rounded-[2.25rem] bg-white p-7 pb-5 shadow-[0_20px_45px_-12px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.04] transition-shadow duration-700 group-hover/widget:shadow-2xl">
+      <div className="relative overflow-hidden rounded-[2.25rem] bg-white p-7 pb-5 shadow-[0_20px_45px_-12px_rgba(0,0,0,0.04)] ring-1 ring-black/[0.04] transition-shadow duration-700 group-hover/widget:shadow-2xl dark:bg-[var(--bg2)] dark:ring-brand-border/40">
         <div className="flex items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
             <div className="flex items-baseline gap-2">

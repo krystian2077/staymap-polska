@@ -183,7 +183,7 @@ export function HostLayoutClient({ children }: { children: React.ReactNode }) {
         <div className="hidden md:block">
           <HostSidebar activeItem={activeItem} />
         </div>
-        <main className="min-w-0 bg-[#f8fafc] pb-[72px] md:pb-0">
+        <main className="min-w-0 bg-[#f8fafc] pb-[72px] text-text dark:bg-[var(--background)] dark:text-[var(--foreground)] md:pb-0">
           {children}
         </main>
       </div>

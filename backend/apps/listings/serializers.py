@@ -120,6 +120,7 @@ class ListingListSerializer(serializers.ModelSerializer):
     check_in_time = serializers.CharField(read_only=True)
     check_out_time = serializers.CharField(read_only=True)
     destination_score_cache = serializers.JSONField(read_only=True, allow_null=True)
+    average_subscores = serializers.JSONField(read_only=True, allow_null=True)
     area_summary = serializers.SerializerMethodField()
     base_price = serializers.FloatField(read_only=True)
     cleaning_fee = serializers.FloatField(read_only=True, allow_null=True)
@@ -155,6 +156,7 @@ class ListingListSerializer(serializers.ModelSerializer):
             "check_in_time",
             "check_out_time",
             "destination_score_cache",
+            "average_subscores",
             "area_summary",
             "created_at",
         )

@@ -189,9 +189,9 @@ export function HeroSearchBar({ variant }: HeroSearchBarProps) {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        const update: any = { 
-          lat: latitude, 
-          lng: longitude, 
+        const update: Partial<SearchParamsState> = {
+          lat: latitude,
+          lng: longitude,
           radius_km: 300, // Zwiększamy promień do 300km dla lepszej skuteczności
           location: "W pobliżu",
           bbox_south: undefined,
@@ -205,15 +205,17 @@ export function HeroSearchBar({ variant }: HeroSearchBarProps) {
           min_price: undefined,
           max_price: undefined,
         };
+        const tagClear = update as Partial<SearchParamsState> & Record<string, undefined>;
         for (const tag of LOCATION_TAG_KEYS) {
-          update[tag] = undefined;
+          tagClear[tag] = undefined;
         }
         setParams(update);
         setLocInput("W pobliżu");
         setOpenTab(null);
-        
-        // Budujemy nextParams jawnie
-        const nextParams: any = {
+
+        // Pełny stan wyszukiwania: aktualne filtry + geolokalizacja, z utrzymaniem dat i gości z params.
+        const nextParams: SearchParamsState = {
+          ...params,
           ...update,
           date_from: params.date_from,
           date_to: params.date_to,

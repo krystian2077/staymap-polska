@@ -37,7 +37,9 @@ async function proxy(req: NextRequest, segments: string[]) {
       try {
         const buf = await req.arrayBuffer();
         if (buf.byteLength > 0) body = buf;
-      } catch (e) {}
+      } catch {
+        /* ignore empty body */
+      }
     }
   }
 

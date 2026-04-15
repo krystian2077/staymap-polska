@@ -24,7 +24,11 @@ def test_ai_search_post_no_api_key_returns_503(api_client, user_host):
 
 
 @pytest.mark.django_db
-@override_settings(OPENAI_API_KEY="sk-test-dummy")
+@override_settings(
+    OPENAI_API_KEY="sk-test-dummy",
+    AI_MATCH_EXPLANATION_USE_LLM=False,
+    AI_SEARCH_ASYNC_ENABLED=False,
+)
 @patch("apps.ai_assistant.services.AISearchService._call_llm")
 def test_ai_search_happy_path(mock_llm, api_client, user_host):
     mock_llm.return_value = (
@@ -43,7 +47,7 @@ def test_ai_search_happy_path(mock_llm, api_client, user_host):
     )
     api_client.force_authenticate(user=user_host)
     res = api_client.post("/api/v1/ai/search/", {"prompt": "Zakopane romantycznie"}, format="json")
-    assert res.status_code == 202
+    assert res.status_code == 201
     create_data = res.json()["data"]
     sid = create_data["session_id"]
     detail = api_client.get(f"/api/v1/ai/search/{sid}/")
@@ -62,10 +66,17 @@ def test_ai_search_happy_path(mock_llm, api_client, user_host):
     assert data["filters"]["travel_mode"] == "romantic"
     assert isinstance(data["search_params"], dict)
     assert data["search_params"].get("travel_mode") == "romantic"
+    if data["results"]:
+        assert isinstance(data["results"][0].get("match_explanation"), str)
+        assert isinstance(data["results"][0].get("match_highlights"), list)
 
 
 @pytest.mark.django_db
-@override_settings(OPENAI_API_KEY="sk-test-dummy")
+@override_settings(
+    OPENAI_API_KEY="sk-test-dummy",
+    AI_MATCH_EXPLANATION_USE_LLM=False,
+    AI_SEARCH_ASYNC_ENABLED=False,
+)
 @patch("apps.ai_assistant.services.AISearchService._call_llm")
 def test_ai_search_cannot_read_other_user_session(mock_llm, api_client, django_user_model):
     mock_llm.return_value = (
@@ -109,7 +120,11 @@ def test_ai_search_validation_empty_prompt(api_client, user_host):
 
 
 @pytest.mark.django_db
-@override_settings(OPENAI_API_KEY="sk-test-dummy")
+@override_settings(
+    OPENAI_API_KEY="sk-test-dummy",
+    AI_MATCH_EXPLANATION_USE_LLM=False,
+    AI_SEARCH_ASYNC_ENABLED=False,
+)
 @patch("apps.ai_assistant.services.AISearchService._call_llm")
 def test_ai_search_follow_up_in_same_session(mock_llm, api_client, user_host):
     mock_llm.side_effect = [
@@ -138,7 +153,7 @@ def test_ai_search_follow_up_in_same_session(mock_llm, api_client, user_host):
 
     api_client.force_authenticate(user=user_host)
     first = api_client.post("/api/v1/ai/search/", {"prompt": "Mazury na weekend"}, format="json")
-    assert first.status_code == 202
+    assert first.status_code == 201
     sid = first.json()["data"]["session_id"]
 
     second = api_client.post(
@@ -146,8 +161,9 @@ def test_ai_search_follow_up_in_same_session(mock_llm, api_client, user_host):
         {"prompt": "Do 500 zł za noc", "session_id": sid},
         format="json",
     )
-    assert second.status_code == 202
+    assert second.status_code == 201
     assert second.json()["data"]["session_id"] == sid
+    assert isinstance(second.json()["data"].get("results"), list)
 
     detail = api_client.get(f"/api/v1/ai/search/{sid}/")
     assert detail.status_code == 200

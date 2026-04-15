@@ -10,6 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.viewsets import ViewSet
 
 from apps.listings.models import Listing, ListingImage, ListingLocation
@@ -206,6 +207,103 @@ def _build_home_regions_payload() -> list[dict]:
             }
         )
     return payload
+
+
+# Strony SEO /noclegi/{slug} — musi być zgodne z parametrami SearchOrchestrator
+REGION_PAGE_META = {
+    "mazury": {
+        "title": "Mazury",
+        "description": "Kraina Wielkich Jezior — noclegi nad wodą, kajaki, domki z pomostem.",
+        "search_params": {
+            "location": "Mazury",
+            "latitude": 53.8,
+            "longitude": 21.5,
+            "radius_km": 100,
+            "near_lake": True,
+            "ordering": "recommended",
+        },
+    },
+    "tatry": {
+        "title": "Tatry i Zakopane",
+        "description": "Góralskie domki, widok na szczyty, sauna po dniu na szlaku.",
+        "search_params": {
+            "location": "Zakopane",
+            "latitude": 49.2992,
+            "longitude": 19.9496,
+            "radius_km": 60,
+            "near_mountains": True,
+            "ordering": "recommended",
+        },
+    },
+    "bieszczady": {
+        "title": "Bieszczady",
+        "description": "Dzika przyroda, cisza i domki z dala od cywilizacji.",
+        "search_params": {
+            "location": "Bieszczady",
+            "latitude": 49.05,
+            "longitude": 22.5,
+            "radius_km": 80,
+            "near_mountains": True,
+            "near_forest": True,
+            "ordering": "recommended",
+        },
+    },
+    "baltyk": {
+        "title": "Bałtyk",
+        "description": "Apartamenty przy plaży, domki z widokiem na morze.",
+        "search_params": {
+            "location": "Sopot",
+            "latitude": 54.45,
+            "longitude": 18.67,
+            "radius_km": 120,
+            "near_sea": True,
+            "ordering": "recommended",
+        },
+    },
+    "karkonosze": {
+        "title": "Karkonosze i Szklarska Poręba",
+        "description": "Domki w Sudetach — idealne na narty zimą, wędrówki latem.",
+        "search_params": {
+            "location": "Szklarska Poręba",
+            "latitude": 50.83,
+            "longitude": 15.52,
+            "radius_km": 50,
+            "near_mountains": True,
+            "ordering": "recommended",
+        },
+    },
+}
+
+
+class RegionDetailView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, region_slug):
+        meta = REGION_PAGE_META.get(region_slug)
+        if not meta:
+            return Response({"error": "Region nie istnieje"}, status=404)
+
+        params = {**meta["search_params"], "ordering": "recommended"}
+        ids = SearchOrchestrator.get_ordered_ids(params)
+        listing_ids = ids[:6]
+        listings_qs = (
+            Listing.objects.filter(id__in=listing_ids, status=Listing.Status.APPROVED)
+            .prefetch_related("images", "location")
+        )
+        listing_map = {str(l.id): l for l in listings_qs}
+        ordered = [listing_map[str(i)] for i in listing_ids if str(i) in listing_map]
+
+        ser = ListingSearchSerializer(ordered, many=True, context={"request": request})
+        return Response(
+            {
+                "slug": region_slug,
+                "title": meta["title"],
+                "description": meta["description"],
+                "listing_count": len(ids),
+                "top_listings": ser.data,
+                "search_params": meta["search_params"],
+            }
+        )
 
 
 class SearchViewSet(ViewSet):

@@ -20,12 +20,6 @@ function hostName(displayName?: string): string {
   return (displayName ?? "").trim() || "Gospodarz";
 }
 
-function previewTime(iso?: string): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  return isToday(d) ? format(d, "HH:mm") : format(d, "d MMM", { locale: pl });
-}
 
 function convoSubtitle(
   hostDisplayName?: string,
@@ -38,6 +32,13 @@ function convoSubtitle(
   const msg = (lastMessage ?? "").trim();
   const parts = [host, title ? `oferta ${title}` : null, msg || null].filter(Boolean);
   return parts.join(" · ");
+}
+
+function statusTime(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return isToday(d) ? format(d, "HH:mm") : format(d, "d MMM", { locale: pl });
 }
 
 export default function GuestMessagesPage() {
@@ -168,13 +169,15 @@ export default function GuestMessagesPage() {
   };
 
   return (
-    <div className="mx-auto mt-6 grid h-[calc(100vh-130px)] max-w-[1400px] overflow-hidden rounded-[32px] border border-brand-dark/[.08] bg-white shadow-[0_30px_80px_-32px_rgba(15,23,42,0.35)] md:grid-cols-[340px_1fr]">
-      <div className="flex max-h-full flex-col border-brand-dark/[.06] bg-gradient-to-b from-[#f8fbfa] to-white md:border-r">
+    <div className="mx-auto mt-16 grid h-[calc(100vh-224px)] max-h-[calc(100dvh-224px)] max-w-[1400px] overflow-hidden rounded-[32px] border border-brand-dark/[.08] bg-white shadow-[0_30px_80px_-32px_rgba(15,23,42,0.35)] md:grid-cols-[340px_1fr]">
+      <div className="flex min-h-0 flex-col border-brand-dark/[.06] bg-gradient-to-b from-[#f8fbfa] via-white to-[#f2f7f4] md:border-r">
         <div className="border-b border-brand-dark/[.06] bg-gradient-to-br from-brand-dark via-[#0f5f2e] to-[#15803d] px-4 py-4 text-white">
           <div className="flex items-center gap-2">
             <h1 className="text-base font-black tracking-tight">Wiadomości</h1>
             {unreadTotal > 0 ? (
-              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm ring-1 ring-white/25">{unreadTotal}</span>
+              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-bold text-white shadow-sm ring-1 ring-white/25">
+                {unreadTotal}
+              </span>
             ) : null}
           </div>
           <p className="mt-1 text-[11px] font-medium text-white/80">Twoje rozmowy z gospodarzami</p>
@@ -192,7 +195,7 @@ export default function GuestMessagesPage() {
           </div>
         </div>
 
-        <ul className="flex-1 overflow-y-auto">
+        <ul className="flex-1 overflow-y-auto py-1">
           {filtered.map((c) => (
             <li key={c.id}>
               <button
@@ -202,10 +205,12 @@ export default function GuestMessagesPage() {
                   markReadStore(c.id);
                 }}
                 className={cn(
-                  "m-2 flex w-[calc(100%-1rem)] gap-3 rounded-2xl border px-3.5 py-3 text-left transition-all",
+                  "m-2 flex w-[calc(100%-1rem)] gap-3 rounded-2xl border px-3.5 py-3 text-left transition-all duration-200",
                   activeConvId === c.id
-                    ? "border-brand/30 bg-white shadow-[0_8px_24px_-16px_rgba(22,163,74,0.5)]"
-                    : "border-transparent hover:border-brand-dark/[.08] hover:bg-white"
+                    ? "border-brand/30 bg-white shadow-[0_10px_30px_-18px_rgba(22,163,74,0.5)]"
+                    : c.unread_count > 0
+                      ? "border-brand/20 bg-brand-surface/50 shadow-[0_10px_26px_-20px_rgba(22,163,74,0.45)] hover:border-brand/30"
+                      : "border-transparent hover:border-brand-dark/[.08] hover:bg-white"
                 )}
               >
                 <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full bg-brand-muted text-xs font-bold text-brand-dark">
@@ -218,20 +223,24 @@ export default function GuestMessagesPage() {
                   )}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[13px] font-extrabold text-brand-dark">{hostName(c.host.display_name)}</p>
-                  <p className="mt-0.5 truncate text-[11px] text-text-muted">
-                    {convoSubtitle(c.host.display_name, c.listing.title, c.last_message?.content, "Gospodarz")}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right text-[10px] text-text-muted">
-                  <p className="mb-1 text-[10px] font-semibold text-text-muted/90">
-                    {previewTime(c.last_message?.created_at)}
-                  </p>
-                  {c.unread_count > 0 ? (
-                    <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
-                      {c.unread_count}
-                    </span>
-                  ) : null}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[13px] font-extrabold text-brand-dark">{hostName(c.host.display_name)}</p>
+                      <p className="mt-0.5 truncate text-[11px] text-text-muted">
+                        {convoSubtitle(c.host.display_name, c.listing.title, c.last_message?.content, "Gospodarz")}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right text-[10px] text-text-muted">
+                      <p className="mb-1 text-[10px] font-semibold text-text-muted/90">
+                        {statusTime(c.last_message?.created_at)}
+                      </p>
+                      {c.unread_count > 0 ? (
+                        <span className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-brand text-[10px] font-bold text-white">
+                          {c.unread_count}
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
                 </div>
               </button>
             </li>
@@ -239,7 +248,7 @@ export default function GuestMessagesPage() {
         </ul>
       </div>
 
-      <div className="relative flex min-h-0 flex-col bg-gradient-to-b from-[#f4faf7] via-[#f8fafc] to-[#f8fbff]">
+      <div className="relative flex min-h-0 flex-col overflow-hidden bg-gradient-to-b from-[#f4faf7] via-[#f8fafc] to-[#f8fbff]">
         <div className="pointer-events-none absolute -left-16 -top-16 h-48 w-48 rounded-full bg-emerald-100/60 blur-3xl" />
         <div className="pointer-events-none absolute -right-10 bottom-20 h-44 w-44 rounded-full bg-blue-100/50 blur-3xl" />
         {activeConv ? (
@@ -311,34 +320,34 @@ export default function GuestMessagesPage() {
             </div>
 
             <div className="border-t border-brand-dark/[.06] bg-white/95 px-4 py-3 backdrop-blur">
-              <div className="flex items-end gap-2.5 rounded-2xl border border-brand-dark/[.08] bg-white px-2.5 py-2 shadow-[0_12px_24px_-22px_rgba(15,23,42,0.45)]">
-              <textarea
-                className="input max-h-[100px] min-h-[46px] flex-1 resize-none border-[1.5px] text-[13px] shadow-sm focus:border-brand"
-                rows={2}
-                value={input}
-                onChange={(e) => {
-                  setInput(e.target.value);
-                  sendTyping(true);
-                  if (typingTimer.current) clearTimeout(typingTimer.current);
-                  typingTimer.current = setTimeout(() => sendTyping(false), 1000);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    void onSend();
-                  }
-                }}
-                placeholder="Napisz wiadomość do gospodarza..."
-              />
-              <button
-                type="button"
-                disabled={!input.trim()}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-[#15803d] text-white shadow-sm transition hover:-translate-y-px hover:from-[#15803d] hover:to-[#166534] disabled:opacity-40"
-                onClick={() => void onSend()}
-                aria-label="Wyślij"
-              >
-                ➤
-              </button>
+              <div className="flex items-end gap-2.5 rounded-[22px] border border-brand-dark/[.08] bg-white px-2.5 py-2 shadow-[0_12px_24px_-22px_rgba(15,23,42,0.45)]">
+                <textarea
+                  className="input max-h-[96px] min-h-[44px] flex-1 resize-none border-0 bg-transparent p-2 text-[13px] shadow-none focus:border-transparent focus:ring-0"
+                  rows={2}
+                  value={input}
+                  onChange={(e) => {
+                    setInput(e.target.value);
+                    sendTyping(true);
+                    if (typingTimer.current) clearTimeout(typingTimer.current);
+                    typingTimer.current = setTimeout(() => sendTyping(false), 1000);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      void onSend();
+                    }
+                  }}
+                  placeholder="Napisz wiadomość do gospodarza..."
+                />
+                <button
+                  type="button"
+                  disabled={!input.trim()}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand to-[#15803d] text-white shadow-sm transition hover:-translate-y-px hover:from-[#15803d] hover:to-[#166534] disabled:opacity-40"
+                  onClick={() => void onSend()}
+                  aria-label="Wyślij"
+                >
+                  ➤
+                </button>
               </div>
             </div>
           </>

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Conversation, Message
+from .models import Conversation, Message, MessageTemplate
 
 
 class MessageSerializer(serializers.ModelSerializer):
@@ -79,3 +79,10 @@ class ConversationCreateSerializer(serializers.Serializer):
 
 class MessageCreateSerializer(serializers.Serializer):
     body = serializers.CharField(max_length=8000)
+
+
+class MessageTemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MessageTemplate
+        fields = ("id", "title", "body", "sort_order", "created_at")
+        read_only_fields = ("id", "created_at")

@@ -107,12 +107,12 @@ export default function HostProfilePage() {
       </div>
 
       <form onSubmit={(e) => void handleSave(e)} className="max-w-2xl space-y-6">
-        <section className="rounded-2xl bg-white p-6 shadow-card ring-1 ring-black/[.04]">
+        <section className="host-card p-6">
           <h2 className="text-base font-extrabold text-brand-dark">Zdjęcie profilowe</h2>
           <div className="mt-4 flex items-center gap-5">
             {data.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={data.avatar_url} alt="" className="h-20 w-20 rounded-full border-2 border-brand-dark/[.06] object-cover shadow-sm" />
+                <img src={data.avatar_url} alt="" className="h-20 w-20 rounded-full border-2 border-brand-dark/[.06] object-cover shadow-sm dark:border-brand-border" />
             ) : (
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-muted text-2xl font-bold text-brand-dark">
                 {(data.first_name[0] ?? "?").toUpperCase()}
@@ -128,26 +128,26 @@ export default function HostProfilePage() {
           </div>
         </section>
 
-        <section className="rounded-2xl bg-white p-6 shadow-card ring-1 ring-black/[.04]">
+        <section className="host-card p-6">
           <h2 className="text-base font-extrabold text-brand-dark">Dane osobowe</h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
               <label className="text-xs font-semibold text-text-secondary">Imię</label>
-              <input className="mt-1 w-full rounded-xl border-0 bg-[#f7f9f8] px-3 py-2.5 text-sm ring-1 ring-black/[.06] focus:ring-2 focus:ring-brand" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+              <input className="host-input mt-1" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
             </div>
             <div>
               <label className="text-xs font-semibold text-text-secondary">Nazwisko</label>
-              <input className="mt-1 w-full rounded-xl border-0 bg-[#f7f9f8] px-3 py-2.5 text-sm ring-1 ring-black/[.06] focus:ring-2 focus:ring-brand" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              <input className="host-input mt-1" value={lastName} onChange={(e) => setLastName(e.target.value)} />
             </div>
           </div>
           <div className="mt-4">
             <label className="text-xs font-semibold text-text-secondary">Telefon</label>
-            <input className="mt-1 w-full rounded-xl border-0 bg-[#f7f9f8] px-3 py-2.5 text-sm ring-1 ring-black/[.06] focus:ring-2 focus:ring-brand" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+48 000 000 000" />
+            <input className="host-input mt-1" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+48 000 000 000" />
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <div>
               <label className="text-xs font-semibold text-text-secondary">Język</label>
-              <select className="mt-1 w-full rounded-xl border-0 bg-[#f7f9f8] px-3 py-2.5 text-sm ring-1 ring-black/[.06] focus:ring-2 focus:ring-brand" value={preferredLanguage} onChange={(e) => setPreferredLanguage(e.target.value)}>
+              <select className="host-input mt-1" value={preferredLanguage} onChange={(e) => setPreferredLanguage(e.target.value)}>
                 <option value="pl">Polski</option>
                 <option value="en">English</option>
                 <option value="de">Deutsch</option>
@@ -156,7 +156,7 @@ export default function HostProfilePage() {
             </div>
             <div>
               <label className="text-xs font-semibold text-text-secondary">Kraj</label>
-              <select className="mt-1 w-full rounded-xl border-0 bg-[#f7f9f8] px-3 py-2.5 text-sm ring-1 ring-black/[.06] focus:ring-2 focus:ring-brand" value={country} onChange={(e) => setCountry(e.target.value)}>
+              <select className="host-input mt-1" value={country} onChange={(e) => setCountry(e.target.value)}>
                 <option value="">Wybierz...</option>
                 <option value="PL">Polska</option>
                 <option value="DE">Niemcy</option>
@@ -169,11 +169,11 @@ export default function HostProfilePage() {
           </div>
         </section>
 
-        <section className="rounded-2xl bg-white p-6 shadow-card ring-1 ring-black/[.04]">
+        <section className="host-card p-6">
           <h2 className="text-base font-extrabold text-brand-dark">O mnie</h2>
           <p className="mt-1 text-xs text-text-muted">Opisz siebie — co lubisz, czym się zajmujesz, dlaczego zostałeś gospodarzem.</p>
           <textarea
-            className="mt-3 w-full rounded-xl border-0 bg-[#f7f9f8] px-3 py-2.5 text-sm ring-1 ring-black/[.06] focus:ring-2 focus:ring-brand"
+            className="host-input mt-3"
             rows={5}
             value={bio}
             onChange={(e) => setBio(e.target.value)}

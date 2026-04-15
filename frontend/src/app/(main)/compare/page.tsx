@@ -14,16 +14,6 @@ function hasAmenity(listing: Listing, sub: string) {
   return listing.amenities?.some((a) => a.name.toLowerCase().includes(sub)) ?? false;
 }
 
-function policyLabel(p: Listing["cancellation_policy"]): string {
-  const m: Record<string, string> = {
-    flexible: "Elastyczna",
-    moderate: "Umiarkowana",
-    strict: "Ścisła",
-    non_refundable: "Bez zwrotu",
-  };
-  return m[p] ?? p;
-}
-
 function avgDestScore(listing: Listing): number {
   const d = listing.destination_score_cache;
   if (!d) return 0;

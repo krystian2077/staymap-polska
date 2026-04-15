@@ -51,6 +51,18 @@ async function loadDiscovery(): Promise<DiscoveryHomepageData | null> {
   }
 }
 
+function dedupeListingsBySlug(items: SearchListing[]): SearchListing[] {
+  const seen = new Set<string>();
+  const out: SearchListing[] = [];
+  for (const l of items) {
+    if (!l?.slug) continue;
+    if (seen.has(l.slug)) continue;
+    seen.add(l.slug);
+    out.push(l);
+  }
+  return out;
+}
+
 function parseRating(value: SearchListing["average_rating"]): number {
   if (typeof value === "number") return value;
   if (typeof value === "string") {
@@ -64,6 +76,7 @@ function searchToCollectionCard(listing: SearchListing, fallback: CollectionCard
   const loc = [listing.location?.city, listing.location?.region].filter(Boolean).join(", ");
   return {
     ...fallback,
+    listingId: listing.id,
     title: listing.title || fallback.title,
     loc: loc || fallback.loc,
     price: Math.round(Number(listing.base_price) || fallback.price),
@@ -80,6 +93,7 @@ function searchToWaterRailCard(listing: SearchListing): CollectionCardData {
   const badge = text.includes("mor") || text.includes("balty") ? "Morze" : text.includes("kaj") ? "Kajaki" : "Jezioro";
   const dist = text.includes("plaz") ? "Blisko plazy" : text.includes("pomost") ? "Pomost" : "Nad woda";
   return {
+    listingId: listing.id,
     title: listing.title || "Oferta nad woda",
     loc,
     price,
@@ -108,7 +122,7 @@ export default async function HomePage() {
       collection.listings.map(similarListingToSearch)
     ) ?? [];
 
-  const allPool = [...listings, ...discoveryListings].filter(Boolean);
+  const allPool = dedupeListingsBySlug([...listings, ...discoveryListings].filter(Boolean));
 
   const waterDefaults: CollectionCardData[] = [
     {

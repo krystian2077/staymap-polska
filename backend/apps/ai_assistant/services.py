@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import re
@@ -10,6 +11,7 @@ from uuid import UUID
 
 from django.conf import settings
 from django.db import models, transaction
+from django.db.models import Count, Q
 from django.utils import timezone
 from openai import OpenAI
 
@@ -32,8 +34,30 @@ from apps.search.services import SearchOrchestrator
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """Jesteś eksperckim asystentem wyszukiwania w StayMap Polska, platformie oferującej wyjątkowe noclegi blisko natury w Polsce (domki, glampingi, pensjonaty).
-Twoim zadaniem jest profesjonalna interpretacja zapytań użytkowników i przekształcenie ich w parametry wyszukiwania.
+EXPLANATION_SYSTEM_PROMPT = """Tworzysz premium uzasadnienia dopasowania ofert dla StayMap AI.
+Masz korzystać WYŁĄCZNIE z dostarczonych faktów JSON dla każdej oferty.
+Nie wolno dopowiadać brakujących danych ani zgadywać.
+Styl: polski, 2-3 zdania, pewny ton eksperta od podróży, konkret i elegancja (bez emoji).
+Wspomnij 2-4 najmocniejsze fakty zgodne z preferencjami użytkownika.
+
+Zwróć WYŁĄCZNIE JSON:
+{
+  "items": [
+    {
+      "listing_id": "uuid",
+      "explanation": "2-3 zdania po polsku.",
+      "highlights": ["fakt 1", "fakt 2", "fakt 3"]
+    }
+  ]
+}
+"""
+
+SYSTEM_PROMPT = """Jesteś StayMap AI — inteligentnym asystentem wyszukiwania na platformie StayMap Polska z wyjątkowymi noclegami blisko natury (domki, glampingi, pensjonaty).
+Twoje zadanie: jak najlepiej zrozumieć intencję gościa i przekuć ją w precyzyjne parametry wyszukiwania oraz krótkie, premium podsumowanie (summary_pl).
+
+W sekcji „katalog” dostajesz prawdziwe statystyki i próbkę ofert z bazy — traktuj je jako orientację co jest dostępne w projekcie. Nie wymyślaj nazw obiektów ani cen; summary_pl ma brzmieć jak odpowiedź StayMap AI: konkretnie i spokojnie.
+
+Priorytet: ostatnia wiadomość użytkownika jest źródłem prawdy. Jeśli nowa wiadomość zmienia region, budżet, liczbę osób lub styl wyjazdu względem wcześniejszej rozmowy, ZASTĄP stare kryteria nowymi — nie łącz sprzecznych intencji (np. Mazury z poprzedniego pytania nie obowiązują, gdy użytkownik teraz pisze wyłącznie o Bałtyku).
 
 Zasady interpretacji:
 1. Lokalizacja: Rozpoznaj polskie miasta, regiony (Mazury, Podlasie, Tatry, Bieszczady) oraz krainy geograficzne.
@@ -48,7 +72,7 @@ Zasady interpretacji:
    - 'mountains': w górach, widok na góry.
    - 'wellness': sauna, bania, spa, jacuzzi, basen.
 3. Budżet: min_price i max_price (w PLN). Jeśli użytkownik mówi "tanie", ustaw ordering: "price_asc".
-4. Terminy: date_from, date_to (format ISO). Dzisiaj jest 2026-04-12.
+4. Terminy: date_from, date_to (format ISO). Dzisiaj jest 2026-04-15.
 5. Goście: liczba osób (guests).
 6. Atrybuty dodatkowe (boolean): sauna, near_mountains, near_lake, near_forest.
 7. Cisza: quiet_score_min (0-10) - jeśli użytkownik szuka spokoju/ciszy (np. "cisza" -> 8, "bardzo cicho" -> 10).
@@ -72,7 +96,7 @@ Zwróć WYŁĄCZNIE obiekt JSON wg schematu:
   "date_to": "YYYY-MM-DD" | null,
   "booking_mode": "instant"|"request" | null,
   "ordering": "recommended"|"price_asc"|"price_desc"|"newest",
-  "summary_pl": "Profesjonalne podsumowanie po polsku (np. 'Szukam dla Ciebie idealnych domków na Mazurach z sauną...')"
+  "summary_pl": "1-2 zdania po polsku w tonie StayMap AI: pewnie i konkretnie względem intencji (region, klimat wyjazdu). Bez emotikon i bez sztampowych zwrotów typu „super oferta”."
 }
 
 Przykłady:
@@ -82,9 +106,107 @@ AI: {"location": "Mazury", "guests": 4, "date_from": "2026-08-01", "date_to": "2
 U: "Gdzie pojadę z psem w góry, żeby było cicho?"
 AI: {"location": "góry", "travel_mode": "pet", "near_mountains": true, "quiet_score_min": 8, "ordering": "recommended", "summary_pl": "Przygotowałem listę cichych miejsc w górach, gdzie Twój pupil będzie mile widziany."}
 
-Bądź precyzyjny. Nie dodawaj komentarzy poza JSONem."""
+Bądź precyzyjny. Stosuj tylko informacje wynikające z zapytania i kontekstu platformy. Nie dodawaj komentarzy poza JSONem."""
 
 _MAX_PROMPT_LEN = 4000
+
+_POLISH_STOPWORDS = frozenset(
+    {
+        "dla",
+        "jest",
+        "jak",
+        "nie",
+        "tak",
+        "czy",
+        "tylko",
+        "bardzo",
+        "sobie",
+        "mnie",
+        "między",
+        "też",
+        "albo",
+        "oraz",
+        "przy",
+        "jako",
+        "po",
+        "na",
+        "w",
+        "z",
+        "do",
+        "od",
+        "za",
+        "że",
+        "co",
+        "ten",
+        "ta",
+        "to",
+        "te",
+        "się",
+        "już",
+        "jeszcze",
+        "bardziej",
+        "mniej",
+        "jakie",
+        "jaki",
+        "jaką",
+        "gdzie",
+        "kiedy",
+        "czemu",
+        "proszę",
+        "chcę",
+        "chce",
+        "szukam",
+        "nocleg",
+        "noclegi",
+        "miejsce",
+        "ofert",
+        "oferta",
+        "chciałbym",
+        "chcialbym",
+        "potrzebuję",
+        "potrzebuje",
+        "prosz",
+        "tutaj",
+        "tam",
+        "tego",
+        "tym",
+        "które",
+        "ktore",
+        "jakaś",
+        "jakas",
+    }
+)
+
+
+def _extract_meaningful_tokens(text: str, *, max_tokens: int = 7) -> list[str]:
+    s = (text or "").lower()
+    raw = re.findall(r"[a-ząćęłńóśźż]{3,}", s)
+    out: list[str] = []
+    for w in raw:
+        if w in _POLISH_STOPWORDS:
+            continue
+        if w not in out:
+            out.append(w)
+        if len(out) >= max_tokens:
+            break
+    return out
+
+
+def _format_listing_digest_line(listing: Listing) -> str:
+    loc = getattr(listing, "location", None)
+    city = getattr(loc, "city", "") if loc else ""
+    region = getattr(loc, "region", "") if loc else ""
+    lt = listing.listing_type if isinstance(listing.listing_type, dict) else {}
+    type_name = str(lt.get("name") or "").strip() or "nocleg"
+    short = (listing.short_description or "").strip()[:130]
+    pet = "tak" if listing.is_pet_friendly else "nie"
+    base = (
+        f"{listing.title[:88]} | {type_name} | {city}, {region} | od {listing.base_price} {listing.currency} | "
+        f"goście≤{listing.max_guests} | zwierzęta:{pet}"
+    )
+    if short:
+        base += f" | {short}"
+    return base
 
 
 def _strip_json_fence(text: str) -> str:
@@ -143,46 +265,216 @@ def _format_premium_summary(raw_summary: str, params: dict[str, Any]) -> str:
     Wyjście: sformatowany premium tekst z emojis
     """
     if not raw_summary:
-        return "✨ Przygotowałem dla Ciebie dopasowane propozycje noclegów."
+        return "Jasne, przygotowuję dla Ciebie dopasowane propozycje noclegów."
 
-    # Dodaj emoji na początek jeśli go brakuje
-    emoji_map = {
-        "románt": "💑",
-        "rodzin": "👨‍👩‍👧",
-        "pies": "🐕",
-        "wellness": "🧖",
-        "workation": "💻",
-        "gór": "🏔️",
-        "jezioro": "🌊",
-        "morz": "🏖️",
-        "las": "🌲",
-        "sauną": "🔥",
-        "jacuzzi": "🛁",
-        "pokój": "🛏️",
-        "luksus": "✨",
-        "tani": "💰",
-        "nowe": "🆕",
-    }
+    summary = re.sub(r"\s+", " ", raw_summary).strip()
+    summary = re.sub(r"^[✨💑🐕🧖💻🏔️🌊🏖️🌲🔥🛁🛏️💰🆕]\s*", "", summary)
+    if not summary:
+        return "Jasne, przygotowuję dla Ciebie dopasowane propozycje noclegów."
 
-    summary = raw_summary
-    # Szukaj klucza by dodać odpowiedni emoji
-    for key, emoji in emoji_map.items():
-        if key.lower() in summary.lower() and not summary.startswith(emoji):
-            summary = f"{emoji} {summary}"
-            break
-    else:
-        # Jeśli nie znaleźliśmy pasującego emoji, dodaj ogólny
-        if not summary.startswith(("✨", "💑", "🐕", "🧖", "💻", "🏔️", "🌊")):
-            summary = f"✨ {summary}"
+    first = summary[0].upper()
+    summary = f"{first}{summary[1:]}" if len(summary) > 1 else first
+    if summary[-1] not in ".!?":
+        summary += "."
 
-    # Dodaj informacje o liczbie wyników na koniec
-    if "travel_mode" in params:
-        summary += f"\n📍 Szukam opcji idealnych dla Ciebie — czekaj na wyniki!"
-
+    travel_mode = str(params.get("travel_mode") or "").strip().lower()
+    if travel_mode:
+        closers = {
+            "romantic": "W kolejnym kroku dopracuję klimat i prywatność miejsc.",
+            "family": "Dopilnuję też, żeby oferty były wygodne dla całej rodziny.",
+            "workation": "Skupię się dodatkowo na komforcie pracy i spokojnym otoczeniu.",
+            "wellness": "Dobiorę opcje z mocnym profilem relaksu i strefą wellness.",
+        }
+        closer = closers.get(travel_mode, "Za chwilę pokażę najbardziej trafne opcje dla Twoich kryteriów.")
+        if closer not in summary:
+            summary = f"{summary} {closer}"
     return summary
 
 
+def _score_to_text(val: Any) -> Optional[str]:
+    try:
+        n = float(val)
+    except (TypeError, ValueError):
+        return None
+    return f"{n:.1f}/10"
+
+
+def _safe_text_list(values: Any, *, max_items: int = 3) -> list[str]:
+    if not isinstance(values, list):
+        return []
+    out: list[str] = []
+    for item in values:
+        s = str(item or "").strip()
+        if not s:
+            continue
+        out.append(s[:80])
+        if len(out) >= max_items:
+            break
+    return out
+
+
+def _first_sentence(text: str) -> str:
+    src = (text or "").strip()
+    if not src:
+        return ""
+    parts = re.split(r"(?<=[.!?])\s+", src)
+    return (parts[0] if parts else src)[:220]
+
+
+def _extract_listing_facts(listing: Listing, params: dict[str, Any], rank: int) -> dict[str, Any]:
+    amenities = listing.amenities if isinstance(listing.amenities, list) else []
+    amenity_tokens = [str(a.get("id") or a.get("name") or "").lower() if isinstance(a, dict) else str(a).lower() for a in amenities]
+    has_sauna = any(tok in {"sauna", "private_sauna"} for tok in amenity_tokens)
+    has_jacuzzi = any(tok in {"jacuzzi", "hot_tub"} for tok in amenity_tokens)
+
+    loc = getattr(listing, "location", None)
+    scores = listing.destination_score_cache if isinstance(listing.destination_score_cache, dict) else {}
+    travel_mode = str(params.get("travel_mode") or "").strip().lower()
+    score_key = {
+        "romantic": "romantic",
+        "family": "family",
+        "pet": "nature",
+        "workation": "workation",
+        "slow": "quiet",
+        "outdoor": "outdoor",
+        "lake": "nature",
+        "mountains": "nature",
+        "wellness": "wellness",
+    }.get(travel_mode)
+
+    host = getattr(listing, "host", None)
+    response_rate = getattr(host, "response_rate", None)
+    response_rate_pct = None
+    if response_rate is not None:
+        try:
+            response_rate_pct = int(round(float(response_rate) * 100))
+        except (TypeError, ValueError):
+            response_rate_pct = None
+
+    return {
+        "listing_id": str(listing.id),
+        "title": listing.title,
+        "rank": rank,
+        "base_price": float(listing.base_price),
+        "currency": listing.currency,
+        "max_guests": int(listing.max_guests or 0),
+        "booking_mode": listing.booking_mode,
+        "average_rating": float(listing.average_rating) if listing.average_rating is not None else None,
+        "review_count": int(listing.review_count or 0),
+        "is_pet_friendly": bool(listing.is_pet_friendly),
+        "response_rate_pct": response_rate_pct,
+        "location": {
+            "city": getattr(loc, "city", "") if loc else "",
+            "region": getattr(loc, "region", "") if loc else "",
+            "near_lake": bool(getattr(loc, "near_lake", False)) if loc else False,
+            "near_mountains": bool(getattr(loc, "near_mountains", False)) if loc else False,
+            "near_forest": bool(getattr(loc, "near_forest", False)) if loc else False,
+            "quiet_rural": bool(getattr(loc, "quiet_rural", False)) if loc else False,
+        },
+        "amenities": {
+            "sauna": has_sauna,
+            "jacuzzi": has_jacuzzi,
+        },
+        "scores": {
+            "quiet": scores.get("quiet"),
+            "wellness": scores.get("wellness"),
+            "travel_fit": scores.get(score_key) if score_key else None,
+            "travel_fit_key": score_key,
+        },
+    }
+
+
+def _rule_based_match_explanation(facts: dict[str, Any], params: dict[str, Any]) -> tuple[str, list[str]]:
+    highlights: list[str] = []
+    loc = facts.get("location") or {}
+    scores = facts.get("scores") or {}
+    amenities = facts.get("amenities") or {}
+
+    if params.get("quiet_score_min") is not None:
+        q = _score_to_text(scores.get("quiet"))
+        if q:
+            highlights.append(f"cisza {q}")
+        elif loc.get("quiet_rural"):
+            highlights.append("spokojna, wiejska okolica")
+
+    if params.get("near_forest") and loc.get("near_forest"):
+        highlights.append("blisko lasu")
+    if params.get("near_lake") and loc.get("near_lake"):
+        highlights.append("blisko jeziora")
+    if params.get("near_mountains") and loc.get("near_mountains"):
+        highlights.append("w pobliżu gór")
+
+    if params.get("sauna") and amenities.get("sauna"):
+        highlights.append("prywatna sauna")
+    if amenities.get("jacuzzi"):
+        highlights.append("jacuzzi")
+
+    if params.get("guests") and facts.get("max_guests"):
+        try:
+            if int(facts["max_guests"]) >= int(params["guests"]):
+                highlights.append(f"dla {int(params['guests'])} gości")
+        except (TypeError, ValueError):
+            pass
+
+    travel_fit = _score_to_text(scores.get("travel_fit"))
+    if travel_fit:
+        highlights.append(f"wysoki wynik {facts.get('scores', {}).get('travel_fit_key') or 'dopasowania'} {travel_fit}")
+
+    if facts.get("average_rating") and facts.get("review_count"):
+        highlights.append(f"ocena {facts['average_rating']:.1f} ({facts['review_count']} opinii)")
+
+    if facts.get("response_rate_pct"):
+        highlights.append(f"host odpowiada na {facts['response_rate_pct']}% zapytań")
+
+    unique_h = []
+    for h in highlights:
+        if h not in unique_h:
+            unique_h.append(h)
+    unique_h = unique_h[:3]
+
+    place = ", ".join([x for x in [loc.get("city"), loc.get("region")] if x]) or "tej lokalizacji"
+    sent1 = f"Ta oferta pasuje do Twoich preferencji i dobrze wypada na tle innych opcji w {place}."
+    if unique_h:
+        sent2 = f"Najmocniejsze argumenty: {', '.join(unique_h)}."
+    else:
+        sent2 = "Najmocniejsze argumenty: lokalizacja blisko natury i parametry spójne z Twoim zapytaniem."
+    sent3 = f"Cena startuje od {facts.get('base_price')} {facts.get('currency')}/noc, więc łatwo porównać ją z pozostałymi propozycjami."
+    return " ".join([sent1, sent2, sent3]), unique_h
+
+
 class AISearchService:
+    @staticmethod
+    def _call_match_explanations_llm(prompt: str) -> tuple[dict[str, Any], int, Decimal]:
+        model = getattr(settings, "OPENAI_MODEL_CHEAP", "") or getattr(
+            settings,
+            "OPENAI_MODEL",
+            "gpt-4o-mini",
+        )
+        max_tokens = getattr(settings, "OPENAI_MATCH_EXPLANATIONS_MAX_TOKENS", 1400)
+        client = AISearchService._client()
+        try:
+            resp = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": EXPLANATION_SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=max_tokens,
+                temperature=0.25,
+                response_format={"type": "json_object"},
+            )
+        except Exception as e:
+            if hasattr(e, "status_code") and getattr(e, "status_code") == 429:
+                raise AIServiceError("Limit zapytań AI dla uzasadnień został chwilowo przekroczony.") from None
+            raise AIServiceError("Nie udało się wygenerować uzasadnień dopasowania.") from None
+
+        choice = resp.choices[0] if resp.choices else None
+        if not choice or not choice.message or not choice.message.content:
+            raise AIServiceError("Pusta odpowiedź modelu dla uzasadnień dopasowania.")
+
+        parsed = _parse_llm_json(choice.message.content)
+        return parsed, _usage_tokens(getattr(resp, "usage", None)), _usage_cost_usd(getattr(resp, "usage", None))
+
     @staticmethod
     def _build_domain_dictionary() -> dict[str, Any]:
         approved_qs = Listing.objects.filter(status=Listing.Status.APPROVED)
@@ -204,6 +496,73 @@ class AISearchService:
             "cities": sorted(set(cities))[:120],
             "listing_types": sorted(set(listing_types))[:80],
         }
+
+    @classmethod
+    def _generate_match_explanations(
+        cls,
+        *,
+        user_prompt: str,
+        llm_summary: str,
+        params: dict[str, Any],
+        listings: list[Listing],
+    ) -> tuple[dict[str, dict[str, Any]], int, Decimal]:
+        base: dict[str, dict[str, Any]] = {}
+        facts_rows: list[dict[str, Any]] = []
+        for rank, listing in enumerate(listings):
+            facts = _extract_listing_facts(listing, params, rank)
+            fallback_text, fallback_highlights = _rule_based_match_explanation(facts, params)
+            base[str(listing.id)] = {
+                "match_explanation": fallback_text,
+                "match_highlights": fallback_highlights,
+                "explanation_source": "rule",
+            }
+            facts_rows.append(facts)
+
+        if not listings:
+            return base, 0, Decimal("0")
+
+        use_llm = bool(getattr(settings, "AI_MATCH_EXPLANATION_USE_LLM", True))
+        if not use_llm:
+            return base, 0, Decimal("0")
+
+        payload = {
+            "user_prompt": user_prompt[:500],
+            "assistant_summary": _first_sentence(llm_summary),
+            "normalized_preferences": params,
+            "listings": facts_rows,
+            "instructions": {
+                "language": "pl",
+                "sentences": "2-3",
+                "no_hallucinations": True,
+            },
+        }
+
+        try:
+            parsed, tokens, cost = cls._call_match_explanations_llm(json.dumps(payload, ensure_ascii=False))
+        except Exception:
+            logger.exception("LLM match explanations failed; using rule-based fallback")
+            return base, 0, Decimal("0")
+
+        items = parsed.get("items") if isinstance(parsed, dict) else None
+        if not isinstance(items, list):
+            return base, 0, Decimal("0")
+
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            lid = str(item.get("listing_id") or "").strip()
+            if not lid or lid not in base:
+                continue
+            text = str(item.get("explanation") or "").strip()
+            if len(text) < 40:
+                continue
+            base[lid] = {
+                "match_explanation": text[:560],
+                "match_highlights": _safe_text_list(item.get("highlights"), max_items=3),
+                "explanation_source": "llm",
+            }
+
+        return base, int(tokens or 0), cost or Decimal("0")
 
     @staticmethod
     def _best_fuzzy_match(text: str, candidates: list[str], min_score: float = 0.78) -> Optional[str]:
@@ -255,7 +614,7 @@ class AISearchService:
                     {"role": "user", "content": prompt},
                 ],
                 max_tokens=max_tokens,
-                temperature=0.2,
+                temperature=0.35,
                 response_format={"type": "json_object"},
             )
         except Exception as e:
@@ -281,20 +640,84 @@ class AISearchService:
         return parsed, tokens, cost
 
     @staticmethod
+    def _catalog_stats_lines() -> list[str]:
+        approved = Listing.objects.filter(status=Listing.Status.APPROVED)
+        n = approved.count()
+        agg = approved.aggregate(
+            mn=models.Min("base_price"),
+            mx=models.Max("base_price"),
+        )
+        top_regs = (
+            approved.values("location__region")
+            .exclude(location__region="")
+            .annotate(c=Count("id"))
+            .order_by("-c")[:8]
+        )
+        lines: list[str] = [f"Łącznie zatwierdzonych ofert w katalogu: {n}."]
+        if agg.get("mn") is not None and agg.get("mx") is not None:
+            lines.append(
+                f"Widełki cen startowych w bazie: {agg['mn']}–{agg['mx']} PLN za noc."
+            )
+        reg_bits = [
+            f"{row['location__region']}: ok. {row['c']} ofert"
+            for row in top_regs
+            if row.get("location__region")
+        ]
+        if reg_bits:
+            lines.append("Największa dostępność wg regionów: " + "; ".join(reg_bits))
+        return lines
+
+    @staticmethod
+    def _retrieval_listings_for_prompt(user_text: str, *, limit: int = 22) -> list[Listing]:
+        try:
+            tokens = _extract_meaningful_tokens(user_text)
+            base = (
+                Listing.objects.filter(status=Listing.Status.APPROVED)
+                .select_related("location")
+                .defer("description")
+            )
+            if not tokens:
+                return list(base.order_by("-average_rating", "-review_count", "-created_at")[:limit])
+            q = Q()
+            for t in tokens:
+                q |= (
+                    Q(title__icontains=t)
+                    | Q(short_description__icontains=t)
+                    | Q(location__city__icontains=t)
+                    | Q(location__region__icontains=t)
+                )
+            qs = base.filter(q).order_by("-average_rating", "-review_count", "-created_at").distinct()
+            rows = list(qs[:limit])
+            if len(rows) < min(14, limit):
+                seen = {r.id for r in rows}
+                extra = list(
+                    base.exclude(pk__in=seen).order_by(
+                        "-average_rating", "-review_count", "-created_at"
+                    )[: limit - len(rows)]
+                )
+                rows.extend(extra)
+            return rows[:limit]
+        except Exception:
+            logger.exception("AI retrieval listing context failed; using rating fallback")
+            return list(
+                Listing.objects.filter(status=Listing.Status.APPROVED)
+                .select_related("location")
+                .defer("description")
+                .order_by("-average_rating", "-review_count", "-created_at")[:limit]
+            )
+
+    @staticmethod
     def _build_contextual_prompt(
         session: AiTravelSession,
         current_prompt: str,
         current_prompt_id,
     ) -> str:
-        # Krótki snapshot danych projektu pomaga modelowi lepiej dopasować parametry do realnej oferty.
-        approved_qs = Listing.objects.filter(status=Listing.Status.APPROVED)
-        agg = approved_qs.aggregate(min_price=models.Min("base_price"), max_price=models.Max("base_price"))
-        top_regions = list(
-            approved_qs.values_list("location__region", flat=True)
-            .exclude(location__region="")
-            .order_by("location__region")[:12]
-        )
+        """RAG-light: statystyki + oferty trafione słowami z zapytania — model „widzi” realny katalog."""
         domain = AISearchService._build_domain_dictionary()
+        digest_listings = AISearchService._retrieval_listings_for_prompt(current_prompt)
+        stats_lines = AISearchService._catalog_stats_lines()
+        tok_preview = _extract_meaningful_tokens(current_prompt)
+        tok_note = ", ".join(tok_preview) if tok_preview else "(ogólne zapytanie — dobrane najwyżej oceniane oferty)"
 
         prev_prompts = (
             AiTravelPrompt.objects.filter(session=session)
@@ -302,21 +725,25 @@ class AISearchService:
             .order_by("-created_at")[:6]
         )
 
-        lines = [
-            "Kontekst poprzednich wiadomości użytkownika (najpierw najnowsza):",
+        lines: list[str] = [
+            "=== Katalog StayMap — dane rzeczywiste (nie halucynuj nazw obiektów spoza tej listy) ===",
+            *stats_lines,
+            "",
+            "=== Słownik domenowy (przykładowe wartości z ofert) ===",
             (
-                "Kontekst danych platformy: "
-                f"oferty_approved={approved_qs.count()}, "
-                f"zakres_cen={agg.get('min_price')}..{agg.get('max_price')} PLN, "
-                f"regiony_przykladowe={', '.join([r for r in top_regions if r][:8]) or 'brak danych'}"
+                f"regiony={', '.join(domain.get('regions', [])[:14]) or 'brak'}, "
+                f"miasta={', '.join(domain.get('cities', [])[:14]) or 'brak'}, "
+                f"typy={', '.join(domain.get('listing_types', [])[:10]) or 'brak'}"
             ),
-            (
-                "Słownik domenowy projektu: "
-                f"regiony={', '.join(domain.get('regions', [])[:12]) or 'brak'}, "
-                f"miasta={', '.join(domain.get('cities', [])[:12]) or 'brak'}, "
-                f"typy_ofert={', '.join(domain.get('listing_types', [])[:8]) or 'brak'}"
-            ),
+            "",
+            f"=== Oferty powiązane z zapytaniem (słowa kluczowe: {tok_note}) ===",
+            "Poniższe linie to prawdziwe rekordy z bazy — możesz nawiązać do typu doświadczenia lub regionu w summary_pl, jeśli pasuje do intencji użytkownika.",
         ]
+        for idx, listing in enumerate(digest_listings, start=1):
+            lines.append(f"{idx}. {_format_listing_digest_line(listing)}")
+
+        lines.append("")
+        lines.append("=== Historia tej sesji (najpierw najnowsze pytania) ===")
         if not prev_prompts:
             lines.append("Brak wcześniejszych wiadomości w tej sesji.")
         for i, p in enumerate(prev_prompts, start=1):
@@ -327,10 +754,13 @@ class AISearchService:
                     f"   A: {interp.summary_pl[:300] if interp.summary_pl else json.dumps(interp.normalized_params, ensure_ascii=False)}"
                 )
 
-        lines.append("Nowa wiadomość użytkownika:")
+        lines.append("")
+        lines.append("Nowa wiadomość użytkownika (główne kryterium wyszukiwania):")
         lines.append(current_prompt)
         lines.append(
-            "Zinterpretuj nową wiadomość, uwzględniając kontekst i preferencje z historii."
+            "Zinterpretuj tę wiadomość jako aktualne zapytanie. "
+            "Historia służy tylko do doprecyzowania; przy sprzeczności wygrywa nowa wiadomość. "
+            "Zwróć poprawny JSON + summary_pl w stylu StayMap AI."
         )
         return "\n".join(lines)
 
@@ -353,7 +783,7 @@ class AISearchService:
         compact = re.sub(r"\s+", " ", src)
         hints: dict[str, Any] = {}
 
-        cheap_tokens = ("tanio", "najtans", "najtań", "budzet", "budżet")
+        cheap_tokens = ("tanio", "tanie", "najtans", "najtań", "budzet", "budżet")
         if any(tok in compact for tok in cheap_tokens):
             hints["ordering"] = "price_asc"
 
@@ -495,7 +925,11 @@ class AISearchService:
             s.save()
 
     @staticmethod
-    def _relaxation_candidates(params: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
+    def _relaxation_candidates(
+        params: dict[str, Any],
+        *,
+        prompt_fingerprint: str = "",
+    ) -> list[tuple[str, dict[str, Any]]]:
         """Kolejne próby wyszukiwania: od ścisłych filtrów po bezpieczny fallback globalny."""
         base = dict(params)
         out: list[tuple[str, dict[str, Any]]] = [("strict", base)]
@@ -522,15 +956,48 @@ class AISearchService:
             wide_radius["radius_km"] = max(float(wide_radius.get("radius_km") or 0), 120.0)
         out.append(("wide_radius", wide_radius))
 
-        out.append(("global_fallback", {}))
+        # Inny klucz cache / kolejność niż surowe {} — przy różnych zapytaniach widać inne oferty z katalogu.
+        order_variants = ("recommended", "newest", "price_asc")
+        h = int(
+            hashlib.sha256((prompt_fingerprint or "staymap").encode("utf-8")).hexdigest(),
+            16,
+        )
+        out.append(("global_fallback", {"ordering": order_variants[h % len(order_variants)]}))
         return out
 
     @classmethod
-    def _ordered_ids_with_fallback(cls, params: dict[str, Any]) -> tuple[list[Any], str]:
-        for level, candidate in cls._relaxation_candidates(params):
-            ids = SearchOrchestrator.get_ordered_ids(candidate)
+    def _ordered_ids_with_fallback(
+        cls,
+        params: dict[str, Any],
+        *,
+        prompt_fingerprint: str = "",
+    ) -> tuple[list[Any], str]:
+        for level, candidate in cls._relaxation_candidates(params, prompt_fingerprint=prompt_fingerprint):
+            # Bez cache Redis — inaczej każde podobne zapytanie dostaje identyczną listę ID z Redis.
+            ids = SearchOrchestrator.get_ordered_ids(candidate, use_cache=False)
             if ids:
                 return ids, level
+
+        has_explicit_constraints = any(
+            params.get(key) not in (None, "", [], False)
+            for key in (
+                "location",
+                "travel_mode",
+                "guests",
+                "min_price",
+                "max_price",
+                "booking_mode",
+                "near_mountains",
+                "near_lake",
+                "near_forest",
+                "quiet_rural",
+                "amenities",
+                "is_pet_friendly",
+            )
+        )
+        if has_explicit_constraints:
+            # Nie pokazuj globalnie tych samych ofert, gdy użytkownik podał konkretne kryteria.
+            return [], "no_results"
 
         # Ostateczny fallback: jeśli orchestrator nic nie zwrócił, pokaż najlepsze globalne oferty.
         backup_ids = list(
@@ -539,6 +1006,22 @@ class AISearchService:
             .values_list("id", flat=True)[:120]
         )
         return backup_ids, "global_catalog"
+
+    @staticmethod
+    def _permute_ordered_ids_for_prompt(
+        ids: list[Any],
+        prompt_text: str,
+        session_id: str,
+    ) -> list[Any]:
+        """Ta sama pula wyników wyszukiwania → inna kolejność startu dla różnych zapytań/sesji."""
+        if not ids or len(ids) < 2:
+            return ids
+        seed = f"{prompt_text}\u241f{session_id}"
+        h = int(hashlib.sha256(seed.encode("utf-8")).hexdigest(), 16)
+        offset = h % len(ids)
+        if offset == 0:
+            return ids
+        return ids[offset:] + ids[:offset]
 
     @classmethod
     def _process_prompt(cls, session: AiTravelSession, prompt_row: AiTravelPrompt, text: str) -> AiTravelSession:
@@ -578,7 +1061,10 @@ class AISearchService:
         search_params = _geocode_if_needed(search_params)
         relax_level = "strict"
         try:
-            ordered_ids, relax_level = cls._ordered_ids_with_fallback(search_params)
+            ordered_ids, relax_level = cls._ordered_ids_with_fallback(
+                search_params,
+                prompt_fingerprint=text,
+            )
         except Exception:
             logger.exception("SearchOrchestrator failed after AI interpret")
             cls._mark_session_failed(
@@ -591,12 +1077,25 @@ class AISearchService:
             session.refresh_from_db()
             return session
 
+        ordered_ids = cls._permute_ordered_ids_for_prompt(
+            list(ordered_ids),
+            text,
+            str(session.id),
+        )
+
         if relax_level != "strict":
             extra = (
                 "\n✨ Rozszerzyłem część kryteriów (np. budżet lub preferencje), "
                 "żeby pokazać najlepsze dostępne oferty."
             )
             summary_pl = (summary_pl or "✨ Pokazuję najlepsze dostępne opcje.") + extra
+
+        if relax_level == "no_results":
+            summary_pl = (
+                (summary_pl or "")
+                + "\nNie znalazłem ofert spełniających wszystkie podane kryteria. "
+                "Mogę zaproponować alternatywy po lekkim rozszerzeniu budżetu, lokalizacji albo udogodnień."
+            ).strip()
 
         payload_with_meta = dict(llm_payload)
         payload_with_meta["_matching_strategy"] = relax_level
@@ -605,6 +1104,29 @@ class AISearchService:
         max_store = getattr(settings, "AI_MAX_LISTING_IDS_PER_SESSION", 500)
         id_strings = [str(u) for u in ordered_ids[:max_store]]
         total = len(ordered_ids)
+
+        stored_ids: list[UUID] = []
+        for lid_str in id_strings[:50]:
+            try:
+                stored_ids.append(UUID(str(lid_str)))
+            except (TypeError, ValueError):
+                continue
+
+        approved_qs = Listing.objects.filter(pk__in=stored_ids, status=Listing.Status.APPROVED).select_related(
+            "location",
+            "host",
+        )
+        listing_by_id = {str(row.id): row for row in approved_qs}
+        ordered_listings = [listing_by_id[str(pk)] for pk in stored_ids if str(pk) in listing_by_id]
+
+        explanation_map, extra_tokens, extra_cost = cls._generate_match_explanations(
+            user_prompt=text,
+            llm_summary=summary_pl,
+            params=search_params,
+            listings=ordered_listings[:24],
+        )
+        tokens = int(tokens or 0) + int(extra_tokens or 0)
+        cost_part = (cost_part or Decimal("0")) + (extra_cost or Decimal("0"))
 
         safe_params = json_safe_normalized_params(search_params)
 
@@ -627,19 +1149,18 @@ class AISearchService:
             )
             rec_rows: list[AiRecommendation] = []
             for rank, lid_str in enumerate(id_strings[:50]):
-                try:
-                    lid = UUID(str(lid_str))
-                except (ValueError, TypeError):
+                listing_obj = listing_by_id.get(str(lid_str))
+                if not listing_obj:
                     continue
-                if not Listing.objects.filter(
-                    pk=lid, status=Listing.Status.APPROVED
-                ).exists():
-                    continue
+                exp = explanation_map.get(str(listing_obj.id), {})
                 rec_rows.append(
                     AiRecommendation(
                         interpretation=interp,
-                        listing_id=lid,
+                        listing=listing_obj,
                         rank=rank,
+                        match_explanation=str(exp.get("match_explanation") or ""),
+                        match_highlights=exp.get("match_highlights") if isinstance(exp.get("match_highlights"), list) else [],
+                        explanation_source=str(exp.get("explanation_source") or "rule")[:16],
                     )
                 )
             if rec_rows:

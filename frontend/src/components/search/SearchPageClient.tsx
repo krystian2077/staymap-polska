@@ -18,7 +18,7 @@ import {
 } from "@/lib/searchQuery";
 import { LOCATION_TAG_KEYS } from "@/lib/locationTags";
 import { urlSearchParamsToQueryPayload } from "@/lib/searchUrl";
-import type { MapBounds } from "@/lib/store/searchStore";
+import type { MapBounds, SearchParamsState } from "@/lib/store/searchStore";
 import type { MapPin, SearchListResponse, SearchListing } from "@/lib/searchTypes";
 import type { SearchMapProps } from "./SearchMap";
 import { useSearchStore } from "@/lib/store/searchStore";
@@ -193,7 +193,7 @@ export default function SearchPageClient() {
 
        // Przy geolokalizacji resetujemy filtry, które mogłyby blokować wyniki w nowym miejscu,
        // ale zachowujemy daty i gości jako parametry intencjonalne.
-       const update: any = {
+       const update: Partial<SearchParamsState> = {
          lat,
          lng,
          radius_km: 250,
@@ -211,13 +211,13 @@ export default function SearchPageClient() {
          max_price: undefined,
        };
 
-       // Czyścimy tagi otoczenia
+       const tagClear = update as Partial<SearchParamsState> & Record<string, undefined>;
        for (const tag of LOCATION_TAG_KEYS) {
-         update[tag] = undefined;
+         tagClear[tag] = undefined;
        }
 
-       // Budujemy nextParams jawnie, aby uniknąć konfliktów ze starymi współrzędnymi w params
-       const nextParams: any = {
+       const nextParams: SearchParamsState = {
+         ...params,
          ...update,
          date_from: params.date_from,
          date_to: params.date_to,
@@ -273,7 +273,7 @@ export default function SearchPageClient() {
      // Natychmiast czyścimy piny na mapie
      setMapPins([]);
 
-     const update: any = {
+     const update: Partial<SearchParamsState> = {
        lat: undefined,
        lng: undefined,
        radius_km: undefined,
@@ -284,11 +284,12 @@ export default function SearchPageClient() {
        bbox_east: undefined,
      };
 
+     const tagClear2 = update as Partial<SearchParamsState> & Record<string, undefined>;
      for (const tag of LOCATION_TAG_KEYS) {
-       update[tag] = undefined;
+       tagClear2[tag] = undefined;
      }
 
-     const nextParams: any = {
+     const nextParams: SearchParamsState = {
        ...params,
        ...update,
        date_from: params.date_from,
@@ -510,13 +511,13 @@ export default function SearchPageClient() {
 
   return (
     <div
-      className="flex bg-white"
+      className="flex bg-white dark:bg-[var(--background)]"
       style={{ height: "calc(100dvh - 88px)", overflow: "hidden" }}
     >
       {/* ── LEFT — results rail (desktop only) ─────────────────────────── */}
       <aside
         className={cn(
-          "hidden flex-col bg-white lg:flex",
+          "hidden flex-col bg-white dark:bg-[var(--background)] lg:flex",
             "w-[420px] shrink-0 shadow-[20px_0_40px_rgba(0,0,0,0.03)]",
           "overflow-hidden z-30 scrollbar-hide",
         )}
@@ -648,20 +649,21 @@ export default function SearchPageClient() {
         <main className="relative flex-1 overflow-hidden">
           {/* Map wrapper with padding/rounding on desktop */}
           <div className="h-full w-full p-0 lg:p-3">
-            <div className="relative h-full w-full overflow-hidden rounded-none lg:rounded-[18px] lg:shadow-[0_4px_24px_rgba(0,0,0,.1)] bg-white">
-              <SearchMap
-                pins={mapPins}
-                results={results}
-                highlightId={hoveredId}
-                selectedId={selectedId}
-                onPinHover={setHovered}
-                onPinSelect={setSelected}
-                onLocationFound={handleLocationFound}
-                  onClearLocation={handleLocationCleared}
-                  isLocationActive={isMyLocationActive}
-                center={mapCenter}
-                onBoundsChange={handleBoundsChange}
-              />
+             <div className="relative h-full w-full overflow-hidden rounded-none bg-white lg:rounded-[18px] lg:shadow-[0_4px_24px_rgba(0,0,0,.1)] dark:bg-[var(--bg2)]">
+               <SearchMap
+                 pins={mapPins}
+                 results={results}
+                 highlightId={hoveredId}
+                 selectedId={selectedId}
+                 onPinHover={setHovered}
+                 onPinSelect={setSelected}
+                 onLocationFound={handleLocationFound}
+                 onClearLocation={handleLocationCleared}
+                 isLocationActive={isMyLocationActive}
+                 center={mapCenter}
+                 onBoundsChange={handleBoundsChange}
+                 travelMode={params.travel_mode}
+               />
 
               {/* Mobile: toggle bottom sheet button */}
               <button

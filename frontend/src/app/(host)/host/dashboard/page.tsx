@@ -7,12 +7,10 @@ import toast from "react-hot-toast";
 
 import { api } from "@/lib/api";
 import { formatDate } from "@/lib/utils/dates";
-import { mapBookingToHostBooking } from "@/lib/utils/hostMap";
 import { cn } from "@/lib/utils";
 import { useHostStore } from "@/lib/store/hostStore";
 import { useMessagingStore } from "@/lib/store/messagingStore";
 import { useHostNotificationStore } from "@/lib/store/hostNotificationStore";
-import type { HostBooking } from "@/types/host";
 import {
   addDays,
   addMonths,
@@ -28,13 +26,13 @@ import {
 } from "date-fns";
 import { pl } from "date-fns/locale";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 function formatPLN(n: number): string {
   return new Intl.NumberFormat("pl-PL", { style: "currency", currency: "PLN", maximumFractionDigits: 0 }).format(n);
 }
 
-const CARD = "rounded-3xl bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-black/[0.02]";
+const CARD = "rounded-3xl bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] ring-1 ring-black/[0.02] dark:bg-[var(--bg2)] dark:ring-brand-border/45";
 
 function StatCard({ icon, value, label, changePct, delayMs }: {
   icon: React.ReactNode; value: string; label: string; changePct?: number | null; delayMs: number;
@@ -100,7 +98,6 @@ export default function HostDashboardPage() {
   const stats = useHostStore((s) => s.stats);
   const bookings = useHostStore((s) => s.bookings);
   const pendingCount = useHostStore((s) => s.pendingCount);
-  const setBookings = useHostStore((s) => s.setBookings);
   const unreadTotal = useMessagingStore((s) => s.unreadTotal);
   const notificationItems = useHostNotificationStore((s) => s.items);
   const notificationUnread = useHostNotificationStore((s) => s.unreadCount);
@@ -136,7 +133,6 @@ export default function HostDashboardPage() {
 
   useEffect(() => { void loadCalendar(); }, [loadCalendar]);
 
-  const pendingBookings = useMemo(() => bookings.filter((b) => b.status === "pending"), [bookings]);
   const confirmedBookings = useMemo(() => bookings.filter((b) => b.status === "confirmed"), [bookings]);
 
   const recentNotifications = useMemo(() => {
@@ -205,15 +201,6 @@ export default function HostDashboardPage() {
     return eachDayOfInterval({ start, end });
   }, [month]);
 
-  const patchBookingStatus = async (id: string, status: "confirmed" | "rejected") => {
-    try {
-      await api.patch(`/api/v1/host/bookings/${id}/status/`, { status });
-      toast.success(status === "confirmed" ? "Rezerwacja potwierdzona!" : "Rezerwacja odrzucona.");
-      const res = await api.get<{ data: Record<string, unknown>[] }>("/api/v1/host/bookings/");
-      setBookings(res.data.map((b) => mapBookingToHostBooking(b)));
-    } catch (e) { toast.error((e as Error).message || "Błąd"); }
-  };
-
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto">
       <header className="mb-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
@@ -253,7 +240,7 @@ export default function HostDashboardPage() {
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand/20 bg-gradient-to-r from-brand-surface to-white px-5 py-4 shadow-sm"
+          className="mb-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand/20 bg-gradient-to-r from-brand-surface to-white px-5 py-4 shadow-sm dark:to-[var(--bg2)]"
         >
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-lg text-white shadow-brand-lg">💬</span>
@@ -314,10 +301,10 @@ export default function HostDashboardPage() {
                       "group flex items-start gap-3 rounded-2xl border p-4 transition-all",
                       n.isNew
                         ? "border-brand/20 bg-brand-surface/45 shadow-[0_10px_26px_-22px_rgba(22,163,74,.6)]"
-                        : "border-black/[.04] bg-white hover:border-brand/20 hover:bg-brand-surface/30"
+                        : "border-black/[.04] bg-white hover:border-brand/20 hover:bg-brand-surface/30 dark:border-brand-border/40 dark:bg-[var(--bg3)] dark:hover:bg-[var(--bg2)]"
                     )}
                   >
-                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-lg ring-1 ring-black/[.05]">
+                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-lg ring-1 ring-black/[.05] dark:bg-[var(--bg2)] dark:ring-brand-border/50">
                       {n.icon}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -354,7 +341,7 @@ export default function HostDashboardPage() {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0, transition: { delay: idx * 0.1 } }}
                     key={b.id} 
-                    className="group flex items-center gap-4 rounded-[24px] bg-white p-4 ring-1 ring-black/[0.03] transition-all hover:bg-brand-surface/40 hover:shadow-md hover:ring-brand/10"
+                    className="group flex items-center gap-4 rounded-[24px] bg-white p-4 ring-1 ring-black/[0.03] transition-all hover:bg-brand-surface/40 hover:shadow-md hover:ring-brand/10 dark:bg-[var(--bg3)] dark:ring-brand-border/45 dark:hover:bg-[var(--bg2)]"
                   >
                     <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-brand-muted text-sm font-black text-brand-dark ring-2 ring-brand/10 transition-transform group-hover:scale-110">
                       {b.guest.avatar_url ? (
@@ -413,7 +400,7 @@ export default function HostDashboardPage() {
                           isBooked && "bg-emerald-50 text-emerald-700 ring-2 ring-emerald-200/50 shadow-sm",
                           isBlocked && !isBooked && "bg-red-50 text-red-600 ring-2 ring-red-200/50 shadow-sm",
                           isToday && "ring-2 ring-brand bg-brand-surface text-brand",
-                          !isBooked && !isBlocked && !past && inMonth && "bg-white ring-1 ring-black/[0.03] hover:ring-brand hover:shadow-md hover:-translate-y-0.5"
+                          !isBooked && !isBlocked && !past && inMonth && "bg-white ring-1 ring-black/[0.03] hover:ring-brand hover:shadow-md hover:-translate-y-0.5 dark:bg-[var(--bg3)] dark:ring-brand-border/45"
                         )}
                       >
                         <span>{format(day, "d")}</span>
@@ -502,44 +489,6 @@ export default function HostDashboardPage() {
   );
 }
 
-function PendingBookingCard({ booking, onAccept, onReject, index }: { booking: HostBooking; onAccept: () => void; onReject: () => void; index: number }) {
-  const guest = booking.guest;
-  const initials = `${guest.first_name?.[0] ?? ""}${guest.last_name?.[0] ?? ""}`.toUpperCase() || "?";
-
-  return (
-    <motion.li 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0, transition: { delay: index * 0.1 } }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      className="flex flex-col gap-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-black/[0.03] transition-all hover:shadow-lg hover:ring-brand/10 sm:flex-row sm:items-center"
-    >
-      <div className="flex flex-1 items-center gap-4">
-        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-full bg-brand-muted text-lg font-black text-brand-dark ring-4 ring-brand/5">
-          {guest.avatar_url ? (
-            <Image src={guest.avatar_url} alt="" width={56} height={56} className="object-cover" unoptimized />
-          ) : (
-            <span className="flex h-full w-full items-center justify-center">{initials}</span>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[17px] font-black text-brand-dark tracking-tight">{guest.first_name} {guest.last_name}</p>
-          <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold text-text-muted">
-            <span className="flex items-center gap-1.5">📅 {formatDate(booking.check_in)} – {formatDate(booking.check_out)}</span>
-            <span className="flex items-center gap-1.5">👥 {booking.guests_count} gości</span>
-            <span className="text-brand font-black">{booking.final_amount} {booking.currency}</span>
-          </div>
-        </div>
-      </div>
-      <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
-        {booking.conversation_id && (
-          <button type="button" className="flex h-11 w-11 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-black/[0.05] transition-all hover:bg-brand-surface hover:text-brand hover:shadow-md active:scale-90" onClick={() => { window.location.href = `/host/messages?conv=${encodeURIComponent(booking.conversation_id!)}`; }}>💬</button>
-        )}
-        <button type="button" className="h-11 rounded-xl bg-red-50 px-5 text-sm font-black text-red-500 transition-all hover:bg-red-500 hover:text-white hover:shadow-lg hover:shadow-red-200 active:scale-95" onClick={onReject}>Odrzuć</button>
-        <button type="button" className="btn-primary h-11 px-6 text-sm font-black rounded-xl shadow-brand-lg" onClick={onAccept}>Akceptuj</button>
-      </div>
-    </motion.li>
-  );
-}
 
 function BlockDatesModal({ listingId, onClose, onDone }: { listingId?: string; onClose: () => void; onDone: () => void; }) {
   const [reason, setReason] = useState("");
@@ -560,19 +509,19 @@ function BlockDatesModal({ listingId, onClose, onDone }: { listingId?: string; o
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md animate-scale-in rounded-2xl bg-white p-6 shadow-hover ring-1 ring-black/[.06]">
+      <div className="w-full max-w-md animate-scale-in rounded-2xl bg-white p-6 shadow-hover ring-1 ring-black/[.06] dark:bg-[var(--bg2)] dark:ring-brand-border/50">
         <h3 className="text-lg font-extrabold text-brand-dark">Zablokuj termin</h3>
         <p className="mt-1 text-xs text-text-muted">Wybierz daty, w których oferta będzie niedostępna.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <label className="text-xs font-semibold text-text-secondary">Od
-            <input type="date" className="mt-1 w-full rounded-xl border-0 bg-[#f7f9f8] px-3 py-2.5 text-sm ring-1 ring-black/[.06] focus:ring-2 focus:ring-brand" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <input type="date" className="host-input mt-1" value={from} onChange={(e) => setFrom(e.target.value)} />
           </label>
           <label className="text-xs font-semibold text-text-secondary">Do
-            <input type="date" className="mt-1 w-full rounded-xl border-0 bg-[#f7f9f8] px-3 py-2.5 text-sm ring-1 ring-black/[.06] focus:ring-2 focus:ring-brand" value={to} onChange={(e) => setTo(e.target.value)} />
+            <input type="date" className="host-input mt-1" value={to} onChange={(e) => setTo(e.target.value)} />
           </label>
         </div>
         <label className="mt-3 block text-xs font-semibold text-text-secondary">Powód (opcjonalnie)
-          <input className="mt-1 w-full rounded-xl border-0 bg-[#f7f9f8] px-3 py-2.5 text-sm ring-1 ring-black/[.06] focus:ring-2 focus:ring-brand" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="np. Konserwacja" />
+          <input className="host-input mt-1" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="np. Konserwacja" />
         </label>
         <div className="mt-6 flex justify-end gap-2">
           <button type="button" className="btn-secondary" onClick={onClose}>Anuluj</button>
