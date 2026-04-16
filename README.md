@@ -5,7 +5,8 @@
 <h1 align="center">StayMap Polska 🗺️✨</h1>
 
 <p align="center">
-  Nowoczesna platforma rezerwacji noclegow w Polsce: <b>map-first UX</b>, <b>AI po polsku</b>, <b>dynamiczny pricing</b> i <b>real-time chat</b>.
+  Platforma rezerwacji noclegow turystycznych w Polsce z podejsciem <b>map-first</b>,
+  inteligentnym wyszukiwaniem <b>AI po polsku</b>, dynamicznym pricingiem i komunikacja <b>real-time</b>.
 </p>
 
 <p align="center">
@@ -19,38 +20,57 @@
 
 <p align="center">
   <a href="#-quick-start"><b>Quick Start</b></a> •
-  <a href="#-podglad-produktu"><b>Podglad produktu</b></a> •
-  <a href="#-architektura"><b>Architektura</b></a> •
-  <a href="#-api-w-skrocie"><b>API</b></a> •
-  <a href="#-dokumentacja"><b>Dokumentacja</b></a>
+  <a href="#-biznes-i-produkt"><b>Biznes i produkt</b></a> •
+  <a href="#-jak-to-dziala-end-to-end"><b>Jak to dziala</b></a> •
+  <a href="#-architektura-systemu"><b>Architektura</b></a> •
+  <a href="#-api-kompletny-przeglad"><b>API</b></a> •
+  <a href="#-stack-technologiczny"><b>Stack</b></a>
 </p>
 
 ---
 
-## ✨ Dlaczego StayMap
+## ⭐ Executive Overview
 
-StayMap to platforma noclegowa zbudowana od podstaw pod polski rynek turystyczny.
-Gosc szuka noclegu na mapie, porownuje oferty, rezerwuje, rozmawia z hostem i korzysta z AI w jednym spojnym flow.
+StayMap Polska to produkcyjna aplikacja marketplace dla rynku noclegow krajowych.
+Laczy odkrywanie ofert na mapie, pelny proces rezerwacji, panel hosta, moderacje tresci,
+recenzje typu blind release, chat WebSocket i asystenta AI rozumiejacego zapytania po polsku.
 
-### 🧭 Core value
-
-- **Map-first UX** - mapa to glowny interfejs odkrywania ofert.
-- **Dynamiczny cennik** - sezonowosc, swieta, reguly hosta i long-stay.
-- **AI assistant** - naturalne zapytania po polsku (OpenAI / kompatybilne API).
-- **WebSocket chat** - komunikacja gosc-host w czasie rzeczywistym.
-- **Blind release reviews** - uczciwe recenzje bez efektu odwetu.
-- **Location intelligence** - POI + destination scoring.
-
-### 📊 W liczbach
+### 📊 Projekt w liczbach
 
 | Wskaznik | Wartosc |
 |---|---:|
-| Moduly backend | 12 aplikacji Django |
-| Widoki frontend | 44 strony Next.js |
+| Moduly backend (Django apps) | 12 |
+| Widoki frontend (Next.js) | 44 |
 | Pliki testowe | 25 |
 | Tryby podrozy | 9 |
 | Rynek docelowy | Polska |
 | Waluta | PLN |
+
+---
+
+## 💼 Biznes i produkt
+
+### Problem rynkowy
+
+Na rynku brakuje lokalnej platformy, ktora jednoczesnie:
+- ma mape jako glowny interfejs odkrywania noclegow,
+- uwzglednia polska sezonowosc i swieta w cenach,
+- obsluguje caly journey goscia i hosta w jednym systemie.
+
+### Co rozwiazuje StayMap
+
+- **Dla goscia**: szybkie znalezienie i porownanie ofert, transparentna wycena, latwa rezerwacja, kontakt z hostem.
+- **Dla hosta**: onboarding, zarzadzanie oferta i kalendarzem, dynamiczne reguly cenowe, obsluga rezerwacji.
+- **Dla admina**: moderacja tresci, kontrola jakosci ofert i bezpieczenstwa platformy.
+
+### Kluczowe przewagi
+
+- 🗺️ **Map-first UX** i geowyszukiwanie PostGIS.
+- 💰 **Dynamic pricing engine** (sezony, swieta, custom rules, long-stay).
+- 🤖 **AI search po polsku** (OpenAI lub kompatybilne API).
+- 💬 **Realtime chat** (Channels + WebSocket).
+- 🌗 **Blind release recenzji** budujacy zaufanie.
+- 📍 **Location intelligence** (POI, ranking destynacji, cache).
 
 ---
 
@@ -63,7 +83,7 @@ Gosc szuka noclegu na mapie, porownuje oferty, rezerwuje, rozmawia z hostem i ko
   </tr>
   <tr>
     <td align="center"><b>🔎 Wyszukiwanie mapowe</b></td>
-    <td align="center"><b>⚖️ Porownywarka</b></td>
+    <td align="center"><b>⚖️ Porownywarka ofert</b></td>
   </tr>
   <tr>
     <td width="50%"><img src="docs/staymap_ai.png" alt="Asystent AI" width="100%" /></td>
@@ -78,12 +98,38 @@ Gosc szuka noclegu na mapie, porownuje oferty, rezerwuje, rozmawia z hostem i ko
 <p align="center">
   <img src="docs/staymap_oferta.png" alt="Karta oferty" width="82%" />
 </p>
-
-<p align="center"><b>🛏️ Karta oferty - pelny widok szczegolow rezerwacji</b></p>
+<p align="center"><b>🛏️ Karta oferty - szczegoly, udogodnienia i wycena pobytu</b></p>
 
 ---
 
-## 🏗️ Architektura
+## ⚙️ Jak to dziala (end-to-end)
+
+### 1) Sciezka goscia
+
+1. Gosc uruchamia wyszukiwanie (lokalizacja, daty, liczba osob, tryb podrozy).
+2. System geokoduje zapytanie i zwraca oferty na mapie (ranking + filtry).
+3. Gosc otwiera karte oferty i liczy cene przez `POST /bookings/quote/`.
+4. Tworzy rezerwacje (`PENDING`), potem przechodzi do platnosci (`AWAITING_PAYMENT`).
+5. Po potwierdzeniu platnosci rezerwacja ma status `CONFIRMED`.
+6. Po pobycie obie strony dodaja recenzje; system publikuje je zgodnie z mechanizmem blind release.
+
+### 2) Sciezka hosta
+
+1. Uzytkownik uruchamia onboarding hosta.
+2. Tworzy oferte, dodaje zdjecia, reguly cenowe i dostepnosc.
+3. Wysyla oferte do moderacji (`DRAFT -> PENDING`).
+4. Po akceptacji (`APPROVED`) oferta trafia do wyszukiwarki i mapy.
+5. Host obsluguje rezerwacje oraz komunikacje z gosciem z panelu.
+
+### 3) Sciezka administratora
+
+1. Admin przeglada kolejke moderacyjna ofert `PENDING`.
+2. Akceptuje (`APPROVED`) lub odrzuca (`REJECTED`) z komentarzem.
+3. Monitoruje jakosc danych, tresci i stan operacyjny systemu.
+
+---
+
+## 🏗️ Architektura systemu
 
 ```text
 Przegladarka / Mobile Web
@@ -99,27 +145,161 @@ BFF proxy: /api/v1/[...path]
 Nominatim | Overpass API | OpenAI/Groq | Google OAuth | SMTP
 ```
 
-### ⚙️ Warstwy systemu
+### Warstwy i odpowiedzialnosci
 
-- **Frontend (Next.js 14)** - SSR/CSR, BFF proxy, nowoczesny UI.
-- **API (Django + DRF)** - endpointy REST, JWT, throttling.
-- **Realtime (Channels + Daphne)** - WebSocket dla czatu.
-- **Async (Celery + Redis)** - e-maile, harmonogramy, automatyzacje.
-- **Geo (GeoDjango + PostGIS)** - zapytania przestrzenne i ranking lokalizacji.
+| Warstwa | Technologia | Odpowiedzialnosc |
+|---|---|---|
+| Frontend | Next.js 14 + TypeScript | SSR/CSR, UI, route handling, BFF proxy |
+| API | Django 5 + DRF + Daphne | Endpointy REST, auth, permissions, throttling |
+| Realtime | Channels + Redis | Czat i eventy WebSocket |
+| Async | Celery Worker + Beat | E-maile, cleanupy, automaty statusow, zadania cykliczne |
+| Data | PostgreSQL 16 + PostGIS | Dane transakcyjne i zapytania geograficzne |
+| Integracje | OpenAI, OSM, Google OAuth, SMTP | AI, geokodowanie, logowanie social, komunikacja mailowa |
+
+### Przeplyw requestu REST
+
+1. Front wysyla request do BFF (`/api/v1/...`).
+2. BFF przekazuje go do backendu Django.
+3. Backend robi auth + permissions + walidacje.
+4. Serwis domenowy uruchamia logike biznesowa i operacje DB/cache.
+5. Odpowiedz JSON wraca przez BFF do klienta.
+
+### Przeplyw realtime (chat)
+
+1. Klient laczy sie przez `ws://.../ws/conversations/{uuid}/?token=<JWT>`.
+2. Backend autoryzuje token i podpina kanal konwersacji.
+3. Wiadomosc jest zapisywana i emitowana do uczestnikow.
+4. Front aktualizuje widok rozmowy bez reloadu.
+
+### Kluczowe zadania asynchroniczne
+
+- cleanup wygaslych sesji AI,
+- cleanup sesji porownywarki,
+- auto-anulowanie nieoplaconych rezerwacji,
+- auto-odrzucanie prosb po deadline,
+- przypomnienia o recenzji,
+- odswiezanie cache POI i podsumowan lokalizacji.
 
 ---
 
-## 🧰 Stack
+## 🧩 Funkcjonalnosci (pelny zakres)
+
+### Uzytkownicy i auth
+
+- Rejestracja/logowanie e-mail + haslo.
+- Google OAuth.
+- JWT (access + refresh, rotacja).
+- Profil uzytkownika i role (`is_host`, `is_admin`).
+- Lista zyczen i zapisane wyszukiwania.
+
+### Listings i discovery
+
+- Lifecycle oferty: `DRAFT`, `PENDING`, `APPROVED`, `REJECTED`, `ARCHIVED`.
+- Wyszukiwanie mapowe i ranking ofert.
+- Filtry: lokalizacja, daty, goscie, udogodnienia, cena, tryb podrozy.
+- Kolekcje discovery i feedy tematyczne.
+- Porownywarka do 3 ofert (takze dla anonimowych).
+
+### Pricing i bookings
+
+- Wycena per noc z regualmi sezonowymi i swiatecznymi.
+- Doplaty za dodatkowych gosci i rabaty long-stay.
+- Snapshot ceny na moment rezerwacji.
+- Tryby rezerwacji: `INSTANT` i `REQUEST`.
+- Historia statusow i logika deadline dla hosta.
+
+### Host panel
+
+- Onboarding hosta.
+- CRUD ofert i upload zdjec.
+- Zarzadzanie dostepnoscia i cennikiem.
+- Obsluga rezerwacji i decyzji hosta.
+- Szablony wiadomosci i statystyki.
+
+### Moderacja
+
+- Kolejka ofert oczekujacych na decyzje.
+- Akcje approve/reject z komentarzem.
+- Dostep tylko dla roli admin.
+
+### Recenzje
+
+- Recenzje goscia i hosta.
+- Blind release (publikacja po spelnieniu warunkow).
+- Odpowiedz hosta do recenzji.
+
+### Messaging
+
+- Rozmowy 1:1 powiazane z oferta.
+- REST API do listy i historii rozmow.
+- WebSocket eventy `message.new`, `typing`, `read`.
+
+### AI Assistant
+
+- Wyszukiwanie po naturalnym jezyku polskim.
+- Interpretacja intencji i mapowanie na filtry.
+- Generowanie wyjasnien dopasowania ofert.
+- Sesje AI z TTL i limity kosztowe.
+
+### Location intelligence
+
+- Pobieranie POI z Overpass API.
+- Cache lokalizacji i podsumowania obszarow.
+- Destination score wspierajacy ranking ofert.
+
+---
+
+## 🔌 API (kompletny przeglad)
+
+> [!NOTE]
+> Pelny kontrakt i wszystkie schematy danych znajdziesz w Swagger UI: `http://localhost:8000/api/schema/swagger-ui/`
+
+### Prefix
+
+- `/api/v1/`
+
+### Obszary endpointow
+
+| Domena | Endpointy kluczowe |
+|---|---|
+| Auth | `POST /auth/register/`, `POST /auth/token/`, `POST /auth/token/refresh/`, `POST /auth/google/`, `GET/PATCH /auth/me/` |
+| Listings/Search | `GET /listings/search/`, `GET /listings/{slug}/`, `GET /listings/{slug}/price-calendar/` |
+| Bookings | `POST /bookings/quote/`, `POST /bookings/`, `GET /bookings/me/`, `DELETE /bookings/{uuid}/` |
+| Host | `POST /host/onboarding/start/`, `GET/POST /host/listings/`, `GET/PATCH/DELETE /host/listings/{uuid}/`, `POST /host/listings/{uuid}/images/`, `POST /host/listings/{uuid}/submit-for-review/`, `GET /host/bookings/`, `PATCH /host/bookings/{uuid}/status/` |
+| Moderacja | `GET /admin/moderation/listings/`, `POST /admin/moderation/listings/{uuid}/approve/`, `POST /admin/moderation/listings/{uuid}/reject/` |
+| Reviews | `POST /reviews/`, `PATCH /reviews/{uuid}/host-response/` |
+| Messaging | `GET/POST /conversations/`, `GET/POST /conversations/{uuid}/messages/` |
+| Discovery/Compare | `GET /discovery/`, `GET/POST /compare/`, `POST /compare/listings/` |
+| AI | `POST /ai/search/`, `GET /ai/search/{session_id}/`, `POST /ai/search/{session_id}/prompt/` |
+| System | `GET /health/`, `GET /api/schema/swagger-ui/` |
+
+### API standardy
+
+- JSON responses i ujednolicone kody bledow.
+- UUID jako identyfikatory zasobow.
+- Cursor pagination tam, gdzie potrzebna.
+- Rozdzielenie permissions per rola (guest/host/admin).
+- Rate limiting i walidacja wejscia po stronie backendu.
+
+### Realtime API
+
+- WebSocket: `ws://localhost:8000/ws/conversations/{uuid}/?token=<JWT>`
+- Eventy typowe: `message.new`, `typing.start`, `typing.stop`, `message.read`
+
+---
+
+## 🧰 Stack technologiczny
 
 ### Backend
 
 - Python 3.12
-- Django 5.1.x + DRF
+- Django 5.1.x
+- Django REST Framework
 - GeoDjango + PostGIS
 - SimpleJWT + Google OAuth
 - Django Channels + Daphne
 - Celery + django-celery-beat
-- Redis (cache, broker, channels)
+- Redis (cache, broker, channel layer)
 - drf-spectacular (OpenAPI/Swagger)
 - pytest + pytest-django + Faker
 - ruff
@@ -127,29 +307,41 @@ Nominatim | Overpass API | OpenAI/Groq | Google OAuth | SMTP
 ### Frontend
 
 - Next.js 14 (App Router), React 18, TypeScript
-- Tailwind CSS, Radix UI
+- Tailwind CSS
+- Radix UI
 - Leaflet + react-leaflet + markercluster
 - react-hook-form + zod
-- Zustand, framer-motion
+- Zustand
+- framer-motion
 - Playwright (E2E)
 
-### Infra
+### Infra / DevEx
 
 - Docker Compose
 - Makefile
 - GitHub Actions
+- Opcjonalny S3 storage (`USE_S3=True`)
+- Sentry monitoring (production)
+
+### Integracje zewnetrzne
+
+- OpenStreetMap Nominatim (geocoding)
+- Overpass API (POI)
+- OpenAI / OpenAI-compatible API (AI)
+- Google OAuth
+- SMTP (mailing transakcyjny)
 
 ---
 
 ## 🚀 Quick Start
 
 > [!TIP]
-> Najszybciej wystartujesz przez Docker + Makefile.
+> Najszybszy start lokalny: Docker + Makefile.
 
 ### Wymagania
 
 - Docker Desktop
-- `.env` w katalogu glownym (na bazie `.env.example`)
+- `.env` (na bazie `.env.example`)
 
 ### Uruchomienie
 
@@ -158,7 +350,6 @@ make dev
 ```
 
 Po starcie:
-
 - Frontend: `http://localhost:3000`
 - API: `http://localhost:8000`
 - Swagger: `http://localhost:8000/api/schema/swagger-ui/`
@@ -172,7 +363,7 @@ make superuser
 make seed
 ```
 
-### Profil Celery (opcjonalnie)
+### Profil Celery (opcjonalny)
 
 ```bash
 docker compose --profile celery up -d
@@ -180,7 +371,7 @@ docker compose --profile celery up -d
 
 ---
 
-## 🧪 Komendy developerskie
+## 🧪 Developer Commands
 
 ```bash
 make dev
@@ -196,52 +387,38 @@ make lint
 
 ---
 
-## 🔌 API w skrocie
-
-Prefiks: `/api/v1/`
-
-| Obszar | Metody | Endpoint |
-|---|---|---|
-| Auth | `POST` | `auth/register/`, `auth/token/`, `auth/token/refresh/`, `auth/google/` |
-| Profil | `GET`, `PATCH` | `auth/me/` |
-| Listings | `GET` | `listings/search/`, `listings/{slug}/`, `listings/{slug}/price-calendar/` |
-| Bookings | `POST`, `GET`, `DELETE` | `bookings/quote/`, `bookings/`, `bookings/me/`, `bookings/{uuid}/` |
-| Host | `POST`, `GET`, `PATCH`, `DELETE` | `host/onboarding/start/`, `host/listings/`, `host/bookings/{uuid}/status/` |
-| Moderacja | `GET`, `POST` | `admin/moderation/listings/`, `{uuid}/approve/`, `{uuid}/reject/` |
-| Reviews | `POST`, `PATCH` | `reviews/`, `reviews/{uuid}/host-response/` |
-| Messaging | `GET`, `POST` | `conversations/`, `conversations/{uuid}/messages/` |
-| Discovery | `GET`, `POST` | `discovery/`, `compare/`, `compare/listings/` |
-| AI | `POST`, `GET` | `ai/search/`, `ai/search/{session_id}/`, `ai/search/{session_id}/prompt/` |
-
-WebSocket:
-
-- `ws://localhost:8000/ws/conversations/{uuid}/?token=<JWT>`
-
----
-
 ## 🔐 Bezpieczenstwo i jakosc
 
 - JWT w HTTP-only cookies + rotacja refresh tokenow.
-- Role i permissiony: `IsAuthenticated`, `IsHost`, `IsAdmin`.
-- Soft delete + UUID jako PK.
-- AuditLog dla kluczowych zdarzen.
+- Permission classes: `IsAuthenticated`, `IsHost`, `IsAdmin`.
+- Soft delete i UUID jako PK.
+- Audit log dla istotnych operacji.
 - MIME validation uploadow (Pillow + python-magic).
-- Throttling dla auth/upload/AI.
-- Monitoring przez Sentry.
-- CI: ruff + pytest + Playwright.
+- Throttling endpointow auth/upload/AI.
+- Sentry do monitoringu bledow.
+- CI quality gate: ruff + pytest + Playwright.
 
 > [!WARNING]
 > `JWT_SECRET` po stronie Next.js musi byc zgodny z Django `SECRET_KEY`.
 
 ---
 
+## 📦 Wazne informacje operacyjne
+
+- W produkcji uruchamiaj tylko **jeden** proces Celery Beat (singleton).
+- Dla WebSocket wymagany jest poprawny deployment warstwy ASGI.
+- Redis odpowiada jednoczesnie za cache, broker Celery i channels layer.
+- Stripe jest przygotowany infrastrukturalnie, ale wymaga konfiguracji biznesowej.
+
+---
+
 ## 🛣️ Roadmap
 
-- 🤖 **AI "Kiedy jechac?"** - rekomendacja najlepszego terminu.
-- 🕒 **"W X godzin" (izochrony)** - wyszukiwanie po czasie dojazdu.
-- 📸 **Pamietnik z podrozy** - zdjecia gosci po pobycie.
-- 🎁 **Karty podarunkowe** - vouchery i realizacja w rezerwacji.
-- 🗺️ **Mapa wspomnien** - historia podrozy usera na mapie.
+- 🤖 AI "Kiedy jechac?" - rekomendacja najlepszego terminu.
+- 🕒 "W X godzin" (izochrony) - wyszukiwanie po czasie dojazdu.
+- 📸 Pamietnik z podrozy - zdjecia gosci po pobycie.
+- 🎁 Karty podarunkowe - vouchery i realizacja w rezerwacji.
+- 🗺️ Mapa wspomnien - historia podrozy usera na mapie.
 
 ---
 
@@ -268,12 +445,6 @@ staymap-polska/
 
 ---
 
-## 📄 Licencja
-
-Aktualnie brak pliku licencji w repozytorium.
-Jesli planujesz publikacje open source, dodaj `LICENSE` (np. MIT).
-
----
 
 <p align="center">
   <b>StayMap Polska</b><br/>
