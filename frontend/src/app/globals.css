@@ -45,6 +45,15 @@
   --radius-card-mobile: 16px;
   /* Dolne arkusze (mobile): przewidywalna wysokość z safe area */
   --sheet-max-h: min(92dvh, calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)));
+  /* Warstwy (spójne z lib/modalLayers.ts) */
+  --z-guest-nav: 120;
+  --z-compare-bar: 200;
+  --z-host-nav: 115;
+  --z-navbar: 500;
+  --z-modal-overlay: 600;
+  --z-modal-content: 601;
+  /* Odstępy sekcji na mobile — używaj jako wzorca py-10 sm:py-12 */
+  --section-py-mobile: 2.5rem;
 }
 
 @layer components {
@@ -114,6 +123,10 @@ html {
   scroll-behavior: smooth;
   scrollbar-width: auto;
   scrollbar-color: var(--scroll-thumb-start) transparent;
+  /* Formularze mobile: treść nad klawiaturą / dolna nawigacja */
+  scroll-padding-bottom: calc(
+    env(safe-area-inset-bottom, 0px) + var(--guest-mobile-nav-pad, 0px) + 12px
+  );
 }
 
 body {
@@ -369,8 +382,9 @@ textarea,
     @apply border-2 border-[#16a34a] bg-[#dcfce7] shadow-[0_5px_18px_rgba(22,163,74,.2)];
   }
 
+  /* text-base na mobile zapobiega zoom iOS przy fokusie (<16px) */
   .input {
-    @apply w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-text outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand/20 dark:border-brand-border dark:bg-[var(--bg3)] dark:text-[var(--foreground)] dark:focus:ring-brand/40;
+    @apply w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-base text-text outline-none transition-colors focus:border-brand focus:ring-1 focus:ring-brand/20 dark:border-brand-border dark:bg-[var(--bg3)] dark:text-[var(--foreground)] dark:focus:ring-brand/40 sm:text-sm;
   }
   select.input {
     @apply cursor-pointer appearance-none;
@@ -420,7 +434,7 @@ textarea,
     }
 
     .host-input {
-      @apply w-full rounded-xl border-0 bg-[#f7f9f8] px-3 py-2.5 text-sm ring-1 ring-black/[.06] focus:ring-2 focus:ring-brand dark:bg-[var(--bg3)] dark:text-[var(--foreground)] dark:ring-brand-border/60;
+      @apply w-full rounded-xl border-0 bg-[#f7f9f8] px-3 py-2.5 text-base ring-1 ring-black/[.06] focus:ring-2 focus:ring-brand dark:bg-[var(--bg3)] dark:text-[var(--foreground)] dark:ring-brand-border/60 sm:text-sm;
     }
 
     .host-soft {

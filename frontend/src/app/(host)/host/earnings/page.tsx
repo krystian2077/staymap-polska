@@ -121,8 +121,8 @@ export default function HostEarningsPage() {
         {bookings.length === 0 ? (
           <p className="mt-3 text-sm text-text-muted">Brak transakcji do wyświetlenia.</p>
         ) : (
-          <div className="mt-3 overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="mt-3 overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+            <table className="min-w-[520px] w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-gray-100 text-text-muted">
                   <th className="pb-2 pr-4 font-semibold">Gość</th>

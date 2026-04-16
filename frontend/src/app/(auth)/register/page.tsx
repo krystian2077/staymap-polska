@@ -140,14 +140,14 @@ export default function RegisterPage() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-[13px] font-semibold">Imię</label>
-              <input className="input min-h-[46px]" {...register("first_name")} />
+              <input className="input min-h-[46px]" autoComplete="given-name" {...register("first_name")} />
               {errors.first_name && (
                 <p className="mt-1 text-xs text-red-600">{errors.first_name.message}</p>
               )}
             </div>
             <div>
               <label className="mb-1.5 block text-[13px] font-semibold">Nazwisko</label>
-              <input className="input min-h-[46px]" {...register("last_name")} />
+              <input className="input min-h-[46px]" autoComplete="family-name" {...register("last_name")} />
               {errors.last_name && (
                 <p className="mt-1 text-xs text-red-600">{errors.last_name.message}</p>
               )}

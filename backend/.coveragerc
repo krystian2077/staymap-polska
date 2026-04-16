@@ -1,4 +1,3 @@
-# Etap 7 — pomiary pokrycia tylko kodu produkcyjnego (bez migracji, testów, seed_db).
 [run]
 source = apps
 omit =

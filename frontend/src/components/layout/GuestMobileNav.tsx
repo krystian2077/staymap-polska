@@ -174,7 +174,7 @@ export function GuestMobileNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-[120] border-t border-[var(--border)] bg-[var(--bg)]/95 pb-[var(--mobile-safe-bottom)] pt-1 shadow-[0_-4px_24px_rgba(0,0,0,.08)] backdrop-blur-lg md:hidden dark:border-brand-border dark:bg-[var(--bg2)]/98 dark:shadow-[0_-4px_24px_rgba(0,0,0,.35)]"
+      className="fixed bottom-0 left-0 right-0 z-[var(--z-guest-nav)] border-t border-[var(--border)] bg-[var(--bg)]/95 pb-[var(--mobile-safe-bottom)] pt-1 shadow-[0_-4px_24px_rgba(0,0,0,.08)] backdrop-blur-lg md:hidden dark:border-brand-border dark:bg-[var(--bg2)]/98 dark:shadow-[0_-4px_24px_rgba(0,0,0,.35)]"
       aria-label="Nawigacja główna"
     >
       <ul className="mx-auto flex max-w-lg items-stretch justify-between gap-0.5 px-1">
@@ -185,8 +185,9 @@ export function GuestMobileNav() {
             <li key={tab.href} className="min-w-0 flex-1">
               <Link
                 href={tab.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex min-h-[48px] flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-[10px] font-bold tracking-tight transition-colors",
+                  "relative flex min-h-[48px] flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-[10px] font-bold tracking-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
                   active ? "text-brand" : "text-text3 hover:text-text2"
                 )}
               >

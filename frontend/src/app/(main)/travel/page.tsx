@@ -408,7 +408,7 @@ export default function TravelPage() {
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: "-100px" }}
-        className="relative z-10 bg-gradient-to-b from-brand-50 to-white px-6 py-20 dark:from-[var(--bg)] dark:to-[var(--bg2)] md:px-12 md:py-28"
+        className="relative z-10 bg-gradient-to-b from-brand-50 to-white px-4 py-16 dark:from-[var(--bg)] dark:to-[var(--bg2)] sm:px-6 sm:py-20 md:px-12 md:py-28"
       >
         <div className="mx-auto max-w-[1360px]">
           <motion.div variants={itemVariants} className="mb-16 text-center">
@@ -483,7 +483,7 @@ export default function TravelPage() {
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 0.8 }}
-        className="relative z-10 overflow-hidden bg-gradient-to-r from-brand via-emerald-500 to-brand px-6 py-24 text-center md:px-12"
+        className="relative z-10 overflow-hidden bg-gradient-to-r from-brand via-emerald-500 to-brand px-4 py-16 text-center sm:px-6 sm:py-24 md:px-12"
       >
         <motion.div
           animate={{

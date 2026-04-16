@@ -60,7 +60,7 @@ export function HostMobileNav({ activeItem }: { activeItem: string }) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-[115] flex border-t border-brand-dark/[.06] bg-gradient-to-t from-white via-white to-white/95 px-1 pb-[calc(8px+var(--mobile-safe-bottom))] pt-1.5 backdrop-blur-lg dark:border-brand-border/45 dark:from-[var(--bg2)] dark:via-[var(--bg2)] dark:to-[var(--bg3)] md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-[var(--z-host-nav)] flex border-t border-brand-dark/[.06] bg-gradient-to-t from-white via-white to-white/95 px-1 pb-[calc(8px+var(--mobile-safe-bottom))] pt-1.5 backdrop-blur-lg dark:border-brand-border/45 dark:from-[var(--bg2)] dark:via-[var(--bg2)] dark:to-[var(--bg3)] md:hidden"
       aria-label="Nawigacja panelu gospodarza"
     >
       {items.map((it) => {
@@ -71,8 +71,9 @@ export function HostMobileNav({ activeItem }: { activeItem: string }) {
           <Link
             key={it.href}
             href={it.href}
+            aria-current={active ? "page" : undefined}
             className={cn(
-              "relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[10px] font-semibold transition-colors",
+              "relative flex min-h-[52px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl py-1.5 text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]",
               active ? "text-brand" : "text-text-muted"
             )}
           >

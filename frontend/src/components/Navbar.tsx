@@ -167,7 +167,7 @@ export function Navbar() {
                </Link>
                 <Link
                   href="/compare"
-                  className="nav-link hidden text-sm font-semibold xl:inline-flex text-text-secondary hover:text-text transition-colors duration-300"
+                  className="nav-link hidden text-sm font-semibold md:inline-flex text-text-secondary hover:text-text transition-colors duration-300"
                 >
                   Porównaj
                 </Link>

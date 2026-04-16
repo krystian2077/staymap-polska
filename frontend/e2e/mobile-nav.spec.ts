@@ -42,6 +42,17 @@ test.describe("guest mobile bottom nav (375px)", () => {
     await expect(sheet.getByRole("link", { name: "Wyszukaj" })).not.toBeVisible();
   });
 
+  test("strona Discovery ładuje się i ma sensowny nagłówek", async ({ page }) => {
+    await page.goto("/discovery");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(/Miejsca z duszą/i);
+  });
+
+  test("strona Travel ładuje tryby podróży", async ({ page }) => {
+    await page.goto("/travel");
+    await expect(page.getByRole("link", { name: /Dla par/i }).first()).toBeVisible({ timeout: 20_000 });
+  });
+
   test("strona główna bez błędów konsoli (hydratacja)", async ({ page }) => {
     const errors: string[] = [];
     page.on("console", (msg) => {

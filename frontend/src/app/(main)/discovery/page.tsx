@@ -51,8 +51,8 @@ export default function DiscoveryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#fafbfc] pb-24 dark:bg-[var(--background)]">
-      <section className="relative overflow-hidden bg-white px-7 py-20 dark:bg-[var(--bg2)] lg:py-28">
+    <div className="min-h-screen bg-[#fafbfc] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] dark:bg-[var(--background)]">
+      <section className="relative overflow-hidden bg-white px-4 py-14 dark:bg-[var(--bg2)] sm:px-7 sm:py-20 lg:py-28">
         {/* Dekoracyjne elementy tła */}
         <div className="absolute -left-20 -top-20 h-96 w-96 rounded-full bg-brand-surface opacity-30 blur-3xl" />
         <div className="absolute -right-20 top-0 h-[500px] w-[500px] rounded-full bg-blue-50 opacity-40 blur-3xl" />
@@ -128,7 +128,7 @@ export default function DiscoveryPage() {
         </div>
       </section>
 
-      <div className="mx-auto max-w-[1240px] px-6">
+      <div className="mx-auto max-w-[1240px] px-4 sm:px-6">
         <div className="mt-12">
           <LastMinuteBanner />
         </div>
@@ -194,7 +194,7 @@ export default function DiscoveryPage() {
         </div>
 
         {/* Ciekawa propozycja: Sekcja "Inspiracje" */}
-        <section className="mt-32 rounded-[2rem] bg-brand-dark px-8 py-16 text-center text-white lg:px-16">
+        <section className="mt-24 rounded-[1.5rem] bg-brand-dark px-4 py-12 text-center text-white sm:mt-32 sm:rounded-[2rem] sm:px-8 sm:py-16 lg:px-16">
           <div className="mx-auto max-w-3xl">
             <h2 className="mb-6 text-3xl font-black lg:text-4xl">Nie wiesz dokąd pojechać?</h2>
             <p className="mb-10 text-lg text-white/70">

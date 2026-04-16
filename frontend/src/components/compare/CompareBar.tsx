@@ -113,7 +113,7 @@ export function CompareBar() {
     <>
       <div
         className={cn(
-          "animate-slide-up-bar fixed left-0 right-0 z-[200] border-t border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,.2)] sm:px-5 sm:py-3 md:px-8",
+          "animate-slide-up-bar fixed left-0 right-0 z-[var(--z-compare-bar)] border-t border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,.2)] sm:px-5 sm:py-3 md:px-8",
           isNarrow ? "px-3 pb-[calc(10px+var(--mobile-safe-bottom))] pt-2" : "px-3 pb-[calc(10px+var(--mobile-safe-bottom))] pt-2.5"
         )}
         style={{ background: "#0a2e1a", bottom: "var(--guest-nav-bottom-offset, 0px)" }}
@@ -200,10 +200,10 @@ export function CompareBar() {
 
       <Dialog.Root open={sheetOpen} onOpenChange={setSheetOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-[650] bg-black/65 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 dark:bg-black/75" />
+          <Dialog.Overlay className="fixed inset-0 z-[var(--z-modal-overlay)] bg-black/65 backdrop-blur-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 dark:bg-black/75" />
           <Dialog.Content
             className={cn(
-              "fixed z-[651] flex max-h-[min(85dvh,640px)] w-[min(calc(100vw-1.25rem),22rem)] flex-col overflow-hidden rounded-[22px] border border-white/15 bg-[#0a2e1a] p-0 shadow-[0_24px_80px_rgba(0,0,0,.5)] outline-none",
+              "fixed z-[var(--z-modal-content)] flex max-h-[min(85dvh,640px)] w-[min(calc(100vw-1.25rem),22rem)] flex-col overflow-hidden rounded-[22px] border border-white/15 bg-[#0a2e1a] p-0 shadow-[0_24px_80px_rgba(0,0,0,.5)] outline-none",
               "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
               "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
               "data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95",
