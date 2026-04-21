@@ -8,10 +8,31 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Monorepo: główny `.env` leży w katalogu nadrzędnym — `npm run dev` z `frontend/` wczytuje tylko `frontend/.env*`.
 loadEnvConfig(path.join(__dirname, ".."));
 
+// Dodaje domenę Railway backendu do dozwolonych źródeł obrazów (ustawiana przez NEXT_PUBLIC_API_URL)
+function buildProductionImagePattern() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+  if (!apiUrl || apiUrl.includes("localhost") || apiUrl.includes("127.0.0.1")) {
+    return null;
+  }
+  try {
+    const url = new URL(apiUrl);
+    return {
+      protocol: url.protocol.replace(":", ""),
+      hostname: url.hostname,
+      pathname: "/media/**",
+    };
+  } catch {
+    return null;
+  }
+}
+
+const productionPattern = buildProductionImagePattern();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
     remotePatterns: [
+      ...(productionPattern ? [productionPattern] : []),
       {
         protocol: "http",
         hostname: "localhost",
