@@ -95,7 +95,7 @@ export function AiSection() {
               </span>
             </h2>
 
-            <p className="a3 text-balance mx-auto mt-3 max-w-[31ch] text-[13px] leading-relaxed text-white/92 sm:mt-4 sm:max-w-[48ch] sm:text-[15px] sm:leading-7 md:text-[16px] lg:mx-0 lg:text-[17px]">
+            <p className="a3 text-balance mx-auto mt-3 max-w-[31ch] text-[13px] leading-relaxed text-white sm:mt-4 sm:max-w-[48ch] sm:text-[15px] sm:leading-7 md:text-[16px] lg:mx-0 lg:text-[17px]">
               <span className="sm:hidden">Napisz krótko, a AI od razu dobierze najlepsze oferty.</span>
               <span className="hidden sm:inline">
                 Bez kolejnych filtrów - napisz naturalnie, a system dopasuje oferty i wyjaśni,
@@ -139,7 +139,7 @@ export function AiSection() {
               </Link>
             </div>
 
-            <p className="hidden mt-2 text-[11px] font-medium text-white/88 sm:mt-4 sm:block sm:text-[12px] lg:text-[13px] lg:max-w-[44ch]">
+            <p className="hidden mt-2 text-[11px] font-medium text-white sm:mt-4 sm:block sm:text-[12px] lg:text-[13px] lg:max-w-[44ch]">
               Premium UX, zero chaosu: Ty piszesz, AI znajduje i uzasadnia.
             </p>
           </div>
