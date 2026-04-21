@@ -2,6 +2,11 @@ from .base import *  # noqa: F403, F401
 
 DEBUG = False
 
+# Railway (and most PaaS) terminate TLS at the load balancer and forward
+# plain HTTP to the app with X-Forwarded-Proto: https.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+
 # Static files served by WhiteNoise (inserted after SecurityMiddleware at index 0)
 MIDDLEWARE.insert(1, "whitenoise.middleware.WhiteNoiseMiddleware")  # noqa: F405
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
