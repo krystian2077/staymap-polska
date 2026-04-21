@@ -10,18 +10,11 @@ import type { Collection, DiscoveryHomepage, LastMinuteListing } from "@/types/a
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
-function siteOrigin(): string {
-  const u = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
-  if (u) return u;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return "http://localhost:3000";
-}
-
 async function loadDiscovery(): Promise<DiscoveryHomepage> {
   const empty: DiscoveryHomepage = { featured_collections: [], last_minute: [] };
   try {
-    const res = await fetch(`${siteOrigin()}/api/v1/discovery/homepage/`, {
-      next: { revalidate: 1800 },
+    const res = await fetch(`/api/v1/discovery/homepage/`, {
+      cache: "no-store",
     });
     if (!res.ok) return empty;
     const json = await res.json();
