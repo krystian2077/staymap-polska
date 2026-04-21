@@ -257,7 +257,7 @@ export function Navbar() {
 
   const linkClass = (href: string, ai?: boolean) =>
      cn(
-       "group relative flex items-center h-full whitespace-nowrap px-2 lg:px-2.5 xl:px-3.5 text-[15px] font-bold tracking-[-0.2px] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+       "group relative flex items-center h-full whitespace-nowrap px-1.5 lg:px-2 xl:px-2.5 text-[16px] font-bold tracking-[-0.3px] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
        ai
          ? "mx-1 px-3 py-1 text-[#7c3aed] hover:text-[#6d28d9] hover:scale-105 dark:text-violet-300 dark:hover:text-violet-200"
           : "text-[#1f2937] hover:text-[#0a0f0d] dark:text-zinc-200 dark:hover:text-white",
