@@ -523,7 +523,7 @@ export default function SearchPageClient() {
         )}
       >
         {/* Rail header */}
-        <div className="flex items-center justify-between gap-4 border-b border-gray-100 bg-white px-6 py-5 relative group/header">
+        <div className="flex items-center justify-between gap-3 border-b border-gray-100 bg-white px-4 py-4 relative group/header">
           <div className="flex flex-col relative z-10">
             <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl bg-brand-surface border border-brand/10 shadow-sm group/stats transition-all hover:bg-brand-muted hover:border-brand/20">
               <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-brand text-white shadow-[0_4px_12px_-4px_rgba(22,163,74,0.3)] group-hover/stats:scale-110 transition-transform duration-300">
@@ -543,7 +543,7 @@ export default function SearchPageClient() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2.5 relative z-10">
+          <div className="flex items-center gap-2 relative z-10">
             <div className="relative group/sort">
               <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-brand-dark/30 group-focus-within/sort:text-brand transition-colors pointer-events-none">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -553,7 +553,7 @@ export default function SearchPageClient() {
               <select
                 value={ordering}
                 onChange={(e) => changeOrdering(e.target.value)}
-                className="appearance-none rounded-[14px] border border-gray-200 bg-white pl-9 pr-10 py-2.5 text-[12.5px] font-black text-brand-dark outline-none transition-all hover:border-brand/30 hover:bg-brand-surface/20 focus:ring-4 focus:ring-brand-surface cursor-pointer shadow-sm"
+                className="appearance-none rounded-[14px] border border-gray-200 bg-white pl-8 pr-8 py-2.5 text-[12.5px] font-black text-brand-dark outline-none transition-all hover:border-brand/30 hover:bg-brand-surface/20 focus:ring-4 focus:ring-brand-surface cursor-pointer shadow-sm"
               >
                 <option value="recommended">Polecane</option>
                 <option value="price_asc">Cena rosnąco</option>
@@ -569,7 +569,7 @@ export default function SearchPageClient() {
             <button
               type="button"
               onClick={openSaveSearchModal}
-              className="group/save flex items-center justify-center gap-2 h-[42px] px-3.5 rounded-[14px] bg-brand-surface text-brand transition-all hover:bg-brand hover:text-white hover:shadow-[0_10px_25px_-8px_rgba(22,163,74,0.3)] active:scale-95 border border-brand/10 shadow-sm"
+              className="group/save flex shrink-0 items-center justify-center gap-2 h-[42px] px-3 rounded-[14px] bg-brand-surface text-brand transition-all hover:bg-brand hover:text-white hover:shadow-[0_10px_25px_-8px_rgba(22,163,74,0.3)] active:scale-95 border border-brand/10 shadow-sm"
               title="Zapisz to wyszukiwanie"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="group-hover/save:scale-110 transition-transform">
@@ -577,7 +577,7 @@ export default function SearchPageClient() {
                 <polyline points="17 21 17 13 7 13 7 21" />
                 <polyline points="7 3 7 8 15 8" />
               </svg>
-              <span className="hidden xl:inline text-[13px] font-black tracking-tight">Zapisz</span>
+              <span className="text-[13px] font-black tracking-tight">Zapisz</span>
             </button>
           </div>
         </div>
