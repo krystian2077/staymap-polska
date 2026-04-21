@@ -6,6 +6,8 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+from config.media_upload import upload_media
+
 
 def health(request):
     return JsonResponse({"status": "ok"})
@@ -13,6 +15,7 @@ def health(request):
 
 urlpatterns = [
     path("health/", health, name="health"),
+    path("api/media-upload/", upload_media, name="media-upload"),
     path(
         "",
         RedirectView.as_view(pattern_name="swagger-ui", permanent=False),
