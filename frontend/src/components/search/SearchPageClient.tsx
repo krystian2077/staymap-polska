@@ -523,7 +523,7 @@ export default function SearchPageClient() {
         )}
       >
         {/* Rail header */}
-        <div className="flex items-center justify-between gap-4 border-b border-gray-100 bg-white px-6 py-5 relative overflow-hidden group/header">
+        <div className="flex items-center justify-between gap-4 border-b border-gray-100 bg-white px-6 py-5 relative group/header">
           <div className="flex flex-col relative z-10">
             <div className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl bg-brand-surface border border-brand/10 shadow-sm group/stats transition-all hover:bg-brand-muted hover:border-brand/20">
               <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-brand text-white shadow-[0_4px_12px_-4px_rgba(22,163,74,0.3)] group-hover/stats:scale-110 transition-transform duration-300">
