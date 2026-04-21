@@ -257,11 +257,11 @@ export function Navbar() {
 
   const linkClass = (href: string, ai?: boolean) =>
      cn(
-       "group relative flex items-center h-full px-3 lg:px-4 xl:px-5 text-[16px] font-bold tracking-[-0.3px] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+       "group relative flex items-center h-full whitespace-nowrap px-2 lg:px-3 xl:px-4 text-[14px] font-bold tracking-[-0.2px] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
        ai
-         ? "mx-2 px-4 py-1 text-[#7c3aed] hover:text-[#6d28d9] hover:scale-105 dark:text-violet-300 dark:hover:text-violet-200"
+         ? "mx-1 px-3 py-1 text-[#7c3aed] hover:text-[#6d28d9] hover:scale-105 dark:text-violet-300 dark:hover:text-violet-200"
           : "text-[#1f2937] hover:text-[#0a0f0d] dark:text-zinc-200 dark:hover:text-white",
-       isActive(pathname, href) && !ai && "text-[#16a34a] font-extrabold after:absolute after:bottom-[12px] after:left-4 after:right-4 after:h-[3px] after:rounded-full after:bg-gradient-to-r after:from-[#16a34a] after:to-[#22c55e] after:content-[''] dark:text-brand"
+       isActive(pathname, href) && !ai && "text-[#16a34a] font-extrabold after:absolute after:bottom-[14px] after:left-3 after:right-3 after:h-[3px] after:rounded-full after:bg-gradient-to-r after:from-[#16a34a] after:to-[#22c55e] after:content-[''] dark:text-brand"
      );
 
    return (
@@ -270,12 +270,12 @@ export function Navbar() {
          "sticky top-0 z-[500] border-b border-gray-200 bg-white shadow-[0_6px_24px_-12px_rgba(0,0,0,0.18)] transition-all duration-500",
          "dark:border-brand-border dark:bg-[var(--bg2)] dark:shadow-[0_6px_24px_-12px_rgba(0,0,0,0.45)]",
          guestMobileShell
-           ? "h-[58px] sm:h-[62px] xl:h-[88px]"
-           : "h-[76px] sm:h-[82px] xl:h-[88px]",
+           ? "h-[58px] sm:h-[62px] xl:h-[96px]"
+           : "h-[76px] sm:h-[82px] xl:h-[96px]",
          scrolled &&
            (guestMobileShell
-             ? "h-[54px] shadow-[0_10px_28px_-14px_rgba(0,0,0,0.24)] sm:h-[58px] xl:h-[80px]"
-             : "h-[72px] shadow-[0_10px_28px_-14px_rgba(0,0,0,0.24)] sm:h-[76px] xl:h-[80px]")
+             ? "h-[54px] shadow-[0_10px_28px_-14px_rgba(0,0,0,0.24)] sm:h-[58px] xl:h-[86px]"
+             : "h-[72px] shadow-[0_10px_28px_-14px_rgba(0,0,0,0.24)] sm:h-[76px] xl:h-[86px]")
        )}
      >
         <div className="mx-auto flex h-full w-full max-w-[1560px] items-center justify-between px-4 sm:px-6 lg:px-8 xl:px-12">
@@ -284,12 +284,12 @@ export function Navbar() {
             <span className="ml-0.5 text-[28px] leading-none text-[#16a34a] transition-all duration-500 group-hover:ml-1.5 group-hover:scale-150 sm:text-[32px] xl:text-[36px] dark:text-brand">.</span>
          </Link>
 
-          <nav className="hidden h-full flex-nowrap items-center gap-[8px] xl:flex xl:gap-[12px]" aria-label="Nawigacja główna">
+          <nav className="hidden h-full flex-nowrap items-center gap-0 xl:flex xl:gap-[2px]" aria-label="Nawigacja główna">
            {navItems.map((item) => (
              <Link key={item.href} href={item.href} className={linkClass(item.href, item.ai)}>
                {item.label}
                {!item.ai && (
-                 <span className="absolute bottom-[12px] left-4 right-4 h-[3px] origin-left scale-x-0 rounded-full bg-gradient-to-r from-[#16a34a]/50 to-[#22c55e]/50 transition-transform duration-300 group-hover:scale-x-100" />
+                 <span className="absolute bottom-[14px] left-3 right-3 h-[3px] origin-left scale-x-0 rounded-full bg-gradient-to-r from-[#16a34a]/50 to-[#22c55e]/50 transition-transform duration-300 group-hover:scale-x-100" />
                )}
              </Link>
            ))}
