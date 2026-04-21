@@ -169,8 +169,14 @@ export const useAIStore = create<AIStore>((set, get) => ({
   },
 
   pollStatus: async (sessionId, token, generation) => {
+    const MAX_POLLS = 80; // ~120 sekund przy 1500ms odstępie
+    let attempts = 0;
     const run = async () => {
       if (generation !== pollGeneration) return;
+      if (attempts++ >= MAX_POLLS) {
+        set({ error: "Przekroczono czas oczekiwania na AI.", submitting: false, polling: false });
+        return;
+      }
       try {
         const res = await fetch(apiUrl(`/api/v1/ai/search/${sessionId}/`), {
           cache: "no-store",
@@ -184,6 +190,11 @@ export const useAIStore = create<AIStore>((set, get) => ({
             submitting: false,
             polling: false,
           });
+          return;
+        }
+
+        if (!res.ok) {
+          set({ error: "Błąd serwera. Spróbuj ponownie.", submitting: false, polling: false });
           return;
         }
 

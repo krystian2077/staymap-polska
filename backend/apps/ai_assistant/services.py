@@ -1785,9 +1785,19 @@ class AISearchService:
 
         from apps.ai_assistant.tasks import process_ai_search
 
-        transaction.on_commit(
-            lambda: process_ai_search.delay(str(session.pk), str(prompt_row.pk))
-        )
+        def _dispatch():
+            try:
+                process_ai_search.delay(str(session.pk), str(prompt_row.pk))
+            except Exception:
+                logger.exception(
+                    "Celery broker niedostępny — fallback na run_sync dla sesji %s", session.pk
+                )
+                try:
+                    cls._process_prompt(session, prompt_row, text)
+                except Exception:
+                    logger.exception("Fallback run_sync również zawiódł dla sesji %s", session.pk)
+
+        transaction.on_commit(_dispatch)
         return session
 
     @classmethod
