@@ -6,8 +6,9 @@
 <p align="center">
   <a href="https://staymap-polska.vercel.app/" target="_blank" rel="noopener noreferrer">
     <img
-      src="https://img.shields.io/badge/%E2%9C%A8%20LIVE%20DEMO%20%E2%80%A2%20PREMIUM-0b1220?style=for-the-badge&logo=vercel&logoColor=ffffff&labelColor=c9a227"
-      alt="Live Demo Premium"
+      src="https://capsule-render.vercel.app/api?type=rounded&color=0:0b1220,100:0ea5e9&height=58&section=header&text=%E2%9C%A8%20LIVE%20DEMO%20%E2%9C%A8&fontSize=30&fontColor=ffffff&animation=fadeIn&fontAlignY=56&stroke=1f2937&strokeWidth=2"
+      alt="Live Demo"
+      width="420"
     />
   </a>
 </p>
