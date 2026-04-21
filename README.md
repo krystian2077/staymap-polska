@@ -3,6 +3,14 @@
 </p>
 
 <h1 align="center">StayMap Polska 🗺️✨</h1>
+<p align="center">
+  <a href="https://staymap-polska.vercel.app/" target="_blank" rel="noopener noreferrer">
+    <img
+      src="https://img.shields.io/badge/Live%20Demo-0f172a?style=for-the-badge&logo=vercel&logoColor=white"
+      alt="Live Demo"
+    />
+  </a>
+</p>
 
 <p align="center">
   Platforma rezerwacji noclegow turystycznych w Polsce z podejsciem <b>map-first</b>,
