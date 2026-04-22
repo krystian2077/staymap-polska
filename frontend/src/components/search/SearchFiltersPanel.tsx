@@ -106,17 +106,17 @@ export function SearchFiltersPanel({ params, onChange, onSearch }: Props) {
           <div
             className={cn(
               modalSurfaceClass(
-                "flex w-full max-w-[min(100vw,520px)] flex-col !overflow-hidden shadow-[0_-12px_48px_rgba(0,0,0,.15)] md:shadow-[0_20px_60px_rgba(0,0,0,.16)]",
+                "flex w-full max-w-[min(100vw,520px)] md:max-w-[min(100vw,760px)] flex-col !overflow-hidden shadow-[0_-12px_48px_rgba(0,0,0,.15)] md:shadow-[0_20px_60px_rgba(0,0,0,.16)]",
               ),
               "max-h-[min(92dvh,calc(100dvh-env(safe-area-inset-bottom)))]",
             )}
           >
-            <div className="flex shrink-0 items-center justify-between border-b border-gray-100/60 bg-white px-4 py-4 dark:border-brand-border sm:px-6 sm:py-5">
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-100/60 bg-white px-4 py-4 dark:border-brand-border sm:px-6 sm:py-5 md:px-8 md:py-6">
               <div>
-                <Dialog.Title className="text-[17px] font-black tracking-tight text-text">
+                <Dialog.Title className="text-[17px] font-black tracking-tight text-text md:text-[20px]">
                   Filtry
                 </Dialog.Title>
-                <Dialog.Description className="text-[11px] font-medium text-text-muted">
+                <Dialog.Description className="text-[11px] font-medium text-text-muted md:text-[13px]">
                   Dostosuj wyniki do swoich potrzeb
                 </Dialog.Description>
               </div>
@@ -125,7 +125,7 @@ export function SearchFiltersPanel({ params, onChange, onSearch }: Props) {
                   <button
                     type="button"
                     onClick={clearAll}
-                    className="rounded-lg bg-brand-surface px-2.5 py-1.5 text-[11px] font-bold text-brand-dark transition-all hover:bg-brand hover:text-white sm:px-3 sm:text-[12px]"
+                    className="rounded-lg bg-brand-surface px-2.5 py-1.5 text-[11px] font-bold text-brand-dark transition-all hover:bg-brand hover:text-white sm:px-3 sm:text-[12px] md:text-[13px]"
                   >
                     Wyczyść ({activeCount})
                   </button>
@@ -136,12 +136,12 @@ export function SearchFiltersPanel({ params, onChange, onSearch }: Props) {
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-4 py-5 sm:space-y-7 sm:px-6 sm:py-6">
+            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-4 py-5 sm:space-y-7 sm:px-6 sm:py-6 md:px-8 md:py-7">
               <section>
-                <h4 className="mb-3 text-[11px] font-black uppercase tracking-[0.1em] text-text-muted/80">
+                <h4 className="mb-3 text-[11px] font-black uppercase tracking-[0.1em] text-text-muted/80 md:text-[13px]">
                   Typ obiektu
                 </h4>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:gap-3">
                   {LISTING_TYPES.map((t) => {
                     const on = (params.listing_types ?? []).includes(t.slug);
                     return (
@@ -150,7 +150,7 @@ export function SearchFiltersPanel({ params, onChange, onSearch }: Props) {
                         type="button"
                         onClick={() => toggleListingType(t.slug)}
                         className={cn(
-                          "flex min-h-[44px] items-center gap-2 rounded-xl border-[1.5px] px-3 py-2.5 text-left text-[12px] font-bold transition-all duration-200",
+                          "flex min-h-[44px] items-center gap-2 rounded-xl border-[1.5px] px-3 py-2.5 text-left text-[12px] font-bold transition-all duration-200 md:text-[14px]",
                           on
                             ? "border-brand bg-brand-surface text-brand-dark shadow-sm"
                             : "border-gray-100 bg-white text-text-secondary hover:border-brand/40 hover:bg-brand-surface/20",
@@ -165,7 +165,7 @@ export function SearchFiltersPanel({ params, onChange, onSearch }: Props) {
               </section>
 
               <section>
-                <h4 className="mb-3 text-[11px] font-black uppercase tracking-[0.1em] text-text-muted/80">
+                <h4 className="mb-3 text-[11px] font-black uppercase tracking-[0.1em] text-text-muted/80 md:text-[13px]">
                   Przedział cenowy
                 </h4>
                 <div className="flex flex-col gap-3 rounded-2xl border border-brand-surface/50 bg-brand-surface/30 p-4 sm:flex-row sm:items-center sm:gap-4">
@@ -206,10 +206,10 @@ export function SearchFiltersPanel({ params, onChange, onSearch }: Props) {
               </section>
 
               <section>
-                <h4 className="mb-3 text-[11px] font-black uppercase tracking-[0.1em] text-text-muted/80">
+                <h4 className="mb-3 text-[11px] font-black uppercase tracking-[0.1em] text-text-muted/80 md:text-[13px]">
                   Otoczenie i klimat
                 </h4>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 md:gap-3">
                   {LOCATION_TAG_CHIPS.map((chip) => {
                     const on = (params as Record<string, unknown>)[chip.key] === true;
                     return (
@@ -218,7 +218,7 @@ export function SearchFiltersPanel({ params, onChange, onSearch }: Props) {
                         type="button"
                         onClick={() => toggleTag(chip.key)}
                         className={cn(
-                          "min-h-[40px] rounded-xl border-[1.5px] px-3.5 py-2 text-[12px] font-bold transition-all duration-200",
+                          "min-h-[40px] rounded-xl border-[1.5px] px-3.5 py-2 text-[12px] font-bold transition-all duration-200 md:text-[14px]",
                           on
                             ? "border-brand bg-brand-surface text-brand-dark"
                             : "border-gray-100 bg-white text-text-secondary hover:border-brand/40 hover:bg-brand-surface/20",
@@ -232,10 +232,10 @@ export function SearchFiltersPanel({ params, onChange, onSearch }: Props) {
               </section>
 
               <section>
-                <h4 className="mb-3 text-[11px] font-black uppercase tracking-[0.1em] text-text-muted/80">
+                <h4 className="mb-3 text-[11px] font-black uppercase tracking-[0.1em] text-text-muted/80 md:text-[13px]">
                   Udogodnienia
                 </h4>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 md:gap-3">
                   {AMENITY_CHIPS.map((a) => {
                     const on = (params.amenities ?? []).includes(a.id);
                     return (
@@ -244,7 +244,7 @@ export function SearchFiltersPanel({ params, onChange, onSearch }: Props) {
                         type="button"
                         onClick={() => toggleAmenity(a.id)}
                         className={cn(
-                          "flex min-h-[44px] items-center gap-2 rounded-xl border-[1.5px] px-3.5 py-2 text-[12px] font-bold transition-all duration-200",
+                          "flex min-h-[44px] items-center gap-2 rounded-xl border-[1.5px] px-3.5 py-2 text-[12px] font-bold transition-all duration-200 md:text-[14px]",
                           on
                             ? "border-brand bg-brand-surface text-brand-dark shadow-sm"
                             : "border-gray-100 bg-white text-text-secondary hover:border-brand/40 hover:bg-brand-surface/20",
@@ -291,7 +291,7 @@ export function SearchFiltersPanel({ params, onChange, onSearch }: Props) {
               </section>
             </div>
 
-            <div className="shrink-0 border-t border-gray-100/60 bg-gray-50/30 px-4 py-4 dark:border-brand-border sm:px-6 sm:py-5">
+            <div className="shrink-0 border-t border-gray-100/60 bg-gray-50/30 px-4 py-4 dark:border-brand-border sm:px-6 sm:py-5 md:px-8 md:py-6">
               <button
                 type="button"
                 onClick={applyAndClose}

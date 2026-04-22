@@ -16,6 +16,7 @@ import {
   POLAND_BORDER_COORDS,
 } from "@/lib/maps/poland";
 import { SearchMapPopupCard } from "./SearchMapPopupCard";
+import toast from "react-hot-toast";
 
 // OpenTopoMap — kolorowa mapa topograficzna z cieniowaniem terenu, żywymi lasami i jeziorami
 const BASE_TILE = "https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png";
@@ -537,10 +538,15 @@ export function SearchMap({
           });
           setIsGeoPending(false);
         },
-        () => {
+        (err) => {
           setIsGeoPending(false);
+          if (err.code === err.PERMISSION_DENIED) {
+            toast.error("Brak uprawnień do lokalizacji. Włącz ją w ustawieniach przeglądarki.");
+          } else {
+            toast.error("Nie udało się pobrać lokalizacji. Spróbuj ponownie.");
+          }
         },
-        { timeout: 8000 },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
       );
     }, [isGeoPending, isLocationActive, onClearLocation, onLocationFound]);
 

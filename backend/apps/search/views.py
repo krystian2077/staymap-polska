@@ -1,7 +1,10 @@
-﻿from urllib.parse import urlencode
+﻿import logging
+from urllib.parse import urlencode
 import unicodedata
 
 from django.db import models
+
+logger = logging.getLogger(__name__)
 from django.contrib.gis.db.models.functions import Distance
 from django.db.models import Prefetch
 from django.contrib.gis.geos import Point
@@ -333,7 +336,11 @@ class SearchViewSet(ViewSet):
 
         page_size = int(params.get("page_size") or 24)
         cache_params = _search_params_for_cache(params)
-        ordered_ids = SearchOrchestrator.get_ordered_ids(cache_params)
+        try:
+            ordered_ids = SearchOrchestrator.get_ordered_ids(cache_params)
+        except Exception:
+            logger.exception("Search list: get_ordered_ids crashed, params=%s", cache_params)
+            raise
         start = decode_offset(request.query_params.get("cursor"))
         end = min(start + page_size, len(ordered_ids))
         page_ids = ordered_ids[start:end]
@@ -403,6 +410,8 @@ class SearchViewSet(ViewSet):
             if not loc:
                 continue
             p = loc.point
+            if p is None:
+                continue
             pins.append(
                 {
                     "id": str(row.id),
