@@ -406,8 +406,13 @@ class ListingImageUploadSerializer(serializers.Serializer):
                 is_cover=is_cover,
                 sort_order=max_so + 1,
             )
-            img.image.save(content.name, content, save=False)
-            img.save()
+            try:
+                img.image.save(content.name, content, save=False)
+                img.save()
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).exception("ListingImage storage save failed: %s", e)
+                raise serializers.ValidationError({"image": ["Nie udało się zapisać zdjęcia. Spróbuj ponownie."]}) from e
 
             if is_cover:
                 ListingImage.objects.filter(listing=listing).exclude(pk=img.pk).update(

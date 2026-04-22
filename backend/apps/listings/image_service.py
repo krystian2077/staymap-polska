@@ -53,18 +53,21 @@ class ImageService:
             img.verify()
             img = Image.open(BytesIO(file_bytes))
             img = img.convert("RGB")
+
+            if max(img.size) > MAX_IMAGE_DIMENSION:
+                img.thumbnail((MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION), Image.Resampling.LANCZOS)
+
+            out = BytesIO()
+            img.save(out, format="JPEG", quality=85, optimize=True)
+            out.seek(0)
+            name = f"{uuid.uuid4().hex}.jpg"
+            return ContentFile(out.read(), name=name)
+        except ValidationError:
+            raise
         except (UnidentifiedImageError, OSError, ValueError) as e:
-            print(f"Image processing error: {e}")
             raise ValidationError("Nieprawidłowy obraz lub uszkodzony plik.") from e
-
-        if max(img.size) > MAX_IMAGE_DIMENSION:
-            img.thumbnail((MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION), Image.Resampling.LANCZOS)
-
-        out = BytesIO()
-        img.save(out, format="JPEG", quality=85, optimize=True)
-        out.seek(0)
-        name = f"{uuid.uuid4().hex}.jpg"
-        return ContentFile(out.read(), name=name)
+        except Exception as e:
+            raise ValidationError(f"Nie można przetworzyć pliku: {e}") from e
 
     @classmethod
     def max_images(cls) -> int:
