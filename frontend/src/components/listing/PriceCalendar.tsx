@@ -213,20 +213,18 @@ export function PriceCalendar({
   }, [prices, cursor, rules]);
 
   return (
-    <section className="mb-12 rounded-[2.5rem] bg-white p-8 shadow-sm ring-1 ring-black/[0.03] sm:p-10">
-      <div className="mb-8">
-        <h2 className="text-3xl font-black tracking-tight text-brand-dark">Kalendarz cen</h2>
-        <p className="mt-2 text-[16px] text-gray-500">
+    <section className="mb-12 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/[0.03] sm:rounded-[2.5rem] sm:p-8 sm:p-10">
+      <div className="mb-6 sm:mb-8">
+        <h2 className="text-2xl font-black tracking-tight text-brand-dark sm:text-3xl">Kalendarz cen</h2>
+        <p className="mt-2 text-[14px] text-gray-500 sm:text-[16px]">
           Cena za noc = baza × <strong className="text-gray-700">sezon</strong> ×{" "}
-          <strong className="text-gray-700">święta / długie weekendy</strong>. Kolory pokazują łączny mnożnik
-          (nie tylko sezon).
+          <strong className="text-gray-700">święta / długie weekendy</strong>. Kolory pokazują łączny mnożnik.
         </p>
-        <p className="mt-2 text-[14px] leading-relaxed text-gray-600 rounded-2xl bg-gray-50 border border-black/[0.04] px-4 py-3">
+        <p className="mt-2 text-[13px] leading-relaxed text-gray-600 rounded-xl bg-gray-50 border border-black/[0.04] px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3 sm:text-[14px]">
           {applyTravelPeakExtras ? (
             <>
-              Używamy domyślnego <strong>sezonu</strong> (np. lato, okolice świąt) oraz kalendarza{" "}
-              <strong>świąt ustawowych i typowych dni podróży</strong> (m.in. majówka, Wielki Piątek, Wigilia,
-              Sylwester). Gospodarz może dodać własne reguły w panelu.
+              Używamy domyślnego <strong>sezonu</strong> oraz kalendarza{" "}
+              <strong>świąt ustawowych i typowych dni podróży</strong> (majówka, Wielki Piątek, Wigilia, Sylwester).
             </>
           ) : (
             <>
@@ -237,33 +235,35 @@ export function PriceCalendar({
         </p>
       </div>
 
-      <div className="flex flex-col gap-10">
-        <div className="relative overflow-hidden rounded-[2.5rem] border border-black/[0.06] bg-gray-50/20 p-2 shadow-inner">
-          <div className="flex items-center justify-between px-8 py-6 bg-white rounded-[2rem] shadow-sm mb-2 border border-black/[0.03]">
+      <div className="flex flex-col gap-6 sm:gap-10">
+        <div className="relative overflow-hidden rounded-xl border border-black/[0.06] bg-gray-50/20 p-1.5 shadow-inner sm:rounded-[2.5rem] sm:p-2">
+          {/* Month navigation */}
+          <div className="flex items-center justify-between px-4 py-4 bg-white rounded-xl shadow-sm mb-1.5 border border-black/[0.03] sm:rounded-[2rem] sm:px-8 sm:py-6 sm:mb-2">
             <button
               type="button"
-              className="group flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 transition-all hover:bg-brand-dark hover:text-white hover:scale-105 active:scale-95 shadow-sm"
+              className="group flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 transition-all hover:bg-brand-dark hover:text-white hover:scale-105 active:scale-95 shadow-sm sm:h-12 sm:w-12 sm:rounded-2xl"
               onClick={() => changeMonth(-1)}
             >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <div className="text-xl font-black tracking-tight text-brand-dark uppercase">
+            <div className="text-base font-black tracking-tight text-brand-dark uppercase sm:text-xl">
               {format(cursor, "LLLL yyyy", { locale: pl })}
             </div>
             <button
               type="button"
-              className="group flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-50 transition-all hover:bg-brand-dark hover:text-white hover:scale-105 active:scale-95 shadow-sm"
+              className="group flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50 transition-all hover:bg-brand-dark hover:text-white hover:scale-105 active:scale-95 shadow-sm sm:h-12 sm:w-12 sm:rounded-2xl"
               onClick={() => changeMonth(1)}
             >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
               </svg>
             </button>
           </div>
 
-          <div className="relative min-h-[400px]">
+          {/* Calendar grid */}
+          <div className="relative min-h-[320px] sm:min-h-[400px]">
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={cursor.toString()}
@@ -272,10 +272,10 @@ export function PriceCalendar({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: direction * -20 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="grid grid-cols-7 gap-2 p-4"
+                className="grid grid-cols-7 gap-0.5 p-1.5 sm:gap-2 sm:p-4"
               >
                 {WEEKDAYS.map((w) => (
-                  <div key={w} className="pb-5 text-center text-[12px] font-black uppercase tracking-widest text-gray-400">
+                  <div key={w} className="pb-2 text-center text-[10px] font-black uppercase tracking-widest text-gray-400 sm:pb-5 sm:text-[12px]">
                     {w}
                   </div>
                 ))}
@@ -297,10 +297,10 @@ export function PriceCalendar({
                   const isSel = k === rangeStart || k === rangeEnd || (rangeStart && rangeEnd && k > rangeStart && k < rangeEnd && inMonth);
                   const isEdge = k === rangeStart || k === rangeEnd;
 
-                  if (!inMonth) return <div key={k} className="h-20" />;
+                  if (!inMonth) return <div key={k} className="h-14 sm:h-20" />;
 
                   return (
-                    <div key={k} className="p-0.5">
+                    <div key={k} className="p-px sm:p-0.5">
                       <button
                         type="button"
                         title={
@@ -316,31 +316,31 @@ export function PriceCalendar({
                         disabled={!!(isPast || unavailable || isLoading)}
                         onClick={() => pickDay(k, !isPast && !unavailable && !isLoading)}
                         className={cn(
-                          "relative flex h-20 w-full flex-col items-center justify-center rounded-2xl transition-all group/day",
+                          "relative flex h-14 w-full flex-col items-center justify-center rounded-xl transition-all group/day sm:h-20 sm:rounded-2xl",
                           isPast || unavailable ? "cursor-not-allowed" : "hover:bg-brand/5 hover:scale-[1.02]",
                           isSel ? "bg-brand-dark text-white hover:bg-brand-dark shadow-lg scale-[1.02]" : "bg-white",
                           isToday && !isSel && "ring-2 ring-brand ring-inset",
                           unavailable && "bg-gray-100/50 opacity-60"
                         )}
                       >
-                        <span className={cn("text-[16px] font-black transition-colors", isSel ? "text-white" : "text-brand-dark group-hover/day:text-brand")}>
+                        <span className={cn("text-[13px] font-black transition-colors sm:text-[16px]", isSel ? "text-white" : "text-brand-dark group-hover/day:text-brand")}>
                           {format(d, "d")}
                         </span>
                         {!unavailable && price != null && (
-                          <span className={cn("text-[11px] font-bold mt-1", 
-                            isSel ? "text-white/80" : 
-                            highSeason ? "text-red-500" : 
+                          <span className={cn("whitespace-nowrap text-[9px] font-bold leading-tight mt-0.5 sm:text-[11px] sm:mt-1",
+                            isSel ? "text-white/80" :
+                            highSeason ? "text-red-500" :
                             midSeason ? "text-amber-500" : "text-brand")}>
                             {Math.round(price)} zł
                           </span>
                         )}
                         {highSeason && !unavailable && !isSel && (
-                          <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-red-500 shadow-sm border-2 border-white" />
+                          <div className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-red-500 shadow-sm border border-white sm:top-2 sm:right-2 sm:h-2 sm:w-2 sm:border-2" />
                         )}
                         {isEdge && isSel && (
-                           <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-brand-light flex items-center justify-center shadow-md">
-                              <div className="h-1.5 w-1.5 rounded-full bg-brand-dark" />
-                           </div>
+                          <div className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-brand-light flex items-center justify-center shadow-md sm:-top-1 sm:-right-1 sm:h-4 sm:w-4">
+                            <div className="h-1 w-1 rounded-full bg-brand-dark sm:h-1.5 sm:w-1.5" />
+                          </div>
                         )}
                       </button>
                     </div>
@@ -350,28 +350,29 @@ export function PriceCalendar({
             </AnimatePresence>
           </div>
 
-          <div className="mt-2 flex flex-wrap gap-6 px-8 py-5 bg-white/50 border-t border-black/[0.03] text-[13px] font-bold text-gray-500">
-            <span className="flex items-center gap-2.5">
-              <span className="h-3 w-3 rounded-full bg-red-500 shadow-sm" /> Szczyt (łączny mnożnik wysoki lub święto)
+          {/* Legend */}
+          <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-2 px-3 py-3 bg-white/50 border-t border-black/[0.03] text-[11px] font-bold text-gray-500 sm:mt-2 sm:flex sm:flex-wrap sm:gap-6 sm:px-8 sm:py-5 sm:text-[13px]">
+            <span className="flex items-center gap-1.5 sm:gap-2.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 shadow-sm sm:h-3 sm:w-3" /> Szczyt
             </span>
-            <span className="flex items-center gap-2.5">
-              <span className="h-3 w-3 rounded-full bg-amber-500 shadow-sm" /> Podwyższony sezon / mniejszy szczyt
+            <span className="flex items-center gap-1.5 sm:gap-2.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-500 shadow-sm sm:h-3 sm:w-3" /> Podwyższony sezon
             </span>
-            <span className="flex items-center gap-2.5">
-              <span className="h-3 w-3 rounded-full bg-brand shadow-sm" /> Bez dodatkowego mnożnika
+            <span className="flex items-center gap-1.5 sm:gap-2.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-brand shadow-sm sm:h-3 sm:w-3" /> Normalny
             </span>
-            <span className="flex items-center gap-2.5">
-              <span className="h-3 w-3 rounded-full bg-gray-300 shadow-sm" /> Termin zajęty
+            <span className="flex items-center gap-1.5 sm:gap-2.5">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-gray-300 shadow-sm sm:h-3 sm:w-3" /> Zajęty
             </span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:gap-8">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2 lg:gap-8">
           {/* Selected Range Card */}
-          <div className="rounded-[2.5rem] bg-white border border-black/[0.06] p-8 shadow-sm ring-1 ring-black/[0.02] flex flex-col">
-            <div className="mb-6 flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand/10 text-brand shadow-inner">
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="rounded-2xl bg-white border border-black/[0.06] p-5 shadow-sm ring-1 ring-black/[0.02] flex flex-col sm:rounded-[2.5rem] sm:p-8">
+            <div className="mb-4 flex items-center gap-3 sm:mb-6 sm:gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand/10 text-brand shadow-inner sm:h-12 sm:w-12 sm:rounded-2xl">
+                <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
@@ -418,7 +419,7 @@ export function PriceCalendar({
           </div>
 
           {/* Price Tip */}
-          <div className="rounded-[2.5rem] bg-brand-dark p-8 text-white shadow-xl relative overflow-hidden group flex flex-col">
+          <div className="rounded-2xl bg-brand-dark p-5 text-white shadow-xl relative overflow-hidden group flex flex-col sm:rounded-[2.5rem] sm:p-8">
             <div className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-white/5 blur-3xl group-hover:bg-white/10 transition-all duration-700" />
             <div className="absolute -left-10 -bottom-10 h-32 w-32 rounded-full bg-brand-light/5 blur-3xl" />
             
