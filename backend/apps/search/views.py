@@ -338,9 +338,14 @@ class SearchViewSet(ViewSet):
         cache_params = _search_params_for_cache(params)
         try:
             ordered_ids = SearchOrchestrator.get_ordered_ids(cache_params)
-        except Exception:
+        except Exception as exc:
+            import traceback
+            tb = traceback.format_exc()
             logger.exception("Search list: get_ordered_ids crashed, params=%s", cache_params)
-            raise
+            return Response(
+                {"error": {"code": "SEARCH_CRASH", "message": str(exc), "traceback": tb, "params": str(cache_params)}},
+                status=500,
+            )
         start = decode_offset(request.query_params.get("cursor"))
         end = min(start + page_size, len(ordered_ids))
         page_ids = ordered_ids[start:end]
