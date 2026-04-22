@@ -14,6 +14,25 @@ import { AMENITY_EMOJI, MODE_EMOJI, SCORE_LABELS, topScores } from "@/lib/utils/
 
 const DESC_ALLOWED_TAGS = ["p", "br", "strong", "b", "em", "i", "ul", "ol", "li", "a", "span"];
 
+const AMENITY_LABELS: Record<string, string> = {
+  wifi: "Wi-Fi",
+  kitchen: "Kuchnia",
+  parking: "Parking",
+  air_conditioning: "Klimatyzacja",
+  heating: "Ogrzewanie",
+  washer: "Pralka",
+  tv: "TV",
+  workspace: "Miejsce do pracy",
+  pet_friendly: "Przyjazne zwierzętom",
+  pool: "Basen",
+  sauna: "Sauna",
+  grill: "Grill",
+  fireplace: "Kominek",
+  hot_tub: "Jacuzzi",
+  child_friendly: "Dla rodzin z dziećmi",
+  accessible: "Udogodnienia dla osób z niepełnosprawnością",
+};
+
 function looksLikeHtml(s: string): boolean {
   return /<[a-z][\s\S]*>/i.test(s);
 }
@@ -123,7 +142,7 @@ export function ListingAmenities({ amenities }: { amenities: Listing["amenities"
               {AMENITY_EMOJI[a.icon] ?? AMENITY_EMOJI.default}
             </span>
             <div className="flex flex-col">
-              <span className="text-[17px] font-bold text-white transition-colors group-hover/item:text-brand-light">{a.name}</span>
+              <span className="text-[17px] font-bold text-white transition-colors group-hover/item:text-brand-light">{AMENITY_LABELS[a.id] ?? a.name}</span>
               <span className="text-[13px] font-medium text-white/50">Udogodnienie zweryfikowane</span>
             </div>
           </div>
