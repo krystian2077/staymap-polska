@@ -1,9 +1,13 @@
+import logging
+
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
 from rest_framework import generics, permissions, status, serializers
+
+logger = logging.getLogger(__name__)
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
@@ -148,7 +152,7 @@ class MeView(generics.RetrieveUpdateAPIView):
             except DjangoValidationError as e:
                 raise serializers.ValidationError({"avatar": list(e.messages)})
             except Exception as e:
-                print(f"Error processing avatar: {e}")
+                logger.exception("Avatar upload failed for user %s: %s", instance.pk, e)
                 raise serializers.ValidationError({"avatar": ["Błąd przetwarzania pliku graficznego."]})
 
         # 2. Obsługa bio (HostProfile) - niezależnie od awatara

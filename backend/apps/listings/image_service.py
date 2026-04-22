@@ -40,11 +40,13 @@ class ImageService:
             try:
                 detected = magic.from_buffer(file_bytes[:2048], mime=True)
                 if detected not in ALLOWED_MIME_TYPES:
-                    raise ValidationError(f"Niedozwolony typ pliku: {detected}.")
+                    raise ValidationError(f"Niedozwolony typ pliku: {detected}. Dozwolone: JPEG, PNG, WebP.")
+            except ValidationError:
+                raise
             except Exception as e:
-                # Na Windowsie magic często wyrzuca błędy przez brak DLL, ignorujemy to 
-                # i polegamy na PIL (Image.open), które i tak weryfikuje obraz poniżej.
-                print(f"Magic library error (ignored): {e}")
+                # magic może rzucać wyjątki przy brakujących DLL (Windows) — ignorujemy,
+                # PIL poniżej i tak zweryfikuje format.
+                pass
 
         try:
             img = Image.open(BytesIO(file_bytes))
