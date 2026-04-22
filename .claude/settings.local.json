@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git pull *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git stash *)",
+      "Bash(railway --version)",
+      "Bash(npm install *)",
+      "Bash(railway status *)",
+      "Bash(railway link *)",
+      "Bash(railway list *)",
+      "Bash(railway service *)",
+      "Bash(railway variables *)",
+      "Bash(railway ps *)",
+      "Bash(railway --help)",
+      "Bash(railway ssh *)",
+      "Bash(xargs grep *)",
+      "Bash(find /d/staymap-polska/backend -type f -name \"*.py\" -exec grep -l \"ListingReviewsView\\\\|listing.*reviews\" {} \\\\;)",
+      "Bash(python manage.py shell -c \"from apps.reviews.models import Review; print\\('Wszystkie opinie:', Review.all_objects.count\\(\\)\\); print\\('Publiczne:', Review.objects.filter\\(is_public=True\\).count\\(\\)\\); print\\('Soft-deleted:', Review.all_objects.filter\\(deleted_at__isnull=False\\).count\\(\\)\\)\")",
+      "Bash(DJANGO_SETTINGS_MODULE=staymap.settings.local python manage.py shell -c \"from apps.reviews.models import Review; print\\('Wszystkie opinie:', Review.all_objects.count\\(\\)\\); print\\('Publiczne:', Review.objects.filter\\(is_public=True\\).count\\(\\)\\); print\\('Soft-deleted:', Review.all_objects.filter\\(deleted_at__isnull=False\\).count\\(\\)\\)\")",
+      "Bash(python -c \"import os; os.environ.setdefault\\('DJANGO_SETTINGS_MODULE','staymap.settings.dev'\\); print\\('checking settings'\\)\")",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings.development python manage.py shell -c \"from apps.reviews.models import Review; print\\('Wszystkie opinie:', Review.all_objects.count\\(\\)\\); print\\('Publiczne \\(is_public=True\\):', Review.objects.filter\\(is_public=True\\).count\\(\\)\\); print\\('Soft-deleted:', Review.all_objects.filter\\(deleted_at__isnull=False\\).count\\(\\)\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(git commit -m 'Wrap entire search list and map_pins in try/except to surface tracebacks *)",
+      "Bash(git commit -m 'Fix search 500 from stale AreaSummaryCache PK sequence *)",
+      "Bash(npx tsc *)",
+      "Bash(git commit -m 'Redesign filter modal for desktop and laptop with premium look *)",
+      "Bash(git commit -m 'Improve avatar upload error visibility and fix magic ValidationError swallow *)",
+      "Bash(git commit -m 'Fix image upload 500: wrap full PIL pipeline in try/except and handle storage save errors *)",
+      "Bash(git commit -m 'Add AWS_S3_CUSTOM_DOMAIN support for Cloudflare R2 public access *)",
+      "Bash(git commit -m 'Fix listing image URLs broken with R2/S3 storage *)",
+      "Bash(git commit -m 'Fix NearbyPlaceCache stale PK sequence with self-healing retry *)",
+      "Bash(python -c \"import boto3\")",
+      "Bash(pip install *)",
+      "Bash(python upload_to_r2.py)",
+      "Bash(git commit -m 'Fix avatar upload UX and R2 URL in user serializer *)"
+    ]
+  }
+}

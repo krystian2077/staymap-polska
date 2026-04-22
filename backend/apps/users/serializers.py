@@ -93,8 +93,7 @@ class UserMeSerializer(serializers.ModelSerializer):
         if not url:
             return None
         if url.startswith("http"):
-            from urllib.parse import urlparse
-            url = urlparse(url).path
+            return url
         if not url.startswith("/"):
             url = f"/{url}"
         if not url.startswith("/media/"):

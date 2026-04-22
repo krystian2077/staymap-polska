@@ -24,6 +24,8 @@ export default function HostProfilePage() {
   const setProfile = useHostStore((s) => s.setProfile);
   const [data, setData] = useState<ProfileData | null>(null);
   const [saving, setSaving] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -50,6 +52,41 @@ export default function HostProfilePage() {
 
   useEffect(() => { void load(); }, [load]);
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarPreview(URL.createObjectURL(file));
+    setAvatarUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("avatar", file);
+      const res = await api.patchForm<{ data: ProfileData }>("/api/v1/auth/me/", fd);
+      setData(res.data);
+      if (res.data.avatar_url) setAvatarPreview(null);
+      const name = `${res.data.first_name} ${res.data.last_name}`.trim();
+      setProfile({
+        id: res.data.id,
+        user_id: res.data.id,
+        display_name: name || "Gospodarz",
+        bio: res.data.bio ?? "",
+        avatar_url: res.data.avatar_url ?? null,
+        is_verified: false,
+        response_rate: 0,
+        average_rating: null,
+        review_count: 0,
+        member_since: res.data.created_at ?? new Date().toISOString(),
+        total_earnings: 0,
+        payout_pending: 0,
+      });
+      toast.success("Zdjęcie profilowe zaktualizowane.");
+    } catch {
+      toast.error("Nie udało się wgrać zdjęcia.");
+      setAvatarPreview(null);
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -61,9 +98,6 @@ export default function HostProfilePage() {
       fd.append("bio", bio);
       fd.append("preferred_language", preferredLanguage);
       fd.append("country", country);
-      const avatarInput = (document.getElementById("host-avatar") as HTMLInputElement | null)?.files?.[0];
-      if (avatarInput) fd.append("avatar", avatarInput);
-
       const res = await api.patchForm<{ data: ProfileData }>("/api/v1/auth/me/", fd);
       setData(res.data);
 
@@ -110,19 +144,32 @@ export default function HostProfilePage() {
         <section className="host-card p-6">
           <h2 className="text-base font-extrabold text-brand-dark">Zdjęcie profilowe</h2>
           <div className="mt-4 flex items-center gap-5">
-            {data.avatar_url ? (
+            {avatarPreview ?? data.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-                <img src={data.avatar_url} alt="" className="h-20 w-20 rounded-full border-2 border-brand-dark/[.06] object-cover shadow-sm dark:border-brand-border" />
+              <img
+                src={avatarPreview ?? data.avatar_url ?? ""}
+                alt=""
+                className="h-20 w-20 rounded-full border-2 border-brand-dark/[.06] object-cover shadow-sm dark:border-brand-border"
+              />
             ) : (
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-brand-muted text-2xl font-bold text-brand-dark">
                 {(data.first_name[0] ?? "?").toUpperCase()}
               </div>
             )}
             <div>
-              <label htmlFor="host-avatar" className="btn-secondary cursor-pointer text-xs">
-                Zmień zdjęcie
+              <label
+                htmlFor="host-avatar"
+                className={`btn-secondary cursor-pointer text-xs ${avatarUploading ? "pointer-events-none opacity-60" : ""}`}
+              >
+                {avatarUploading ? "Wgrywanie…" : "Zmień zdjęcie"}
               </label>
-              <input id="host-avatar" type="file" accept="image/jpeg,image/png,image/webp" className="hidden" />
+              <input
+                id="host-avatar"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => void handleAvatarChange(e)}
+              />
               <p className="mt-1 text-[10px] text-text-muted">JPG, PNG lub WebP. Maks. 5 MB.</p>
             </div>
           </div>
