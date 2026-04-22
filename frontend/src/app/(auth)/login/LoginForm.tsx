@@ -113,7 +113,7 @@ export function LoginForm() {
             ))}
           </div>
         </div>
-        <p className="relative text-xs text-green-200/40">© 2025 StayMap Polska</p>
+        <p className="relative text-xs text-green-200/40">© 2026 StayMap Polska</p>
       </div>
 
       {/* Panel formularza */}

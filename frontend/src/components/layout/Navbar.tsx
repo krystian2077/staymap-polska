@@ -11,7 +11,7 @@ import { shouldShowGuestMobileNav } from "@/lib/guestMobileNav";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
-type NavIcon = "search" | "compass" | "heart" | "compare" | "route" | "host" | "sparkles";
+type NavIcon = "search" | "compass" | "heart" | "route" | "host" | "sparkles";
 
 type NavItem = { label: string; href: string; ai?: boolean; icon: NavIcon };
 
@@ -19,7 +19,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Wyszukaj", href: "/search", icon: "search" },
   { label: "Discovery", href: "/discovery", icon: "compass" },
   { label: "Ulubione", href: "/wishlist", icon: "heart" },
-  { label: "Porównaj", href: "/compare", icon: "compare" },
   { label: "Tryby Podróży", href: "/travel", icon: "route" },
   { label: "Zostań gospodarzem", href: "/host", icon: "host" },
   { label: "StayMap AI", href: "/ai", ai: true, icon: "sparkles" },
@@ -45,12 +44,6 @@ function NavMenuIcon({ name, className }: { name: NavIcon; className?: string })
       return (
         <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-        </svg>
-      );
-    case "compare":
-      return (
-        <svg className={cls} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 8h4l2 10H6M16 8h4l-2 10h4M9 4h6M12 4v2" />
         </svg>
       );
     case "route":
@@ -257,7 +250,7 @@ export function Navbar() {
 
   const linkClass = (href: string, ai?: boolean) =>
      cn(
-       "group relative flex items-center h-full whitespace-nowrap px-1.5 lg:px-2 xl:px-2.5 text-[16px] font-bold tracking-[-0.3px] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
+       "group relative flex items-center h-full whitespace-nowrap px-2 lg:px-2.5 xl:px-3 text-[17px] font-bold tracking-[-0.3px] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
        ai
          ? "mx-1 px-3 py-1 text-[#7c3aed] hover:text-[#6d28d9] hover:scale-105 dark:text-violet-300 dark:hover:text-violet-200"
           : "text-[#1f2937] hover:text-[#0a0f0d] dark:text-zinc-200 dark:hover:text-white",
