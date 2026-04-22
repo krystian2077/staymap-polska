@@ -177,7 +177,7 @@ export function HostLayoutClient({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative w-full max-w-[100vw] overflow-x-clip">
       <div
-        className="grid grid-cols-1 md:grid-cols-[340px_1fr]"
+        className="grid grid-cols-1 md:grid-cols-[320px_1fr]"
         style={{ minHeight: "calc(100dvh - var(--nav-h))" }}
       >
         <div className="hidden md:block">
