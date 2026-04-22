@@ -15,7 +15,7 @@ from apps.location_intelligence.area_summary import get_or_build_area_summary
 
 
 def listing_cover_image_absolute_url(obj: Listing, request) -> str | None:
-    """Zwraca relatywny URL do okładki (obsługiwany przez proxy Next.js)."""
+    """Zwraca URL do okładki — pełny (S3/R2) lub relatywny /media/ (filesystem)."""
     imgs = getattr(obj, "_prefetched_objects_cache", {}).get("images")
     if imgs is not None:
         ordered = sorted(
@@ -33,15 +33,11 @@ def listing_cover_image_absolute_url(obj: Listing, request) -> str | None:
         return None
     url = target.image.url
     if url.startswith("http"):
-        from urllib.parse import urlparse
-        url = urlparse(url).path
-    
+        return url
     if not url.startswith("/"):
         url = f"/{url}"
-    
     if not url.startswith("/media/"):
         url = f"/media{url}"
-        
     return url
 
 
@@ -88,15 +84,11 @@ class ListingImageSerializer(serializers.ModelSerializer):
             return None
         url = obj.image.url
         if url.startswith("http"):
-            from urllib.parse import urlparse
-            url = urlparse(url).path
-        
+            return url
         if not url.startswith("/"):
             url = f"/{url}"
-            
         if not url.startswith("/media/"):
             url = f"/media{url}"
-            
         return url
 
     def get_url(self, obj):

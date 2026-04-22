@@ -53,6 +53,8 @@ const nextConfig = {
       },
       { protocol: "https", hostname: "i.pravatar.cc", pathname: "/**" },
       { protocol: "https", hostname: "picsum.photos", pathname: "/**" },
+      { protocol: "https", hostname: "*.r2.dev", pathname: "/**" },
+      { protocol: "https", hostname: "*.cloudflarestorage.com", pathname: "/**" },
     ],
   },
 };
