@@ -4,12 +4,16 @@ Krótki opis okolicy (PL) — cache w DB, opcjonalnie wzbogacony o statystyki z 
 
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from apps.listings.models import Listing
 from apps.location_intelligence.models import AreaSummaryCache, NearbyPlaceCache
+
+logger = logging.getLogger(__name__)
 
 SUMMARY_TTL = timedelta(days=7)
 
@@ -110,14 +114,37 @@ def ensure_area_summary(listing: Listing, *, force: bool = False) -> str | None:
 
     payload = _nearby_payload_for_listing(listing)
     body = compose_area_summary_body(listing, payload)
-    AreaSummaryCache.objects.update_or_create(
-        listing=listing,
-        defaults={
-            "body": body,
-            "fetched_at": timezone.now(),
-            "meta": {"version": 1},
-        },
-    )
+    try:
+        with transaction.atomic():
+            AreaSummaryCache.objects.update_or_create(
+                listing=listing,
+                defaults={
+                    "body": body,
+                    "fetched_at": timezone.now(),
+                    "meta": {"version": 1},
+                },
+            )
+    except IntegrityError:
+        # Stale PK sequence (post-import) — repair sequence then retry once.
+        logger.warning("AreaSummaryCache insert hit IntegrityError; resetting PK sequence and retrying")
+        try:
+            from django.db import connection
+            with connection.cursor() as cur:
+                cur.execute(
+                    "SELECT setval(pg_get_serial_sequence('location_intelligence_areasummarycache', 'id'), "
+                    "COALESCE((SELECT MAX(id) FROM location_intelligence_areasummarycache), 1))"
+                )
+            with transaction.atomic():
+                AreaSummaryCache.objects.update_or_create(
+                    listing=listing,
+                    defaults={
+                        "body": body,
+                        "fetched_at": timezone.now(),
+                        "meta": {"version": 1},
+                    },
+                )
+        except Exception:
+            logger.exception("AreaSummaryCache retry after sequence reset failed")
     return body
 
 
