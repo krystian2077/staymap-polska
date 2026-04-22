@@ -112,6 +112,7 @@ DATABASES = {
     )
 }
 DATABASES["default"]["ENGINE"] = "django.contrib.gis.db.backends.postgis"
+DATABASES["default"].setdefault("CONN_MAX_AGE", 600)  # reuse DB connections for 10 min
 
 CACHES = {
     "default": {

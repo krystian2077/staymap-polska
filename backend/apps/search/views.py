@@ -1,6 +1,10 @@
-﻿import logging
+﻿import hashlib
+import json
+import logging
 from urllib.parse import urlencode
 import unicodedata
+
+from django.core.cache import cache
 
 from django.db import models
 
@@ -408,6 +412,13 @@ class SearchViewSet(ViewSet):
             except (TypeError, ValueError):
                 raise ValidationError(f"limit musi byÄ‡ liczbÄ… caĹ‚kowitÄ… 1â€“{MAX_MAP_PINS}")
 
+        cache_key = "map_pins:" + hashlib.md5(
+            json.dumps({**cache_params, "_limit": limit}, sort_keys=True, default=str).encode()
+        ).hexdigest()
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         try:
             qs = SearchOrchestrator.build_map_queryset(cache_params)[:limit]
             pins = []
@@ -431,7 +442,9 @@ class SearchViewSet(ViewSet):
                         "listing_type": row.listing_type or {},
                     }
                 )
-            return Response({"data": pins, "meta": {"count": len(pins)}})
+            payload = {"data": pins, "meta": {"count": len(pins)}}
+            cache.set(cache_key, payload, 120)  # 2 min cache
+            return Response(payload)
         except Exception as exc:
             import traceback
             tb = traceback.format_exc()
