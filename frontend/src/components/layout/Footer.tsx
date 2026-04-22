@@ -82,8 +82,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 flex flex-col gap-3 border-t border-[#e4ebe7] pt-5 text-center text-xs text-[#7a8f84] sm:flex-row sm:items-center sm:justify-between sm:text-left">
-          <p>© {new Date().getFullYear()} StayMap Polska. Wszystkie prawa zastrzeżone.</p>
-          <p>Projekt i technologia: Forest Premium Design System</p>
+          <p>© {new Date().getFullYear()} StayMap Polska. Krystian Potaczek. Wszystkie prawa zastrzeżone.</p>
         </div>
       </div>
     </footer>
