@@ -4,7 +4,7 @@ import logging
 from datetime import timedelta
 from typing import Any
 
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from apps.listings.models import Listing
@@ -156,6 +156,26 @@ def get_nearby_places(
                     "fetched_at": timezone.now(),
                 },
             )
+    except IntegrityError:
+        logger.warning("NearbyPlaceCache IntegrityError — resetting PK sequence and retrying")
+        try:
+            from django.db import connection
+            with connection.cursor() as cur:
+                cur.execute(
+                    "SELECT setval(pg_get_serial_sequence('location_intelligence_nearbyplacecache', 'id'), "
+                    "COALESCE((SELECT MAX(id) FROM location_intelligence_nearbyplacecache), 1))"
+                )
+            with transaction.atomic():
+                NearbyPlaceCache.objects.update_or_create(
+                    listing=listing,
+                    defaults={
+                        "radius_m": radius_m,
+                        "payload": payload,
+                        "fetched_at": timezone.now(),
+                    },
+                )
+        except Exception:
+            logger.exception("NearbyPlaceCache retry after sequence reset failed")
     except Exception as e:
         logger.exception("NearbyPlaceCache save failed: %s", e)
 
