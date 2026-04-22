@@ -338,44 +338,44 @@ class SearchViewSet(ViewSet):
         cache_params = _search_params_for_cache(params)
         try:
             ordered_ids = SearchOrchestrator.get_ordered_ids(cache_params)
+            start = decode_offset(request.query_params.get("cursor"))
+            end = min(start + page_size, len(ordered_ids))
+            page_ids = ordered_ids[start:end]
+
+            preserved = {pk: i for i, pk in enumerate(page_ids)}
+            img_qs = ListingImage.objects.order_by("-is_cover", "sort_order", "id")
+            qs = (
+                Listing.objects.filter(id__in=page_ids)
+                .filter(status__in=PUBLIC_SEARCH_STATUSES)
+                .select_related("location", "host__user")
+                .prefetch_related(Prefetch("images", queryset=img_qs))
+                .defer("description")
+            )
+            rows = list(qs)
+            rows.sort(key=lambda r: preserved[r.id])
+            _attach_distance(rows, cache_params, page_ids)
+
+            ser = ListingSearchSerializer(rows, many=True, context={"request": request})
+            next_cursor = encode_offset(end) if end < len(ordered_ids) else None
+            prev_cursor = encode_offset(max(0, start - page_size)) if start > 0 else None
+            return Response(
+                {
+                    "data": ser.data,
+                    "meta": {
+                        "next": _url_with_cursor(request, next_cursor) if next_cursor else None,
+                        "previous": _url_with_cursor(request, prev_cursor) if prev_cursor else None,
+                        "count": len(ordered_ids),
+                    },
+                }
+            )
         except Exception as exc:
             import traceback
             tb = traceback.format_exc()
-            logger.exception("Search list: get_ordered_ids crashed, params=%s", cache_params)
+            logger.exception("Search list crashed, params=%s", cache_params)
             return Response(
                 {"error": {"code": "SEARCH_CRASH", "message": str(exc), "traceback": tb, "params": str(cache_params)}},
                 status=500,
             )
-        start = decode_offset(request.query_params.get("cursor"))
-        end = min(start + page_size, len(ordered_ids))
-        page_ids = ordered_ids[start:end]
-
-        preserved = {pk: i for i, pk in enumerate(page_ids)}
-        img_qs = ListingImage.objects.order_by("-is_cover", "sort_order", "id")
-        qs = (
-            Listing.objects.filter(id__in=page_ids)
-            .filter(status__in=PUBLIC_SEARCH_STATUSES)
-            .select_related("location", "host__user")
-            .prefetch_related(Prefetch("images", queryset=img_qs))
-            .defer("description")
-        )
-        rows = list(qs)
-        rows.sort(key=lambda r: preserved[r.id])
-        _attach_distance(rows, cache_params, page_ids)
-
-        ser = ListingSearchSerializer(rows, many=True, context={"request": request})
-        next_cursor = encode_offset(end) if end < len(ordered_ids) else None
-        prev_cursor = encode_offset(max(0, start - page_size)) if start > 0 else None
-        return Response(
-            {
-                "data": ser.data,
-                "meta": {
-                    "next": _url_with_cursor(request, next_cursor) if next_cursor else None,
-                    "previous": _url_with_cursor(request, prev_cursor) if prev_cursor else None,
-                    "count": len(ordered_ids),
-                },
-            }
-        )
 
     @extend_schema(
         summary="Piny mapy",
@@ -408,29 +408,38 @@ class SearchViewSet(ViewSet):
             except (TypeError, ValueError):
                 raise ValidationError(f"limit musi byÄ‡ liczbÄ… caĹ‚kowitÄ… 1â€“{MAX_MAP_PINS}")
 
-        qs = SearchOrchestrator.build_map_queryset(cache_params)[:limit]
-        pins = []
-        for row in qs:
-            loc = row.location
-            if not loc:
-                continue
-            p = loc.point
-            if p is None:
-                continue
-            pins.append(
-                {
-                    "id": str(row.id),
-                    "lat": p.y,
-                    "lng": p.x,
-                    "price": str(row.base_price),
-                    "slug": row.slug,
-                    "title": row.title,
-                    "city": loc.city or "",
-                    "average_rating": float(row.average_rating) if row.average_rating is not None else None,
-                    "listing_type": row.listing_type or {},
-                }
+        try:
+            qs = SearchOrchestrator.build_map_queryset(cache_params)[:limit]
+            pins = []
+            for row in qs:
+                loc = row.location
+                if not loc:
+                    continue
+                p = loc.point
+                if p is None:
+                    continue
+                pins.append(
+                    {
+                        "id": str(row.id),
+                        "lat": p.y,
+                        "lng": p.x,
+                        "price": str(row.base_price),
+                        "slug": row.slug,
+                        "title": row.title,
+                        "city": loc.city or "",
+                        "average_rating": float(row.average_rating) if row.average_rating is not None else None,
+                        "listing_type": row.listing_type or {},
+                    }
+                )
+            return Response({"data": pins, "meta": {"count": len(pins)}})
+        except Exception as exc:
+            import traceback
+            tb = traceback.format_exc()
+            logger.exception("Search map_pins crashed, params=%s", cache_params)
+            return Response(
+                {"error": {"code": "MAP_PINS_CRASH", "message": str(exc), "traceback": tb, "params": str(cache_params)}},
+                status=500,
             )
-        return Response({"data": pins, "meta": {"count": len(pins)}})
 
     @extend_schema(summary="Liczba ofert w regionach homepage")
     @action(detail=False, methods=["get"], url_path="region-counts")
