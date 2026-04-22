@@ -125,9 +125,9 @@ export function Navbar() {
         return;
       }
       if (guestMobileShell) {
-        document.documentElement.style.setProperty("--nav-h", scrolled ? "54px" : "58px");
+        document.documentElement.style.setProperty("--nav-h", scrolled ? "62px" : "68px");
       } else {
-        document.documentElement.style.setProperty("--nav-h", scrolled ? "72px" : "76px");
+        document.documentElement.style.setProperty("--nav-h", scrolled ? "82px" : "88px");
       }
     };
     applyNavH();
@@ -270,18 +270,18 @@ export function Navbar() {
          "sticky top-0 z-[500] border-b border-gray-200 bg-white shadow-[0_6px_24px_-12px_rgba(0,0,0,0.18)] transition-all duration-500",
          "dark:border-brand-border dark:bg-[var(--bg2)] dark:shadow-[0_6px_24px_-12px_rgba(0,0,0,0.45)]",
          guestMobileShell
-           ? "h-[58px] sm:h-[62px] xl:h-[96px]"
-           : "h-[76px] sm:h-[82px] xl:h-[96px]",
+           ? "h-[68px] sm:h-[68px] xl:h-[96px]"
+           : "h-[88px] sm:h-[88px] xl:h-[96px]",
          scrolled &&
            (guestMobileShell
-             ? "h-[54px] shadow-[0_10px_28px_-14px_rgba(0,0,0,0.24)] sm:h-[58px] xl:h-[86px]"
-             : "h-[72px] shadow-[0_10px_28px_-14px_rgba(0,0,0,0.24)] sm:h-[76px] xl:h-[86px]")
+             ? "h-[62px] shadow-[0_10px_28px_-14px_rgba(0,0,0,0.24)] sm:h-[62px] xl:h-[86px]"
+             : "h-[82px] shadow-[0_10px_28px_-14px_rgba(0,0,0,0.24)] sm:h-[82px] xl:h-[86px]")
        )}
      >
         <div className="mx-auto flex h-full w-full max-w-[1680px] items-center justify-between px-4 sm:px-6 lg:px-8 xl:px-10">
           <Link href="/" className="group flex items-end leading-none transition-all duration-300 hover:scale-[1.03] active:scale-95">
-            <span className="text-[24px] font-[900] tracking-[-1px] text-[#0a2e1a] sm:text-[28px] xl:text-[30px] dark:text-[var(--brand-dark)]">StayMap</span>
-            <span className="ml-0.5 text-[28px] leading-none text-[#16a34a] transition-all duration-500 group-hover:ml-1.5 group-hover:scale-150 sm:text-[32px] xl:text-[36px] dark:text-brand">.</span>
+            <span className="text-[27px] font-[900] tracking-[-1px] text-[#0a2e1a] sm:text-[28px] xl:text-[30px] dark:text-[var(--brand-dark)]">StayMap</span>
+            <span className="ml-0.5 text-[31px] leading-none text-[#16a34a] transition-all duration-500 group-hover:ml-1.5 group-hover:scale-150 sm:text-[32px] xl:text-[36px] dark:text-brand">.</span>
          </Link>
 
           <nav className="hidden h-full flex-nowrap items-center gap-0 xl:flex xl:gap-[2px]" aria-label="Nawigacja główna">
@@ -387,7 +387,7 @@ export function Navbar() {
 
          <button
            type="button"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[#e4ebe7] bg-white text-[#0a2e1a] shadow-md transition-all duration-300 active:scale-95 sm:h-12 sm:w-12 xl:hidden hover:border-[#16a34a]/30 hover:shadow-lg dark:border-brand-border dark:bg-[var(--bg3)] dark:text-[var(--foreground)]"
+            className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-[#e4ebe7] bg-white text-[#0a2e1a] shadow-md transition-all duration-300 active:scale-95 xl:hidden hover:border-[#16a34a]/30 hover:shadow-lg dark:border-brand-border dark:bg-[var(--bg3)] dark:text-[var(--foreground)]"
            aria-label="Otwórz menu"
            aria-expanded={menuOpen}
            aria-controls="mobile-main-nav"
