@@ -167,7 +167,7 @@ export function AiSection() {
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-500/65 opacity-40 motion-reduce:animate-none" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-violet-500" />
                   </span>
-                  <span className="tracking-wide">Analizuję 2 400+ ofert...</span>
+                  <span className="tracking-wide">Analizuję 200+ ofert...</span>
                 </div>
 
                 <div className="relative mt-5">

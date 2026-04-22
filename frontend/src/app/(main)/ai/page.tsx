@@ -147,7 +147,7 @@ function AIProcessingState({
                   />
                 ))}
               </div>
-              <span className="text-xs text-[rgba(255,255,255,.5)]">Filtruje 2 400+ ofert</span>
+              <span className="text-xs text-[rgba(255,255,255,.5)]">Filtruje 200+ ofert</span>
             </div>
           )}
 

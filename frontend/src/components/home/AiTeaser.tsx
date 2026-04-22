@@ -132,7 +132,7 @@ export function AiTeaser() {
             <span className="h-[7px] w-[7px] animate-[dotBounce_1s_infinite] rounded-full bg-[#a78bfa]" />
             <span className="h-[7px] w-[7px] animate-[dotBounce_1s_.15s_infinite] rounded-full bg-[#a78bfa]" />
             <span className="h-[7px] w-[7px] animate-[dotBounce_1s_.3s_infinite] rounded-full bg-[#a78bfa]" />
-            Analizuje 2 400+ ofert...
+            Analizuje 200+ ofert...
           </div>
 
           <div className="mb-3 flex flex-wrap gap-1.5">

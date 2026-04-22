@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const STATS = [
-  { value: "2 400+", label: "ofert w Polsce" },
+  { value: "200+", label: "ofert w Polsce" },
   { value: "98%", label: "zadowolonych gości" },
   { value: "16", label: "trybów podróży AI" },
   { value: "24/7", label: "wsparcie klientów" },

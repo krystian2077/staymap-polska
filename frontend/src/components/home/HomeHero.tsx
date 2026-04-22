@@ -46,7 +46,7 @@ export function HomeHero() {
         className="animate-fade-up relative mt-10 flex flex-wrap items-center justify-center gap-8 text-sm font-medium text-gray-400"
         style={{ animationDelay: "480ms" }}
       >
-        {["2 400+ ofert", "Bezpieczne płatności BLIK", "Bez ukrytych opłat", "Wsparcie 24/7"].map(
+        {["200+ ofert", "Bezpieczne płatności BLIK", "Bez ukrytych opłat", "Wsparcie 24/7"].map(
           (t) => (
             <span key={t} className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">

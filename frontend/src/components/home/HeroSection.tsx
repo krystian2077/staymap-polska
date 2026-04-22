@@ -123,7 +123,7 @@ export function HeroSection() {
           <span className="badge-dot-premium h-2.5 w-2.5 rounded-full bg-gradient-to-br from-[#10b981] via-[#059669] to-[#047857] sm:h-3 sm:w-3" />
           <span className="badge-text-premium font-bold tracking-wide">Odkryj Polskę od nowa</span>
           <span className="text-[#9ca3af] font-light">·</span>
-          <span className="badge-text-premium text-[#4b5563]">2 400+ ofert</span>
+          <span className="badge-text-premium text-[#4b5563]">200+ ofert</span>
         </div>
 
         <h1 className="a1 mb-2 mt-6 text-[clamp(32px,9vw,96px)] font-black leading-[.98] tracking-[-1.5px] text-[#0a2e1a] sm:mb-[10px] sm:mt-14 sm:tracking-[-4px] md:mt-16">
