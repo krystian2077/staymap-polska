@@ -44,3 +44,7 @@ if env.bool("USE_S3", default=False) and _bucket:
     AWS_DEFAULT_ACL = "public-read"
     AWS_S3_FILE_OVERWRITE = False
     AWS_QUERYSTRING_AUTH = False
+    # R2 public domain — ustaw gdy bucket ma włączony public access
+    _custom_domain = env("AWS_S3_CUSTOM_DOMAIN", default="")
+    if _custom_domain:
+        AWS_S3_CUSTOM_DOMAIN = _custom_domain
