@@ -39,7 +39,7 @@ function SidebarBadge({
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mb-2 mt-7 px-4 text-[10px] font-bold uppercase tracking-[.18em] text-brand-dark/35 first:mt-1 dark:text-brand-light/40">
+    <p className="mb-1.5 mt-7 px-4 text-[10.5px] font-bold uppercase tracking-[.16em] text-brand-dark/35 first:mt-1 dark:text-brand-light/40">
       {children}
     </p>
   );
@@ -194,27 +194,27 @@ function Item({ id, href, icon, label, badge, badgeKind, activeItem }: ItemProps
       <motion.div
         whileTap={{ scale: 0.98 }}
         className={cn(
-          "relative mb-1 flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition-all duration-200",
+          "relative mb-1 flex cursor-pointer items-center gap-3.5 rounded-xl px-4 py-3 text-[14.5px] font-medium transition-all duration-200",
           active
             ? "bg-brand/[.08] font-semibold text-brand-dark dark:bg-brand/15 dark:text-brand-light"
-            : "text-brand-dark/70 hover:bg-brand-muted/60 hover:text-brand-dark dark:text-[var(--text2)] dark:hover:bg-[var(--bg3)] dark:hover:text-[var(--foreground)]"
+            : "text-brand-dark/65 hover:bg-brand-muted/60 hover:text-brand-dark dark:text-[var(--text2)] dark:hover:bg-[var(--bg3)] dark:hover:text-[var(--foreground)]"
         )}
       >
         <AnimatePresence>
           {active && (
             <motion.span
               layoutId="sidebar-active-indicator"
-              className="absolute -left-3 top-1/2 h-7 w-1 -translate-y-1/2 rounded-r-full bg-brand"
+              className="absolute -left-4 top-1/2 h-8 w-[3px] -translate-y-1/2 rounded-r-full bg-brand"
               transition={{ type: "spring", stiffness: 400, damping: 40 }}
             />
           )}
         </AnimatePresence>
         <span
           className={cn(
-            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors",
+            "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors",
             active
-              ? "bg-brand text-white shadow-sm shadow-brand/30"
-              : "bg-brand-muted/50 text-brand-dark/60 group-hover:bg-white group-hover:text-brand dark:bg-[var(--bg3)] dark:text-[var(--text2)]"
+              ? "bg-brand text-white shadow-md shadow-brand/25"
+              : "bg-brand-muted/60 text-brand-dark/55 group-hover:bg-brand/10 group-hover:text-brand dark:bg-[var(--bg3)] dark:text-[var(--text2)]"
           )}
         >
           <NavIcon name={icon} />
@@ -250,7 +250,7 @@ export function HostSidebar({ activeItem }: { activeItem: string }) {
   return (
     <aside className="sticky top-16 flex h-[calc(100vh-4rem)] w-full shrink-0 flex-col overflow-y-auto border-r border-brand-dark/[.04] bg-white custom-scrollbar dark:border-brand-border/45 dark:bg-[var(--bg2)]">
       {/* Profile card */}
-      <div className="px-5 pb-5 pt-6">
+      <div className="px-4 pb-4 pt-6">
         <motion.button
           whileHover={{ y: -2 }}
           whileTap={{ scale: 0.98 }}
@@ -293,7 +293,7 @@ export function HostSidebar({ activeItem }: { activeItem: string }) {
         </motion.button>
       </div>
 
-      <nav className="flex flex-1 flex-col px-5 pb-8">
+      <nav className="flex flex-1 flex-col px-4 pb-8">
         <SectionLabel>Główne</SectionLabel>
         <Item id="dashboard" href="/host/dashboard" icon="dashboard" label="Dashboard" activeItem={activeItem} />
         <Item id="messages" href="/host/messages" icon="messages" label="Wiadomości" badge={unreadTotal > 0 ? unreadTotal : null} activeItem={activeItem} />
