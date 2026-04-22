@@ -41,7 +41,7 @@ export function ListingStickyHeader({ listing }: Props) {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -100, opacity: 0 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="fixed inset-x-0 top-0 z-[100] border-b border-gray-200 bg-white/90 shadow-sm backdrop-blur-md"
+          className="fixed inset-x-0 top-0 z-[100] hidden border-b border-gray-200 bg-white/90 shadow-sm backdrop-blur-md sm:block"
         >
           <div className="mx-auto flex max-w-[1600px] items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex items-center gap-4 overflow-hidden">
