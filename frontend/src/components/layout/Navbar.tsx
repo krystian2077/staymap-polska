@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { api } from "@/lib/api";
+import { api, apiUrl } from "@/lib/api";
 import { clearAuthTokens, getAccessToken } from "@/lib/authStorage";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useMessagingStore } from "@/lib/store/messagingStore";
@@ -74,6 +74,22 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+async function fetchWishlistCount(): Promise<number> {
+  const token = getAccessToken();
+  if (!token) return 0;
+  try {
+    const res = await fetch(apiUrl("/api/v1/wishlist/"), {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return 0;
+    const j = (await res.json()) as { data?: unknown[] };
+    return Array.isArray(j.data) ? j.data.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -82,6 +98,7 @@ export function Navbar() {
   const logout = useAuthStore((s) => s.logout);
   const unreadTotal = useMessagingStore((s) => s.unreadTotal);
   const setUnreadTotal = useMessagingStore((s) => s.setUnreadTotal);
+  const [wishCount, setWishCount] = useState(0);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -196,6 +213,24 @@ export function Navbar() {
   }, [mounted, user, setUnreadTotal]);
 
   useEffect(() => {
+    if (!mounted || !user) {
+      setWishCount(0);
+      return;
+    }
+    let cancelled = false;
+    const tick = async () => {
+      const n = await fetchWishlistCount();
+      if (!cancelled) setWishCount(n);
+    };
+    void tick();
+    const id = setInterval(tick, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [mounted, user]);
+
+  useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
 
@@ -279,8 +314,17 @@ export function Navbar() {
 
           <nav className="hidden h-full flex-nowrap items-center gap-0 xl:flex xl:gap-[2px]" aria-label="Nawigacja główna">
            {navItems.map((item) => (
-             <Link key={item.href} href={item.href} className={linkClass(item.href, item.ai)}>
-               {item.label}
+             <Link key={item.href} href={item.href} className={cn(linkClass(item.href, item.ai), item.href === "/wishlist" && "text-[#dc2626] hover:text-[#b91c1c] dark:text-red-400 dark:hover:text-red-300")}>
+               {item.href === "/wishlist" ? (
+                 <span className="flex items-center gap-1.5">
+                   {item.label}
+                   {wishCount > 0 && (
+                     <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#dc2626] px-1 text-[10px] font-bold text-white shadow-sm">
+                       {wishCount > 99 ? "99+" : wishCount}
+                     </span>
+                   )}
+                 </span>
+               ) : item.label}
                {!item.ai && (
                  <span className="absolute bottom-[14px] left-3 right-3 h-[3px] origin-left scale-x-0 rounded-full bg-gradient-to-r from-[#16a34a]/50 to-[#22c55e]/50 transition-transform duration-300 group-hover:scale-x-100" />
                )}
@@ -443,10 +487,16 @@ export function Navbar() {
                  "flex min-h-[48px] items-center gap-3 rounded-[16px] px-4 py-3 text-[16px] font-bold transition-all duration-300",
                  item.ai
                    ? "text-[#6d28d9] hover:bg-violet-50 hover:text-[#5b21b6] active:scale-[0.99] dark:text-violet-300 dark:hover:bg-violet-950/50"
+                   : item.href === "/wishlist"
+                   ? "text-[#dc2626] hover:bg-red-50 hover:text-[#b91c1c] dark:text-red-400 dark:hover:bg-red-950/50"
                    : "text-[#0f1f18] hover:bg-[#eef6f0] hover:text-[#0a0f0d] dark:text-zinc-100 dark:hover:bg-zinc-800",
                  isActive(pathname, item.href) &&
                    !item.ai &&
-                   "bg-[#ecfdf3] text-[#15803d] font-extrabold dark:bg-emerald-950/70 dark:text-emerald-300"
+                   item.href !== "/wishlist" &&
+                   "bg-[#ecfdf3] text-[#15803d] font-extrabold dark:bg-emerald-950/70 dark:text-emerald-300",
+                 isActive(pathname, item.href) &&
+                   item.href === "/wishlist" &&
+                   "bg-red-50 font-extrabold dark:bg-red-950/50"
                )}
              >
                <NavMenuIcon
@@ -454,10 +504,21 @@ export function Navbar() {
                  className={
                    item.ai
                      ? "text-[#7c3aed] dark:text-violet-300"
+                     : item.href === "/wishlist"
+                     ? "text-[#dc2626] dark:text-red-400"
                      : "text-[#1e4d32] dark:text-zinc-300"
                  }
                />
-               {item.label}
+               {item.href === "/wishlist" ? (
+                 <span className="flex flex-1 items-center justify-between">
+                   {item.label}
+                   {wishCount > 0 && (
+                     <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#dc2626] px-1.5 text-[10px] font-bold text-white shadow-sm">
+                       {wishCount > 99 ? "99+" : wishCount}
+                     </span>
+                   )}
+                 </span>
+               ) : item.label}
              </Link>
            ))}
 
