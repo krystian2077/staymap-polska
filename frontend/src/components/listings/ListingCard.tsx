@@ -2,13 +2,14 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { api } from "@/lib/api";
 import { getAccessToken } from "@/lib/authStorage";
 import { stubListingFromSearch } from "@/lib/listingAdapters";
 import { publicMediaUrl } from "@/lib/mediaUrl";
 import { useCompareStore } from "@/lib/store/compareStore";
+import { useWishlistStore } from "@/lib/store/wishlistStore";
 import type { SearchListing } from "@/lib/searchTypes";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +46,11 @@ export function ListingCard({
   showWishlist = true,
   onWishlistToggle,
 }: Props) {
-  const [liked, setLiked] = useState(false);
+  const wishlistIds = useWishlistStore((s) => s.ids);
+  const loadWishlist = useWishlistStore((s) => s.load);
+  const addToWishlist = useWishlistStore((s) => s.add);
+  const removeFromWishlist = useWishlistStore((s) => s.remove);
+  const liked = wishlistIds.has(listing.id);
   const [ripple, setRipple] = useState(false);
   const compareListings = useCompareStore((s) => s.listings);
   const addCompare = useCompareStore((s) => s.addListing);
@@ -59,6 +64,10 @@ export function ListingCard({
   const priceNum = parseFloat(listing.base_price);
   const priceOk = !Number.isNaN(priceNum);
   const coverSrc = publicMediaUrl(listing.cover_image);
+
+  useEffect(() => {
+    void loadWishlist();
+  }, [loadWishlist]);
 
   const cacheListing = () => {
     if (typeof window === "undefined" || !listing?.slug) return;
@@ -80,12 +89,12 @@ export function ListingCard({
     try {
       if (liked) {
         await api.delete(`/api/v1/wishlist/${listing.id}/`);
-        setLiked(false);
+        removeFromWishlist(listing.id);
         onWishlistToggle?.(listing.id, false);
         toast.success("Usunięto z listy życzeń");
       } else {
         await api.post("/api/v1/wishlist/", { listing_id: listing.id });
-        setLiked(true);
+        addToWishlist(listing.id);
         onWishlistToggle?.(listing.id, true);
         toast.success("Dodano do listy życzeń");
       }

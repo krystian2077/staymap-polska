@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
+import toast from "react-hot-toast";
+import { api } from "@/lib/api";
+import { getAccessToken } from "@/lib/authStorage";
 import { publicMediaUrl } from "@/lib/mediaUrl";
 import type { SearchListing } from "@/lib/searchTypes";
+import { useWishlistStore } from "@/lib/store/wishlistStore";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -15,8 +19,16 @@ type Props = {
 };
 
 export function ListingCard({ listing, badge = "Polecane", badgeColor = "#16a34a", emojiFallback = "🏡", index = 0 }: Props) {
-  const [liked, setLiked] = useState(false);
+  const ids = useWishlistStore((s) => s.ids);
+  const load = useWishlistStore((s) => s.load);
+  const addToStore = useWishlistStore((s) => s.add);
+  const removeFromStore = useWishlistStore((s) => s.remove);
+  const liked = ids.has(listing.id);
   const cover = publicMediaUrl(listing.cover_image);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const cacheListing = () => {
     if (typeof window === "undefined" || !listing?.slug) return;
@@ -62,10 +74,27 @@ export function ListingCard({ listing, badge = "Polecane", badgeColor = "#16a34a
         </span>
         <button
           type="button"
-          onClick={(e) => {
+          onClick={async (e) => {
             e.preventDefault();
             e.stopPropagation();
-            setLiked((v) => !v);
+            const token = typeof window !== "undefined" ? getAccessToken() : null;
+            if (!token) {
+              toast.error("Zaloguj się, aby dodać do listy życzeń.");
+              return;
+            }
+            try {
+              if (liked) {
+                await api.delete(`/api/v1/wishlist/${listing.id}/`);
+                removeFromStore(listing.id);
+                toast.success("Usunięto z listy życzeń");
+              } else {
+                await api.post("/api/v1/wishlist/", { listing_id: listing.id });
+                addToStore(listing.id);
+                toast.success("Dodano do listy życzeń");
+              }
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : "Błąd listy życzeń");
+            }
           }}
           className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border border-white/40 bg-white/90 text-sm backdrop-blur-md transition-transform sm:h-9 sm:w-9 sm:hover:scale-110"
           aria-label="Ulubione"
