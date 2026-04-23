@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { api, apiUrl } from "@/lib/api";
+import { api } from "@/lib/api";
 import { clearAuthTokens, getAccessToken } from "@/lib/authStorage";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useMessagingStore } from "@/lib/store/messagingStore";
 import { useHostNotificationStore } from "@/lib/store/hostNotificationStore";
+import { useWishlistStore } from "@/lib/store/wishlistStore";
 import { shouldShowGuestMobileNav } from "@/lib/guestMobileNav";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -75,22 +76,6 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-async function fetchWishlistCount(): Promise<number> {
-  const token = getAccessToken();
-  if (!token) return 0;
-  try {
-    const res = await fetch(apiUrl("/api/v1/wishlist/"), {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
-    if (!res.ok) return 0;
-    const j = (await res.json()) as { data?: unknown[] };
-    return Array.isArray(j.data) ? j.data.length : 0;
-  } catch {
-    return 0;
-  }
-}
-
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -100,7 +85,9 @@ export function Navbar() {
   const unreadTotal = useMessagingStore((s) => s.unreadTotal);
   const setUnreadTotal = useMessagingStore((s) => s.setUnreadTotal);
   const hostNotifCount = useHostNotificationStore((s) => s.unreadCount);
-  const [wishCount, setWishCount] = useState(0);
+  const wishlistIds = useWishlistStore((s) => s.ids);
+  const loadWishlist = useWishlistStore((s) => s.load);
+  const wishCount = wishlistIds.size;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
@@ -215,22 +202,8 @@ export function Navbar() {
   }, [mounted, user, setUnreadTotal]);
 
   useEffect(() => {
-    if (!mounted || !user) {
-      setWishCount(0);
-      return;
-    }
-    let cancelled = false;
-    const tick = async () => {
-      const n = await fetchWishlistCount();
-      if (!cancelled) setWishCount(n);
-    };
-    void tick();
-    const id = setInterval(tick, 60_000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, [mounted, user]);
+    if (mounted && user) void loadWishlist();
+  }, [mounted, user, loadWishlist]);
 
   useEffect(() => {
     setMenuOpen(false);
