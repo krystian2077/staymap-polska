@@ -310,14 +310,14 @@ export function Navbar() {
                    )}
                  </span>
                ) : item.label}
-               {!item.ai && (
-                 <span className={cn(
+               <span className={cn(
                    "absolute bottom-[14px] left-3 right-3 h-[3px] origin-left scale-x-0 rounded-full bg-gradient-to-r transition-transform duration-300 group-hover:scale-x-100",
-                   item.href === "/wishlist"
+                   item.ai
+                     ? "from-[#7c3aed]/60 to-[#a855f7]/60"
+                     : item.href === "/wishlist"
                      ? "from-[#dc2626]/60 to-[#ef4444]/60"
                      : "from-[#16a34a]/50 to-[#22c55e]/50"
                  )} />
-               )}
              </Link>
            ))}
          </nav>
