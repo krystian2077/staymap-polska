@@ -9,6 +9,7 @@ import { useAuthStore } from "@/lib/store/authStore";
 import { useMessagingStore } from "@/lib/store/messagingStore";
 import { useHostNotificationStore } from "@/lib/store/hostNotificationStore";
 import { useWishlistStore } from "@/lib/store/wishlistStore";
+import { useNotifications } from "@/hooks/useNotifications";
 import { shouldShowGuestMobileNav } from "@/lib/guestMobileNav";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -88,6 +89,9 @@ export function Navbar() {
   const wishlistIds = useWishlistStore((s) => s.ids);
   const loadWishlist = useWishlistStore((s) => s.load);
   const wishCount = wishlistIds.size;
+
+  // Utrzymuje aktywne połączenie WS z powiadomieniami na wszystkich stronach (nie tylko /host/*)
+  useNotifications();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);

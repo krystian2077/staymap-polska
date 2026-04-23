@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import { HostMobileNav } from "@/components/host/HostMobileNav";
 import { HostSidebar } from "@/components/host/HostSidebar";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
-import { useNotifications } from "@/hooks/useNotifications";
 import { api, refreshSession } from "@/lib/api";
 import { mapApiConversation, mapBookingToHostBooking } from "@/lib/utils/hostMap";
 import { useHostStore } from "@/lib/store/hostStore";
@@ -68,9 +67,6 @@ export function HostLayoutClient({ children }: { children: React.ReactNode }) {
   const setBookings = useHostStore((s) => s.setBookings);
   const setConversations = useMessagingStore((s) => s.setConversations);
   const seedNotifications = useHostNotificationStore((s) => s.seedNotifications);
-
-  // Utrzymuj aktywne nasluchiwanie WS na wszystkich widokach hosta.
-  useNotifications();
 
   const noSidebar = pathname.startsWith("/host/new-listing");
   const activeItem = useMemo(() => deriveActiveItem(pathname), [pathname]);
