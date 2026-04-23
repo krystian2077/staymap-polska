@@ -35,7 +35,7 @@ export function DateRangePicker({
   }, []);
 
   return (
-    <div className="booking-calendar rounded-xl border border-gray-200 bg-white p-3 sm:p-4">
+    <div className="booking-calendar rounded-xl border border-gray-200 bg-white p-3 sm:p-4 dark:border-brand-border dark:bg-[var(--bg2)]">
       <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-muted">
         Termin pobytu
       </p>
@@ -53,9 +53,9 @@ export function DateRangePicker({
           caption_label: "text-sm font-bold text-brand-dark capitalize",
           nav: "flex items-center gap-1 absolute inset-x-0 top-0 justify-between",
           button_previous:
-            "inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-brand-surface hover:text-brand-dark transition-colors disabled:opacity-40",
+            "inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-brand-surface hover:text-brand-dark transition-colors disabled:opacity-40 dark:border-brand-border dark:text-[var(--text2)] dark:hover:bg-[var(--gs)]",
           button_next:
-            "inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-brand-surface hover:text-brand-dark transition-colors disabled:opacity-40",
+            "inline-flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-brand-surface hover:text-brand-dark transition-colors disabled:opacity-40 dark:border-brand-border dark:text-[var(--text2)] dark:hover:bg-[var(--gs)]",
           chevron: "h-3.5 w-3.5 fill-current",
           weekdays: "flex",
           weekday: "flex-1 text-center text-[11px] font-semibold uppercase text-text-muted pb-1",
@@ -63,7 +63,7 @@ export function DateRangePicker({
           week: "flex",
           day: "flex-1 flex items-center justify-center",
           day_button:
-            "h-9 w-9 flex items-center justify-center rounded-full text-sm font-medium text-text hover:bg-brand-muted transition-colors duration-150",
+            "h-9 w-9 flex items-center justify-center rounded-full text-sm font-medium text-text hover:bg-brand-muted transition-colors duration-150 dark:text-[var(--foreground)] dark:hover:bg-[var(--gs)]",
           selected: "!bg-brand !text-white rounded-full",
           range_start: "!bg-brand !text-white rounded-full",
           range_end: "!bg-brand !text-white rounded-full",

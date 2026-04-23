@@ -56,7 +56,7 @@ export function ListingCard({ listing, badge = "Polecane", badgeColor = "#16a34a
   return (
     <Link
       href={`/listing/${listing.slug}`}
-      className="group block overflow-hidden rounded-[18px] border border-[#e4ebe7] bg-white shadow-[0_10px_30px_-24px_rgba(10,15,13,.3)] transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)] sm:rounded-[22px] sm:hover:-translate-y-[7px] sm:hover:border-[#bbf7d0] sm:hover:shadow-[0_26px_70px_-24px_rgba(10,15,13,.35)]"
+      className="group block overflow-hidden rounded-[18px] border border-[#e4ebe7] bg-white shadow-[0_10px_30px_-24px_rgba(10,15,13,.3)] transition-all duration-300 ease-[cubic-bezier(.16,1,.3,1)] sm:rounded-[22px] sm:hover:-translate-y-[7px] sm:hover:border-[#bbf7d0] sm:hover:shadow-[0_26px_70px_-24px_rgba(10,15,13,.35)] dark:border-brand-border dark:bg-[var(--bg2)] dark:shadow-[0_10px_30px_-24px_rgba(0,0,0,.5)] dark:sm:hover:border-brand/50"
       style={{ animation: `fadeUp .65s ${index * 0.08}s cubic-bezier(.16,1,.3,1) both` }}
       onClick={cacheListing}
     >
@@ -104,20 +104,20 @@ export function ListingCard({ listing, badge = "Polecane", badgeColor = "#16a34a
       </div>
 
       <div className="px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4">
-        <h3 className="mb-1.5 line-clamp-2 text-[14px] font-bold leading-[1.32] text-[#0a0f0d] sm:text-[15px]">{listing.title}</h3>
-        <p className="mb-3 flex items-center gap-1 text-[12px] text-[#6e8378] sm:mb-3.5">
+        <h3 className="mb-1.5 line-clamp-2 text-[14px] font-bold leading-[1.32] text-[#0a0f0d] sm:text-[15px] dark:text-[var(--foreground)]">{listing.title}</h3>
+        <p className="mb-3 flex items-center gap-1 text-[12px] text-[#6e8378] sm:mb-3.5 dark:text-[var(--text3)]">
           <span>📍</span>
           {location}
         </p>
         <div className="flex items-center justify-between">
           <p>
-            <span className="text-[16px] font-extrabold text-[#0a0f0d] sm:text-[17px]">{Number(listing.base_price).toFixed(0)} zł</span>
-            <span className="ml-1 text-[12px] text-[#7a8f84]">/ noc</span>
+            <span className="text-[16px] font-extrabold text-[#0a0f0d] sm:text-[17px] dark:text-[var(--foreground)]">{Number(listing.base_price).toFixed(0)} zł</span>
+            <span className="ml-1 text-[12px] text-[#7a8f84] dark:text-[var(--text3)]">/ noc</span>
           </p>
-          <p className="flex items-center gap-1 text-[13px] font-bold text-[#0a0f0d]">
+          <p className="flex items-center gap-1 text-[13px] font-bold text-[#0a0f0d] dark:text-[var(--foreground)]">
             <span className="text-[#f59e0b]">★</span>
             {rating}
-            <span className="text-[11px] font-medium text-[#7a8f84]">({listing.review_count ?? 0})</span>
+            <span className="text-[11px] font-medium text-[#7a8f84] dark:text-[var(--text3)]">({listing.review_count ?? 0})</span>
           </p>
         </div>
       </div>

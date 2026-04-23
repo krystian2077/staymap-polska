@@ -92,10 +92,10 @@ export default function HostNotificationsPage() {
   }, [items]);
 
   const TYPE_STYLES: Record<string, string> = {
-    booking: "border-l-amber-400 bg-amber-50/50",
-    review: "border-l-purple-400 bg-purple-50/50",
-    message: "border-l-blue-400 bg-blue-50/50",
-    info: "border-l-emerald-400 bg-emerald-50/50",
+    booking: "border-l-amber-400 bg-amber-50/50 dark:bg-amber-950/20 dark:ring-amber-900/30",
+    review: "border-l-purple-400 bg-purple-50/50 dark:bg-purple-950/20 dark:ring-purple-900/30",
+    message: "border-l-blue-400 bg-blue-50/50 dark:bg-blue-950/20 dark:ring-blue-900/30",
+    info: "border-l-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20 dark:ring-emerald-900/30",
   };
 
   return (
@@ -115,16 +115,16 @@ export default function HostNotificationsPage() {
             href={n.href}
             onClick={() => markRead(n.id)}
             className={cn(
-              "block rounded-xl border-l-4 p-4 ring-1 ring-black/[.04] transition-all hover:shadow-md",
-              n.isRead === false && "ring-brand/20 shadow-brand/10",
+              "block rounded-xl border-l-4 p-4 ring-1 ring-black/[.04] transition-all hover:shadow-md dark:ring-white/[.06] dark:hover:shadow-[0_8px_24px_rgba(0,0,0,.35)]",
+              n.isRead === false && "ring-brand/20 shadow-brand/10 dark:ring-brand/30",
               TYPE_STYLES[n.type] ?? ""
             )}
           >
             <div className="flex gap-3">
               <span className="text-2xl">{n.icon}</span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-brand-dark">{n.title}</p>
-                <p className="mt-0.5 text-xs text-text-muted leading-relaxed">{n.body}</p>
+                <p className="text-sm font-bold text-brand-dark dark:text-[var(--foreground)]">{n.title}</p>
+                <p className="mt-0.5 text-xs text-text-muted leading-relaxed dark:text-[var(--text2)]">{n.body}</p>
               </div>
             </div>
           </Link>

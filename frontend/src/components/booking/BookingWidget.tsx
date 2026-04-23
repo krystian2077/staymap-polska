@@ -224,7 +224,7 @@ export function BookingWidget({ listing }: { listing: Listing }) {
   }
 
   return (
-    <div className="group/widget relative rounded-[1.5rem] bg-white/75 p-2 shadow-[0_24px_64px_-24px_rgba(0,0,0,0.22)] backdrop-blur-2xl transition-all duration-700 sm:rounded-[2rem] sm:p-2.5 lg:rounded-[2.5rem] lg:hover:-translate-y-1.5 lg:hover:shadow-[0_65px_130px_-30px_rgba(0,0,0,0.22)]">
+    <div className="group/widget relative rounded-[1.5rem] bg-white/75 p-2 shadow-[0_24px_64px_-24px_rgba(0,0,0,0.22)] backdrop-blur-2xl transition-all duration-700 sm:rounded-[2rem] sm:p-2.5 lg:rounded-[2.5rem] lg:hover:-translate-y-1.5 lg:hover:shadow-[0_65px_130px_-30px_rgba(0,0,0,0.22)] dark:bg-[var(--bg3)]/80">
       {/* Dekoracyjny blask w tle */}
       <div className="absolute -top-32 -right-32 -z-10 h-72 w-72 rounded-full bg-brand/10 blur-[100px] transition-opacity duration-1000 group-hover/widget:opacity-100 opacity-60 animate-pulse" />
       <div className="absolute -bottom-32 -left-32 -z-10 h-72 w-72 rounded-full bg-blue-500/5 blur-[100px] transition-opacity duration-1000 group-hover/widget:opacity-100 opacity-60" />

@@ -43,7 +43,7 @@ export function DatePickerField({
 
   return (
     <>
-      <div className="grid grid-cols-2 overflow-hidden rounded-[1.5rem] bg-white transition-all shadow-sm ring-1 ring-gray-100">
+      <div className="grid grid-cols-2 overflow-hidden rounded-[1.5rem] bg-white transition-all shadow-sm ring-1 ring-gray-100 dark:bg-[var(--bg3)] dark:ring-brand-border/40">
         <button
           type="button"
           onClick={() => {
@@ -51,11 +51,11 @@ export function DatePickerField({
             setOpen(true);
             onCalendarOpen?.();
           }}
-          className={`group relative flex flex-col border-r border-gray-100 px-5 py-4 text-left transition-all hover:bg-gray-50/80 ${
-            activeCell === "in" && open ? "bg-white ring-2 ring-inset ring-brand/20 z-10" : ""
+          className={`group relative flex flex-col border-r border-gray-100 px-5 py-4 text-left transition-all hover:bg-gray-50/80 dark:border-brand-border/30 dark:hover:bg-[var(--bg2)]/50 ${
+            activeCell === "in" && open ? "bg-white ring-2 ring-inset ring-brand/20 z-10 dark:bg-[var(--bg2)]" : ""
           }`}
         >
-          <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-brand transition-colors">
+          <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-brand transition-colors dark:text-[var(--text3)] dark:group-hover:text-brand">
             Przyjazd
           </span>
           <div className="flex items-center gap-2">
@@ -78,11 +78,11 @@ export function DatePickerField({
             setOpen(true);
             onCalendarOpen?.();
           }}
-          className={`group relative flex flex-col px-5 py-4 text-left transition-all hover:bg-gray-50/80 ${
-            activeCell === "out" && open ? "bg-white ring-2 ring-inset ring-brand/20 z-10" : ""
+          className={`group relative flex flex-col px-5 py-4 text-left transition-all hover:bg-gray-50/80 dark:hover:bg-[var(--bg2)]/50 ${
+            activeCell === "out" && open ? "bg-white ring-2 ring-inset ring-brand/20 z-10 dark:bg-[var(--bg2)]" : ""
           }`}
         >
-          <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-brand transition-colors">
+          <span className="mb-1 block text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-brand transition-colors dark:text-[var(--text3)] dark:group-hover:text-brand">
             Wyjazd
           </span>
           <div className="flex items-center gap-2">

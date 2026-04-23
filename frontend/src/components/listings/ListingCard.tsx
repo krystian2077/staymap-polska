@@ -128,12 +128,13 @@ export function ListingCard({
       <div
         className={cn(
           "group relative mb-0.5 flex cursor-pointer gap-3 rounded-[20px] border-[1.5px] bg-white p-3 max-[420px]:flex-col sm:gap-4 sm:p-3.5",
+          "dark:bg-[var(--bg2)]",
           "transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
           selected
-            ? "border-brand bg-brand-surface shadow-[0_8px_24px_rgba(22,163,74,0.12)] z-[2] scale-[1.02]"
+            ? "border-brand bg-brand-surface shadow-[0_8px_24px_rgba(22,163,74,0.12)] z-[2] scale-[1.02] dark:bg-[var(--gs)]"
             : highlighted
-              ? "border-brand/40 bg-brand-surface/50 shadow-md z-[1]"
-              : "border-gray-100/80 hover:border-brand/30 hover:bg-gray-50/50 hover:shadow-lg",
+              ? "border-brand/40 bg-brand-surface/50 shadow-md z-[1] dark:bg-[var(--gs)]/50"
+              : "border-gray-100/80 hover:border-brand/30 hover:bg-gray-50/50 hover:shadow-lg dark:border-brand-border/40 dark:hover:border-brand/50 dark:hover:bg-[var(--bg3)]",
         )}
         onMouseEnter={() => onHover?.(true)}
         onMouseLeave={() => onHover?.(false)}
@@ -218,7 +219,7 @@ export function ListingCard({
                 "min-h-10 rounded-xl px-4 py-2 text-[12px] font-bold transition-all duration-300 max-[420px]:w-full",
                 selected
                   ? "bg-brand text-white shadow-[0_4px_12px_rgba(22,163,74,0.3)]"
-                  : "bg-brand-surface text-brand-dark hover:bg-brand hover:text-white hover:shadow-md active:scale-95",
+                  : "bg-brand-surface text-brand-dark hover:bg-brand hover:text-white hover:shadow-md active:scale-95 dark:bg-[var(--gs)] dark:text-brand dark:hover:bg-brand dark:hover:text-white",
               )}
                 onClick={(e) => {
                   e.stopPropagation();

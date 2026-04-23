@@ -198,12 +198,13 @@ export default function HostMessagesPage() {
         className={cn(
           "grid w-full overflow-hidden rounded-[16px] border border-brand-dark/[.07] bg-white sm:rounded-[24px]",
           "shadow-[0_2px_0_0_rgba(15,23,42,0.03),0_28px_56px_-30px_rgba(15,23,42,0.26),0_0_0_1px_rgba(255,255,255,0.8)_inset]",
+          "dark:border-brand-border/40 dark:bg-[var(--bg2)] dark:shadow-[0_28px_56px_-30px_rgba(0,0,0,0.6)]",
           "md:grid-cols-[minmax(260px,320px)_1fr]",
           "h-[calc(100dvh-var(--nav-h)-1rem)] min-h-[520px] md:h-[min(920px,calc(100dvh-6rem))]"
         )}
       >
         {/* Lista konwersacji */}
-        <div className={cn("flex min-h-0 flex-col border-brand-dark/[.06] bg-gradient-to-b from-[#f6faf8] via-[#fbfcfb] to-[#f0f5f2] md:border-r md:border-brand-dark/[.05]", activeConv ? "hidden md:flex" : "flex")}>
+        <div className={cn("flex min-h-0 flex-col border-brand-dark/[.06] bg-gradient-to-b from-[#f6faf8] via-[#fbfcfb] to-[#f0f5f2] md:border-r md:border-brand-dark/[.05] dark:from-[var(--bg2)] dark:via-[var(--bg2)] dark:to-[var(--bg3)] dark:border-brand-border/40", activeConv ? "hidden md:flex" : "flex")}>
           <div className="relative overflow-hidden border-b border-white/10 bg-gradient-to-br from-[#0c4d26] via-brand-dark to-[#14532d] px-4 py-4 text-white md:px-5">
             <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
             <div className="pointer-events-none absolute -bottom-6 left-1/4 h-20 w-36 rounded-full bg-emerald-400/15 blur-2xl" />
@@ -225,13 +226,13 @@ export default function HostMessagesPage() {
             </div>
           </div>
 
-          <div className="border-b border-brand-dark/[.06] bg-white/60 px-4 py-3 backdrop-blur-sm">
+          <div className="border-b border-brand-dark/[.06] bg-white/60 px-4 py-3 backdrop-blur-sm dark:border-brand-border/30 dark:bg-[var(--bg3)]/60">
             <div className="relative">
               <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[13px] opacity-50">
                 ⌕
               </span>
               <input
-                className="input w-full rounded-xl border-brand-dark/[.08] bg-white py-2.5 pl-10 pr-3 text-[13px] shadow-[0_1px_2px_rgba(15,23,42,0.04)] placeholder:text-text-muted/70 focus:border-brand/35 focus:ring-2 focus:ring-brand/15"
+                className="input w-full rounded-xl border-brand-dark/[.08] bg-white py-2.5 pl-10 pr-3 text-[13px] shadow-[0_1px_2px_rgba(15,23,42,0.04)] placeholder:text-text-muted/70 focus:border-brand/35 focus:ring-2 focus:ring-brand/15 dark:border-brand-border/40 dark:bg-[var(--bg2)] dark:text-[var(--foreground)] dark:placeholder:text-[var(--text3)]"
                 placeholder="Szukaj po gościu lub ofercie…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
@@ -251,10 +252,10 @@ export default function HostMessagesPage() {
                   className={cn(
                     "group flex w-full gap-3 rounded-2xl border px-3 py-3 text-left transition-all duration-200",
                     activeConvId === c.id
-                      ? "border-brand/35 bg-white shadow-[0_12px_36px_-20px_rgba(22,163,74,0.55)] ring-1 ring-brand/15"
+                      ? "border-brand/35 bg-white shadow-[0_12px_36px_-20px_rgba(22,163,74,0.55)] ring-1 ring-brand/15 dark:bg-[var(--bg3)] dark:shadow-[0_12px_36px_-20px_rgba(22,163,74,0.3)]"
                       : c.unread_count > 0
-                        ? "border-brand/18 bg-white/90 shadow-[0_8px_24px_-18px_rgba(22,163,74,0.25)] hover:border-brand/28"
-                        : "border-transparent hover:border-brand-dark/[.08] hover:bg-white/80"
+                        ? "border-brand/18 bg-white/90 shadow-[0_8px_24px_-18px_rgba(22,163,74,0.25)] hover:border-brand/28 dark:bg-[var(--bg3)]/60 dark:hover:bg-[var(--bg3)]"
+                        : "border-transparent hover:border-brand-dark/[.08] hover:bg-white/80 dark:hover:border-brand-border/30 dark:hover:bg-[var(--bg3)]/50"
                   )}
                 >
                   <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-brand-muted to-brand-surface text-[13px] font-bold text-brand-dark ring-2 ring-white shadow-sm">
@@ -311,7 +312,7 @@ export default function HostMessagesPage() {
         </div>
 
         {/* Panel wątku */}
-        <div className={cn("relative min-h-0 flex-col overflow-hidden bg-[#f3f7f5] dark:bg-[var(--bg1)]", activeConv ? "flex" : "hidden md:flex")}>
+        <div className={cn("relative min-h-0 flex-col overflow-hidden bg-[#f3f7f5] dark:bg-[var(--bg3)]", activeConv ? "flex" : "hidden md:flex")}>
           <div
             className="pointer-events-none absolute inset-0 opacity-[0.35]"
             style={{
@@ -324,7 +325,7 @@ export default function HostMessagesPage() {
 
           {activeConv ? (
             <>
-              <header className="relative z-[1] flex flex-col gap-3 border-b border-brand-dark/[.07] bg-white/85 px-3.5 py-3 backdrop-blur-md sm:flex-row sm:items-center sm:gap-4 sm:px-6 sm:py-4">
+              <header className="relative z-[1] flex flex-col gap-3 border-b border-brand-dark/[.07] bg-white/85 px-3.5 py-3 backdrop-blur-md sm:flex-row sm:items-center sm:gap-4 sm:px-6 sm:py-4 dark:border-brand-border/30 dark:bg-[var(--bg2)]/85">
                 <div className="flex min-w-0 flex-1 items-center gap-3.5">
                   <button
                     type="button"
@@ -463,11 +464,11 @@ export default function HostMessagesPage() {
             </>
           ) : (
             <div className="relative z-[1] flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
-              <div className="max-w-md rounded-[28px] border border-white/60 bg-gradient-to-b from-white to-[#f3f7f5] p-10 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.35)] ring-1 ring-brand-dark/[.05] dark:from-[var(--bg2)] dark:to-[var(--bg1)] dark:ring-white/10">
+              <div className="max-w-md rounded-[28px] border border-white/60 bg-gradient-to-b from-white to-[#f3f7f5] p-10 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.35)] ring-1 ring-brand-dark/[.05] dark:from-[var(--bg2)] dark:to-[var(--bg3)] dark:ring-white/10">
                 <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-muted to-emerald-100/80 text-3xl shadow-inner ring-2 ring-white">
                   💬
                 </div>
-                <p className="text-[18px] font-black tracking-tight text-brand-dark md:text-xl">
+                <p className="text-[18px] font-black tracking-tight text-brand-dark md:text-xl dark:text-[var(--foreground)]">
                   Wybierz rozmowę
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-text-muted">
@@ -495,7 +496,7 @@ function ChatInput({
   templateSlot?: ReactNode;
 }) {
   return (
-    <div className="relative z-[2] border-t border-brand-dark/[.07] bg-gradient-to-t from-white via-white to-[#f6faf8] shadow-[0_-12px_40px_-32px_rgba(15,23,42,0.2)] dark:from-[var(--bg2)] dark:via-[var(--bg2)] dark:to-[var(--bg1)]">
+    <div className="relative z-[2] border-t border-brand-dark/[.07] bg-gradient-to-t from-white via-white to-[#f6faf8] shadow-[0_-12px_40px_-32px_rgba(15,23,42,0.2)] dark:from-[var(--bg2)] dark:via-[var(--bg2)] dark:to-[var(--bg3)]">
       {templateSlot ? (
         <div className="border-b border-brand-dark/[.06] bg-gradient-to-b from-[#ecfdf5]/80 via-white to-white px-3 py-3 dark:from-emerald-950/25 dark:via-[var(--bg2)] dark:to-[var(--bg2)] sm:px-5">
           <div className="mx-auto max-w-[960px]">{templateSlot}</div>
