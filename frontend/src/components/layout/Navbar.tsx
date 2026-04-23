@@ -7,6 +7,7 @@ import { api, apiUrl } from "@/lib/api";
 import { clearAuthTokens, getAccessToken } from "@/lib/authStorage";
 import { useAuthStore } from "@/lib/store/authStore";
 import { useMessagingStore } from "@/lib/store/messagingStore";
+import { useHostNotificationStore } from "@/lib/store/hostNotificationStore";
 import { shouldShowGuestMobileNav } from "@/lib/guestMobileNav";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
@@ -98,6 +99,7 @@ export function Navbar() {
   const logout = useAuthStore((s) => s.logout);
   const unreadTotal = useMessagingStore((s) => s.unreadTotal);
   const setUnreadTotal = useMessagingStore((s) => s.setUnreadTotal);
+  const hostNotifCount = useHostNotificationStore((s) => s.unreadCount);
   const [wishCount, setWishCount] = useState(0);
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -324,6 +326,15 @@ export function Navbar() {
                      </span>
                    )}
                  </span>
+               ) : item.href === "/host/dashboard" ? (
+                 <span className="flex items-center gap-1.5">
+                   {item.label}
+                   {hostNotifCount > 0 && (
+                     <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#dc2626] px-1 text-[10px] font-bold text-white shadow-sm">
+                       {hostNotifCount > 99 ? "99+" : hostNotifCount}
+                     </span>
+                   )}
+                 </span>
                ) : item.label}
                {!item.ai && (
                  <span className="absolute bottom-[14px] left-3 right-3 h-[3px] origin-left scale-x-0 rounded-full bg-gradient-to-r from-[#16a34a]/50 to-[#22c55e]/50 transition-transform duration-300 group-hover:scale-x-100" />
@@ -515,6 +526,15 @@ export function Navbar() {
                    {wishCount > 0 && (
                      <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#dc2626] px-1.5 text-[10px] font-bold text-white shadow-sm">
                        {wishCount > 99 ? "99+" : wishCount}
+                     </span>
+                   )}
+                 </span>
+               ) : item.href === "/host/dashboard" ? (
+                 <span className="flex flex-1 items-center justify-between">
+                   {item.label}
+                   {hostNotifCount > 0 && (
+                     <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[#dc2626] px-1.5 text-[10px] font-bold text-white shadow-sm">
+                       {hostNotifCount > 99 ? "99+" : hostNotifCount}
                      </span>
                    )}
                  </span>
