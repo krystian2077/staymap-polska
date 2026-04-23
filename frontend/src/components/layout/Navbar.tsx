@@ -291,7 +291,8 @@ export function Navbar() {
        ai
          ? "mx-1 px-3 py-1 text-[#7c3aed] hover:text-[#6d28d9] hover:scale-105 dark:text-violet-300 dark:hover:text-violet-200"
           : "text-[#1f2937] hover:text-[#0a0f0d] dark:text-zinc-200 dark:hover:text-white",
-       isActive(pathname, href) && !ai && "text-[#16a34a] font-extrabold after:absolute after:bottom-[14px] after:left-3 after:right-3 after:h-[3px] after:rounded-full after:bg-gradient-to-r after:from-[#16a34a] after:to-[#22c55e] after:content-[''] dark:text-brand"
+       isActive(pathname, href) && !ai && href !== "/wishlist" && "text-[#16a34a] font-extrabold after:absolute after:bottom-[14px] after:left-3 after:right-3 after:h-[3px] after:rounded-full after:bg-gradient-to-r after:from-[#16a34a] after:to-[#22c55e] after:content-[''] dark:text-brand",
+       isActive(pathname, href) && !ai && href === "/wishlist" && "font-extrabold after:absolute after:bottom-[14px] after:left-3 after:right-3 after:h-[3px] after:rounded-full after:bg-gradient-to-r after:from-[#dc2626] after:to-[#ef4444] after:content-['']"
      );
 
    return (
@@ -337,7 +338,12 @@ export function Navbar() {
                  </span>
                ) : item.label}
                {!item.ai && (
-                 <span className="absolute bottom-[14px] left-3 right-3 h-[3px] origin-left scale-x-0 rounded-full bg-gradient-to-r from-[#16a34a]/50 to-[#22c55e]/50 transition-transform duration-300 group-hover:scale-x-100" />
+                 <span className={cn(
+                   "absolute bottom-[14px] left-3 right-3 h-[3px] origin-left scale-x-0 rounded-full bg-gradient-to-r transition-transform duration-300 group-hover:scale-x-100",
+                   item.href === "/wishlist"
+                     ? "from-[#dc2626]/60 to-[#ef4444]/60"
+                     : "from-[#16a34a]/50 to-[#22c55e]/50"
+                 )} />
                )}
              </Link>
            ))}
