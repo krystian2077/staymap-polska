@@ -35,7 +35,11 @@
       "Bash(python -c \"import boto3\")",
       "Bash(pip install *)",
       "Bash(python upload_to_r2.py)",
-      "Bash(git commit -m 'Fix avatar upload UX and R2 URL in user serializer *)"
+      "Bash(git commit -m 'Fix avatar upload UX and R2 URL in user serializer *)",
+      "Bash(git -C \"D:/staymap-polska\" add \"frontend/src/components/layout/Navbar.tsx\" \"frontend/src/app/\\(auth\\)/login/LoginForm.tsx\" \"frontend/src/app/\\(auth\\)/register/page.tsx\")",
+      "Bash(git -C D:/staymap-polska commit -m 'Remove Porownaj nav link and increase nav font size *)",
+      "Bash(git -C \"D:/staymap-polska\" push origin main)",
+      "Bash(grep -i \"\\\\.tsx$\")"
     ]
   }
 }
