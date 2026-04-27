@@ -4,6 +4,12 @@ import { clearAuthTokens, getAccessToken, getRefreshToken, setAuthTokens } from 
 
 type ApiError = { code: string; message: string; field?: string | null };
 
+function errorMessageForStatus(status: number): string {
+  if (status === 403) return "Brak uprawnień do wykonania tej operacji.";
+  if (status === 401) return "Sesja wygasła. Zaloguj się ponownie.";
+  return "";
+}
+
 function persistAccessTokens(data: { access: string; refresh?: string }) {
   setAuthTokens(data.access, data.refresh);
 }
@@ -51,7 +57,8 @@ export class APIClient {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       const err = (data as { error?: ApiError })?.error;
-      const e = new Error(err?.message || res.statusText) as Error & {
+      const fallback = errorMessageForStatus(res.status);
+      const e = new Error(err?.message || fallback || res.statusText) as Error & {
         code?: string;
         field?: string | null;
         status?: number;
@@ -131,7 +138,8 @@ export class APIClient {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       const err = (data as { error?: ApiError })?.error;
-      const e = new Error(err?.message || res.statusText) as Error & {
+      const fallback = errorMessageForStatus(res.status);
+      const e = new Error(err?.message || fallback || res.statusText) as Error & {
         code?: string;
         status?: number;
       };

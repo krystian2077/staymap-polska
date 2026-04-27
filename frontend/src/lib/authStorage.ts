@@ -1,5 +1,8 @@
 const ACCESS_KEY = "access";
 const REFRESH_KEY = "refresh";
+const ACCESS_COOKIE = "access_token";
+const REFRESH_COOKIE = "refresh_token";
+const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30 dni
 
 /** Tokeny w localStorage — współdzielone między kartami (sessionStorage jest per-karta). */
 function storageAvailable(): Storage | null {
@@ -12,6 +15,18 @@ function storageAvailable(): Storage | null {
 }
 
 let migrated = false;
+
+function setCookie(name: string, value: string): void {
+  if (typeof document === "undefined") return;
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${COOKIE_MAX_AGE}; SameSite=Lax${secure}`;
+}
+
+function clearCookie(name: string): void {
+  if (typeof document === "undefined") return;
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax${secure}`;
+}
 
 /** Jednorazowa migracja ze starego sessionStorage (sesja znikała w nowej karcie). */
 function migrateFromSessionStorageOnce(): void {
@@ -49,7 +64,9 @@ export function setAuthTokens(access: string, refresh?: string): void {
   const storage = storageAvailable();
   if (!storage) return;
   storage.setItem(ACCESS_KEY, access);
+  setCookie(ACCESS_COOKIE, access);
   if (refresh) storage.setItem(REFRESH_KEY, refresh);
+  if (refresh) setCookie(REFRESH_COOKIE, refresh);
 }
 
 export function clearAuthTokens(): void {
@@ -62,6 +79,8 @@ export function clearAuthTokens(): void {
     if (typeof window !== "undefined") {
       window.sessionStorage.removeItem(ACCESS_KEY);
       window.sessionStorage.removeItem(REFRESH_KEY);
+      clearCookie(ACCESS_COOKIE);
+      clearCookie(REFRESH_COOKIE);
     }
   } catch {
     /* ignore */
